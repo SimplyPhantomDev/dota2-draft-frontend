@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 
-const BASE_URL = "https://dota2-backend.onrender.com";
+const BASE_URL = "http://localhost:3001";
 
 
 export default function HeroList() {
@@ -15,36 +15,26 @@ export default function HeroList() {
   const [suggestedHeroes, setSuggestedHeroes] = useState([]);
 
   const [selectedTeam, setSelectedTeam] = useState("ally");
-
-  const [banMode, setBanMode] = useState(false);
+  
   const [bannedHeroes, setBannedHeroes] = useState([]);
 
+  const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
+
+  const lockHero = (heroId) => {
+    setClickLockedHeroes((prev) => new Set(prev).add(heroId));
+  };
+
+  const unlockHero = (heroId) => {
+    setClickLockedHeroes((prev) => {
+      const updated = new Set(prev);
+      updated.delete(heroId);
+      return updated;
+    });
+  };
+
   const handleHeroClick = async (hero) => {
-    if(banMode) {
-      if (bannedHeroes.length >= 16) return;
-      try {
-        const response = await fetch(`${BASE_URL}/api/ban-hero`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ heroId: hero.HeroId }),
-        });
-
-        const data = await response.json();
-        if (data?.message === "Hero Banned") {
-          setBannedHeroes(prev => [...prev, hero]);
-
-          fetch(`${BASE_URL}/api/synergy-picks`)
-            .then((res) => res.json())
-            .then((data) => setSuggestedHeroes(data))
-            .catch((err) => console.error("Failed to fetch synergy picks after banning:", err));
-        } else {
-          console.warn("Ban failed:", data?.message);
-        }
-      } catch (err) {
-        console.error("Failed to ban hero:", err);
-      }
-      return;
-    }
+    if (clickLockedHeroes.has(hero.HeroId)) return;
+    lockHero(hero.HeroId);
     const team = selectedTeam;
     try {
       const response = await fetch(`${BASE_URL}/api/select-hero`, {
@@ -62,6 +52,8 @@ export default function HeroList() {
       }
     } catch (err) {
       console.error("❌ Failed to select hero:", err);
+    } finally {
+      unlockHero(hero.HeroId);
     }
   }
 
@@ -117,6 +109,36 @@ const handleBanRemove = async (hero) => {
     }
   } catch (err) {
     console.error("Failed to unban hero:", err)
+  }
+}
+
+const handleHeroBan = async (hero) => {
+  if (bannedHeroes.length >= 16) return;
+
+  if (clickLockedHeroes.has(hero.HeroId)) return;
+
+  try {
+    const response = await fetch(`${BASE_URL}/api/ban-hero`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json"}, 
+      body: JSON.stringify({ heroId: hero.HeroId }),
+    });
+
+    const data = await response.json();
+    if (data?.message === "Hero Banned") {
+      setBannedHeroes(prev => [...prev, hero]);
+
+      fetch(`${BASE_URL}/api/synergy-picks`)
+        .then((res) => res.json())
+        .then((data) => setSuggestedHeroes(data))
+        .catch((err) => console.error("Failed to fetch synergy picks after banning:", err))
+    } else {
+      console.warn("Ban failed:", data?.message);
+    }
+  } catch (err) {
+    console.error("Failed to ban hero:", err)
+  } finally {
+    unlockHero(hero.HeroId);
   }
 }
 
@@ -186,7 +208,7 @@ const handleBanRemove = async (hero) => {
         </div>
         <div className="flex gap-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="w-[142px] h-[80px] bg-red-500 opacity-50 rounded overflow-hidden flex items-center justify-center border border-gray-600">
+            <div key={i} className="w-[142px] h-[80px] bg-red-900 rounded overflow-hidden flex items-center justify-center border border-gray-600">
               {selectedHeroes.enemy[i] && (
                 <div
                   className="relative group w-full h-full cursor-pointer"
@@ -206,14 +228,6 @@ const handleBanRemove = async (hero) => {
           ))}
         </div>
         <div className="flex items-center gap-2 ml-auto">
-          <button
-          onClick={() => setBanMode(prev => !prev)}
-          className={`w-[142px] h-[80px] font-bold rounded text-sm transition ${
-            banMode ? "bg-yellow-400 text-black hover:bg-yellow-500" : "bg-gray-600 text-white hover:bg-gray-500"
-          }`}
-          >
-            {banMode ? "Ban Mode: ON" : "Ban Mode: OFF"}
-          </button>
           <button
           onClick={handleClear}
           className="w-[142px] h-[80px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded shrink-0 align-right"
@@ -272,15 +286,20 @@ const handleBanRemove = async (hero) => {
                   {heroes[attr]?.map((hero) => {
                     const isPicked = selectedHeroes.ally.some(h => h.HeroId === hero.HeroId)
                       || selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId)
-                      || bannedHeroes.some(h => h.HeroId === hero.HeroId);
+                      || bannedHeroes.some(h => h.HeroId === hero.HeroId)
+                      || clickLockedHeroes.has(hero.HeroId);
 
                     return (
                       <button
                         key={hero.HeroId}
+                        onClick={() => !isPicked && handleHeroClick(hero)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          !isPicked && handleHeroBan(hero);
+                        }}
+                        disabled={isPicked}
                         className={`w-[106px] h-[76px] rounded shadow text-center focus:outline-none transition 
                           ${isPicked ? "bg-gray-600 opacity-40 cursor-not-allowed" : "bg-gray-800 hover:ring-2 hover:ring-yellow-400"}`}
-                        onClick={() => !isPicked && handleHeroClick(hero)}
-                        disabled={isPicked}
                       >
                         <img
                           src={hero.icon_url}
@@ -313,15 +332,20 @@ const handleBanRemove = async (hero) => {
                   {heroes[attr]?.map((hero) => {
                     const isPicked = selectedHeroes.ally.some(h => h.HeroId === hero.HeroId)
                       || selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId)
-                      || bannedHeroes.some(h => h.HeroId === hero.HeroId);
+                      || bannedHeroes.some(h => h.HeroId === hero.HeroId)
+                      || clickLockedHeroes.has(hero.HeroId);
 
                     return (
                       <button
                         key={hero.HeroId}
+                        onClick={() => !isPicked && handleHeroClick(hero)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          !isPicked && handleHeroBan(hero);
+                        }}
+                        disabled={isPicked}
                         className={`w-[106px] h-[76px] rounded shadow text-center focus:outline-none transition 
                           ${isPicked ? "bg-gray-600 opacity-40 cursor-not-allowed" : "bg-gray-800 hover:ring-2 hover:ring-yellow-400"}`}
-                        onClick={() => !isPicked && handleHeroClick(hero)}
-                        disabled={isPicked}
                       >
                         <img
                           src={hero.icon_url}
@@ -348,8 +372,9 @@ const handleBanRemove = async (hero) => {
                 will be shown here. Once you start selecting heroes to either team, the tool will start 
                 calculating the best possible picks judging by the heroes picked and what is left in the pool. <br /> <br />
                 To select a hero, simply press the hero within the grid below the draft panel. To remove a hero, click
-                them inside the draft panel at the top of your screen. On this sidebar you can see the hero's 
-                icon, name and the synergy rating. The higher the synergy rating, the stronger the hero pick. <br /><br />
+                them inside the draft panel at the top of your screen. Right clicking a hero will ban said hero. 
+                On this sidebar you can see the hero's icon, name and the synergy rating. The higher the synergy rating, 
+                the stronger the hero pick. <br /><br />
                 Thank you to reddit user u/Winter-Nectarine-601 for the idea. This was a fun little project to do
                 and I'll aim to keep it updated as long as possible if it gains enough traction. <br /> <br />
                 Note: This tool is based on pure statistical analysis and requires the user to use common sense 
