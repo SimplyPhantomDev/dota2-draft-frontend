@@ -23,8 +23,6 @@ export default function HeroList() {
 
   const [heroes, setHeroes] = useState({});
 
-  const [matchupCache, setMatchupCache] = useState({});
-
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
   const hasBans = bannedHeroes.length > 0;
@@ -47,7 +45,6 @@ export default function HeroList() {
         allyHeroIds: ally.map(h => h.HeroId),
         enemyHeroIds: enemy.map(h => h.HeroId),
         bannedHeroIds: bans.map(h => h.HeroId),
-        matchups: matchupCache,
       }),
     })
       .then(res => res.json())
@@ -168,7 +165,6 @@ export default function HeroList() {
         team,
         allyHeroIds: allyIds,
         enemyHeroIds: enemyIds,
-        matchupCache,
       }),
     });
 
@@ -179,13 +175,6 @@ export default function HeroList() {
         [team]: [...selectedHeroes[team], hero],
       };
       setSelectedHeroes(updatedSelected);
-
-      if (data.matchups) {
-        setMatchupCache(prev => ({
-          ...prev,
-          [hero.HeroId]: data.matchups,
-        }));
-      }
 
       setTimeout(updateSynergySuggestions, 0);
     }
@@ -217,7 +206,6 @@ export default function HeroList() {
         team,
         allyHeroIds: allyIds,
         enemyHeroIds: enemyIds,
-        matchupCache,
       }),
     });
 
@@ -228,14 +216,6 @@ export default function HeroList() {
         [team]: [...selectedHeroes[team], hero]
       };
       setSelectedHeroes(updatedSelected);
-
-      if (data.matchups) {
-        setMatchupCache(prev => ({
-          ...prev,
-          [hero.HeroId]: data.matchups,
-        }));
-      }
-
       setTimeout(updateSynergySuggestions, 0);
     } else {
       console.warn("Drop hero response:", data?.message);
@@ -256,25 +236,13 @@ export default function HeroList() {
 
     setSelectedHeroes(newSelected);
 
-    const stillUsed = [...newSelected.ally, ...newSelected.enemy]
-      .some(h => h.HeroId === hero.HeroId);
-
-      if (!stillUsed) {
-        setMatchupCache(prev => {
-          const newCache = {...prev};
-          delete newCache[hero.HeroId];
-          return newCache;
-        })
-      }
-
-      updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
+    updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
   }
 
   const handleClear = () => {
     setSelectedHeroes({ ally: [], enemy: [] });
     setSuggestedHeroes([]);
     setBannedHeroes([]);
-    setMatchupCache({});
     setClickLockedHeroes(new Set());
   };
 
@@ -294,21 +262,7 @@ export default function HeroList() {
       const updatedBans = [...bannedHeroes, hero];
       setBannedHeroes(updatedBans)
 
-      if (!matchupCache[hero.HeroId]) {
-        const response = await fetch(`${BASE_URL}/api/matchups`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ heroId: hero.HeroId }),
-        });
-
-        const data = await response.json();
-        setMatchupCache(prev => ({
-          ...prev,
-          [hero.HeroId]: data,
-        }));
-        }
-
-        updateSynergySuggestions();
+      updateSynergySuggestions();
         
     } catch (err) {
       console.error("Failed to ban hero:", err);
@@ -527,7 +481,7 @@ export default function HeroList() {
           </div>
           <div className="text-white text-xs mt-4 border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
-            <p>Last updated: June 29</p>
+            <p>Last updated: July 2</p>
           </div>
         </div>
       </div>
