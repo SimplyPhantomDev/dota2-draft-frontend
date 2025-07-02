@@ -3,7 +3,7 @@ import { useDrag, useDrop } from "react-dnd";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 
-const BASE_URL = "https://dota2-backend.onrender.com";
+const BASE_URL = "http://localhost:3001";
 
 
 export default function HeroList() {
@@ -22,6 +22,8 @@ export default function HeroList() {
   const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
 
   const [heroes, setHeroes] = useState({});
+  
+  const[roleFilter, setRoleFilter] = useState(null);
 
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
@@ -30,7 +32,8 @@ export default function HeroList() {
   const updateSynergySuggestions = (
     ally = selectedHeroes.ally,
     enemy = selectedHeroes.enemy,
-    bans = bannedHeroes
+    bans = bannedHeroes,
+    role = roleFilter
   ) => {
 
     if (ally.length === 0 && enemy.length === 0) {
@@ -45,6 +48,7 @@ export default function HeroList() {
         allyHeroIds: ally.map(h => h.HeroId),
         enemyHeroIds: enemy.map(h => h.HeroId),
         bannedHeroIds: bans.map(h => h.HeroId),
+        roleFilter: role,
       }),
     })
       .then(res => res.json())
@@ -125,7 +129,7 @@ export default function HeroList() {
         `}
       >
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="relative w-[142px] h-[80px] bg-gray-700 rounded overflow-hidden flex items-center justify-center">
+          <div key={i} className="relative w-[106px] h-[60px] bg-gray-700 rounded overflow-hidden flex items-center justify-center">
             {heroes2[i] && (
               <div
                 className="relative group w-full h-full cursor-pointer"
@@ -293,29 +297,33 @@ export default function HeroList() {
   return (
     <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
       {/* Drafting Panel with Title */}
-      <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 flex items-center gap-6">
-        <h1 className="text-2xl font-bold text-white mr-4">Dota 2 Counter Tool</h1>
-        <TeamDropZone team="ally" />
-        <div className="flex justify-center">
-          <button
-            onClick={() => setSelectedTeam(prev => prev === "ally" ? "enemy" : "ally")}
-            className={`w-[188px] px-4 py-1 rounded-full text-white text-sm font-semibold transition 
-            ${selectedTeam === "ally" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
-          >
-            Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
-          </button>
+      <div className="mb-2 bg-gray-800 rounded shadow px-4 flex items-center justify-between">
+        <div className="flex-shrink-0">
+          <h1 className="text-2xl font-bold text-white mr-4">Dota 2 Counter Tool</h1>
         </div>
-        <TeamDropZone team="enemy" />
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-6 mx-auto">
+          <TeamDropZone team="ally" />
+          <div className="flex justify-center">
+            <button
+              onClick={() => setSelectedTeam(prev => prev === "ally" ? "enemy" : "ally")}
+              className={`w-[188px] px-4 py-1 rounded-full text-white text-sm font-semibold transition 
+              ${selectedTeam === "ally" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+            >
+              Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+            </button>
+          </div>
+          <TeamDropZone team="enemy" /> 
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleClearBans}
-            className="w-[71px] h-[60px] bg-gray-100 hover:bg-gray-200 text-black font-bold rounded shrink-0"
+            className="w-[71px] h-[60px] bg-gray-100 hover:bg-gray-200 text-black font-bold rounded"
           >
             Clear Bans
           </button>
           <button
             onClick={handleClear}
-            className="w-[71px] h-[60px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded shrink-0 align-right"
+            className="w-[71px] h-[60px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded"
           >
             Clear All
           </button>
@@ -440,9 +448,11 @@ export default function HeroList() {
                   will be shown here. Once you start selecting heroes to either team, the tool will start 
                   calculating the best possible picks judging by the heroes picked and what is left in the pool. <br /> <br />
                   To select a hero, simply press the hero within the grid below the draft panel. To remove a hero, click
-                  them inside the draft panel at the top of your screen. Right clicking a hero will ban said hero. 
+                  them inside the draft panel at the top of your screen. Right click to ban heroes. You can also drag heroes
+                  to their respective teams if you so wish.
                   On this sidebar you can see the hero's icon, name and the synergy rating. The higher the synergy rating, 
-                  the stronger the hero pick. <br /><br />
+                  the stronger the hero pick. The synergy rating shows the hero-specific increase in winrate from the
+                   baseline (50%) according to the heroes picked and banned.<br /><br />
                   Thank you to reddit user u/Winter-Nectarine-601 for the idea. This was a fun little project to do
                   and I'll aim to keep it updated as long as possible if it gains enough traction. <br /> <br />
                   Note: This tool is based on pure statistical analysis and requires the user to use common sense 
@@ -478,6 +488,50 @@ export default function HeroList() {
                 ))}
               </>
             )}
+          </div>
+          <div className="mt-4 border-t border-gray-700 pt-2">
+            <p className="text-gray-300 text-sm mb-1">Filter by Role:</p>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  const newFilter = roleFilter === "Carry" ? null : "Carry";
+                  setRoleFilter(newFilter);
+                  updateSynergySuggestions(
+                    selectedHeroes.ally,
+                    selectedHeroes.enemy,
+                    bannedHeroes,
+                    newFilter
+                  );
+                }}
+                className={`px-3 py-1 rounded text-sm font-semobold transition-colors duration-150 ${
+                  roleFilter === "Carry"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-600 text-gray-300"
+                }`}
+              >
+                Carry
+              </button>
+
+              <button
+                onClick={() => {
+                  const newFilter = roleFilter === "Support" ? null : "Support";
+                  setRoleFilter(newFilter);
+                  updateSynergySuggestions(
+                    selectedHeroes.ally,
+                    selectedHeroes.enemy,
+                    bannedHeroes,
+                    newFilter
+                  );
+                }}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors duration-150 ${
+                  roleFilter === "Support"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-600 text-gray-300"
+                }`}
+              >
+                Support
+              </button>
+            </div>
           </div>
           <div className="text-white text-xs mt-4 border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
