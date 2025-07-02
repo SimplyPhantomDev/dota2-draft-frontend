@@ -297,11 +297,11 @@ export default function HeroList() {
   return (
     <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
       {/* Drafting Panel with Title */}
-      <div className="mb-2 bg-gray-800 rounded shadow px-4 flex items-center justify-between">
-        <div className="flex-shrink-0">
+      <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
+        <div className="flex-shrink-0 z-10">
           <h1 className="text-2xl font-bold text-white mr-4">Dota 2 Counter Tool</h1>
         </div>
-        <div className="flex items-center gap-6 mx-auto">
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
           <TeamDropZone team="ally" />
           <div className="flex justify-center">
             <button
@@ -314,7 +314,7 @@ export default function HeroList() {
           </div>
           <TeamDropZone team="enemy" /> 
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 z-10">
           <button
             onClick={handleClearBans}
             className="w-[71px] h-[60px] bg-gray-100 hover:bg-gray-200 text-black font-bold rounded"
@@ -452,12 +452,11 @@ export default function HeroList() {
                   to their respective teams if you so wish.
                   On this sidebar you can see the hero's icon, name and the synergy rating. The higher the synergy rating, 
                   the stronger the hero pick. The synergy rating shows the hero-specific increase in winrate from the
-                   baseline (50%) according to the heroes picked and banned.<br /><br />
+                  baseline (50%) according to the heroes picked and banned.<br /><br />
                   Thank you to reddit user u/Winter-Nectarine-601 for the idea. This was a fun little project to do
-                  and I'll aim to keep it updated as long as possible if it gains enough traction. <br /> <br />
-                  Note: This tool is based on pure statistical analysis and requires the user to use common sense 
-                  as to what heroes are logical to be picked in certain situations. This tool is just a prototype for now
-                  and platform-specific (mobile, different screen resolutions) support might be added later down the line.
+                  and I'll aim to keep it updated as long as possible if it gains enough traction. Site data will be updated once a week. <br /> <br />
+                  Note: This tool is based on pure statistical analysis. It is just a prototype for now
+                  and platform-specific (i.e. mobile, different screen resolutions) support might be added later down the line.
                   If you happen to encounter any bugs while using the tool, the "Clear All" button should restart everything.
                 </p>
               )
@@ -533,7 +532,7 @@ export default function HeroList() {
               </button>
             </div>
           </div>
-          <div className="text-white text-xs mt-4 border-t border-gray-700 pt-2">
+          <div className="text-white text-xs border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
             <p>Last updated: July 2</p>
           </div>
