@@ -3,7 +3,7 @@ import { useDrag, useDrop } from "react-dnd";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = "https://dota2-backend.onrender.com";
 
 
 export default function HeroList() {
