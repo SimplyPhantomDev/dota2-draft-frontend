@@ -89,6 +89,7 @@ export default function HeroList() {
     const [{ isDragging }, drag] = useDrag(() => ({
       type: "HERO",
       item: { hero },
+      canDrag: !isPicked,
       collect: (monitor) => ({
         isDragging: !!monitor.isDragging(),
       }),
@@ -329,7 +330,7 @@ export default function HeroList() {
         <div className="flex items-center gap-2 flex-shrink-0 z-10">
           <button
             onClick={handleClearBans}
-            className="w-[71px] h-[60px] bg-gray-100 hover:bg-gray-200 text-black font-bold rounded"
+            className="w-[71px] h-[60px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded"
           >
             Clear Bans
           </button>
