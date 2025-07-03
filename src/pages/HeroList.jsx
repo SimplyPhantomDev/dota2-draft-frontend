@@ -25,6 +25,8 @@ export default function HeroList() {
   
   const[roleFilter, setRoleFilter] = useState(null);
 
+  const [fullDraftStats, setFullDraftStats] = useState(null);
+
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
   const hasBans = bannedHeroes.length > 0;
@@ -41,6 +43,8 @@ export default function HeroList() {
       return;
     }
 
+    const isFullDraft = ally.length === 5 && enemy.length === 5;
+
     fetch(`${BASE_URL}/api/synergy-picks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -48,13 +52,21 @@ export default function HeroList() {
         allyHeroIds: ally.map(h => h.HeroId),
         enemyHeroIds: enemy.map(h => h.HeroId),
         bannedHeroIds: bans.map(h => h.HeroId),
-        roleFilter: role,
+        roleFilter: isFullDraft ? null : role,
+        fullDraft: isFullDraft
       }),
     })
       .then(res => res.json())
-      .then(data => setSuggestedHeroes(data))
-      .catch(err => console.error("Failed to update synergy suggestions:", err));
-  };
+    .then(data => {
+      if (isFullDraft && data.teams) {
+        setFullDraftStats(data.teams);
+      } else {
+        setSuggestedHeroes(data);
+        setFullDraftStats(null);
+      }
+    })
+    .catch(err => console.error("Failed to update synergy suggestions:", err));
+};
 
   const lockHero = (heroId) => {
     setClickLockedHeroes((prev) => new Set(prev).add(heroId));
@@ -433,7 +445,7 @@ export default function HeroList() {
           </div>
         </div>
 
-
+        {/* The sidebar */}
         <div className="w-64 bg-gray-800 rounded shadow flex flex-col justify-between p-4">
           <div className="space-y-2">
             {suggestedHeroes.length === 0 ? (
@@ -467,24 +479,87 @@ export default function HeroList() {
                   <span className="flex-1 pl-2">Name</span>
                   <span className="text-right pr-1">Synergy</span>
                 </div>
-                {suggestedHeroes.map((hero) => (
-                  <div
-                    key={hero.HeroId}
-                    className="flex items-center justify between bg-gray-700 rounded px-2 py-1"
-                  >
-                    <img
-                      src={hero.icon_url}
-                      alt={hero.name}
-                      className="w-10 h-10 object-contain mr-2"
-                    />
-                    <span className="flex-1 text-sm font-medium text-white truncate">
-                      {hero.name}
-                    </span>
-                    <span className="text-green-400 text-sm font-mono pl-2">
-                      {hero.totalScore}
-                    </span>
-                  </div>
-                ))}
+                {fullDraftStats ? (
+                  <>
+                    {/* Header Row */}
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
+                      <span className="w-10 text-left">Ally</span>
+                      <span className="w-10 text-right">Score</span>
+                      <div className="border-1 border-gray-500 h-6 mx-1"/>
+                      <span className="w-10 text-left">Score</span>
+                      <span className="w-10 text-right">Enemy</span>
+                    </div>
+
+                    {/* 5 rows for each hero */}
+                    {Array.from({ length: 5}).map((_, i) => {
+                      const ally = fullDraftStats.ally[i];
+                      const enemy = fullDraftStats.enemy[i];
+                      return (
+                        <div key={i} className="flex items-center justify-between bg-gray-700 rounded px-2 py-1">
+                          <img src={ally.icon_url} alt="" className="w-10 h-10 object-contain" />
+                          <span className="text-green-400 text-sm font-mono w-10 text-right">
+                            {ally.totalScore}
+                          </span>
+                          <div className="border-1 border-gray-600 h-6 mx-1" />
+                          <span className="text-red-400 text-sm font-mono w-10 text-left">
+                            {enemy.totalScore}
+                          </span>
+                          <img src={enemy.icon_url} alt="" className="w-10 h-10 object-contain" />
+                        </div>
+                      );
+                    })}
+                    {/* Totals */}
+                    <div className="mt-2 flex items-center justify-center gap-2 text-lg font-bold">
+                      <span className="text-green-400">
+                        {fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
+                      </span>
+                      <span className="text-gray-400 text-sm">vs</span>
+                      <span className="text-red-400">
+                        {fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
+                      </span>
+                    </div>
+
+                    {/* Outcome prediction */}
+                    <div className="mt-1 text-center">
+                      {(() => {
+                        const allyTotal = fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
+                        const enemyTotal = fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
+                        const delta = allyTotal - enemyTotal;
+                        const allyWin = ((50 + delta)).toFixed(1);
+                        const enemyWin = ((50 - delta)).toFixed(1);
+
+                        return (
+                          <span className="text-lg font-bold">
+                            <span className="text-green-400">{allyWin}%</span>
+                            <span className="text-gray-400 mx-1">/</span>
+                            <span className="text-red-400">{enemyWin}%</span>
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    </>
+                ) : (
+                  <>
+                    {suggestedHeroes.map((hero) => (
+                      <div
+                        key={hero.HeroId}
+                        className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
+                      >
+                        <img
+                          src={hero.icon_url}
+                          alt={hero.name}
+                          className="w-10 h-10 object-contain mr-2"
+                        />
+                        <span className="flex-1 text-sm font-medium text-white truncate">
+                          {hero.name}
+                        </span>
+                        <span className="text-green-400 text-sm font-mono pl-2">
+                          {hero.totalScore}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </div>
