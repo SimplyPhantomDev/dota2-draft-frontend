@@ -446,8 +446,8 @@ export default function HeroList() {
         </div>
 
         {/* The sidebar */}
-        <div className="w-64 bg-gray-800 rounded shadow flex flex-col justify-between p-4">
-          <div className="space-y-2">
+        <div className="w-64 bg-gray-800 rounded shadow flex flex-col p-4">
+          <div className="flex-1 overflow-y-auto space-y-2">
             {suggestedHeroes.length === 0 ? (
               hasPicks ? null : hasBans ? (
                 <p className="text-gray-400 text-sm italic">
@@ -474,11 +474,6 @@ export default function HeroList() {
               )
             ) : (
               <>
-                <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
-                  <span className="w-10">Hero</span>
-                  <span className="flex-1 pl-2">Name</span>
-                  <span className="text-right pr-1">Synergy</span>
-                </div>
                 {fullDraftStats ? (
                   <>
                     {/* Header Row */}
@@ -540,6 +535,11 @@ export default function HeroList() {
                     </>
                 ) : (
                   <>
+                    <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
+                      <span className="w-10">Hero</span>
+                      <span className="flex-1 pl-2">Name</span>
+                      <span className="text-right pr-1">Synergy</span>
+                    </div>
                     {suggestedHeroes.map((hero) => (
                       <div
                         key={hero.HeroId}
@@ -565,7 +565,7 @@ export default function HeroList() {
           </div>
           <div className="mt-4 border-t border-gray-700 pt-2">
             <p className="text-gray-300 text-sm mb-1">Filter by Role:</p>
-            <div className="flex space-x-2">
+            <div className="flex mb-3 space-x-2">
               <button
                 onClick={() => {
                   const newFilter = roleFilter === "Carry" ? null : "Carry";
