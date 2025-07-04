@@ -31,6 +31,8 @@ export default function HeroList() {
 
   const hasBans = bannedHeroes.length > 0;
 
+  const [gridMode, setGridMode] = useState("default");
+
   const updateSynergySuggestions = (
     ally = selectedHeroes.ally,
     enemy = selectedHeroes.enemy,
@@ -317,6 +319,42 @@ export default function HeroList() {
   }
 }, [selectedHeroes, bannedHeroes]);
 
+function renderAttributeColumn(attr) {
+  const colorMap = {
+    str: { border: "border-red-600", bg: "bg-red-900/10", text: "text-red-600", label: "Strength" },
+    agi: { border: "border-green-600", bg: "bg-green-900/10", text: "text-green-600", label: "Agility" },
+    int: { border: "border-blue-600", bg: "bg-blue-900/10", text: "text-blue-600", label: "Intelligence" },
+    all: { border: "border-purple-600", bg: "bg-purple-900/10", text: "text-purple-600", label: "Universal" },
+  };
+
+  const { border, bg, text, label } = colorMap[attr];
+
+  return (
+    <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
+      <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
+      <div className="flex flex-wrap gap-2">
+        {heroes[attr]?.map((hero) => {
+          const isPicked =
+            selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
+            selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId) ||
+            bannedHeroes.some(h => h.HeroId === hero.HeroId) ||
+            clickLockedHeroes.has(hero.HeroId);
+
+          return (
+            <DraggableHero
+              key={hero.HeroId}
+              hero={hero}
+              isPicked={isPicked}
+              handleHeroClick={handleHeroClick}
+              handleHeroBan={handleHeroBan}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
   return (
     <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
       {/* Drafting Panel with Title */}
@@ -353,8 +391,16 @@ export default function HeroList() {
         </div>
       </div>
       {bannedHeroes.length > 0 || true ? (
-        <div className="flex flex-col items-center">
-          <h2 className="text-sm font-semibold text-white mb-1">Bans:</h2>
+        <div className="flex flex-col items-center w-full">
+          <div className="relative w-full h-6 mb-1">
+            <button
+              onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-600 hover:bg-gray-700 rounded flex items-center justify-center"
+              title="Toggle Grid Layout"
+              >
+            </button>
+            <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
+          </div>
           <div className="flex justify-center mb-2 gap-2">
             {[...Array(16)].map((_, i) => (
               <div
@@ -386,74 +432,24 @@ export default function HeroList() {
         {/* Main hero area */}
         <div className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4">
           {/* Top Row: Strength + Agility */}
-          <div className="flex gap-4">
-            {["str", "agi"].map((attr) => (
-              <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${
-                attr === "str"
-                  ? "border-red-600 bg-red-900/10"
-                  : "border-green-600 bg-green-900/10"
-              }`}>
-                <h2 className={`text-xl font-bold mb-2 ${
-                  attr === "str" ? "text-red-600" : "text-green-600"
-                }`}>
-                  {attr === "str" ? "Strength" : "Agility"}
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {heroes[attr]?.map((hero) => {
-                    const isPicked = selectedHeroes.ally.some(h => h.HeroId === hero.HeroId)
-                      || selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId)
-                      || bannedHeroes.some(h => h.HeroId === hero.HeroId)
-                      || clickLockedHeroes.has(hero.HeroId);
-
-                    return (
-                      <DraggableHero
-                        key={hero.HeroId}
-                        hero={hero}
-                        isPicked={isPicked}
-                        handleHeroClick={handleHeroClick}
-                        handleHeroBan={handleHeroBan}
-                      />
-                    );
-                  })}
-                </div>
+          {gridMode === "default" ? (
+            <>
+              {/* Default mode: 2 stacked rows */}
+              <div className="flex gap-4">
+                {["str", "agi"].map((attr) => renderAttributeColumn(attr))}
               </div>
-            ))}
-          </div>
-
-          {/* Bottom Row: Intelligence + Universal */}
-          <div className="flex gap-4">
-            {["int", "all"].map((attr) => (
-              <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${
-                attr === "int"
-                  ? "border-blue-600 bg-blue-900/10"
-                  : "border-purple-600 bg-purple-900/10"
-              }`}>
-                <h2 className={`text-xl font-bold mb-2 ${
-                  attr === "int" ? "text-blue-600" : "text-purple-600"
-                }`}>
-                  {attr === "int" ? "Intelligence" : "Universal"}
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {heroes[attr]?.map((hero) => {
-                    const isPicked = selectedHeroes.ally.some(h => h.HeroId === hero.HeroId)
-                      || selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId)
-                      || bannedHeroes.some(h => h.HeroId === hero.HeroId)
-                      || clickLockedHeroes.has(hero.HeroId);
-
-                    return (
-                      <DraggableHero
-                        key={hero.HeroId}
-                        hero={hero}
-                        isPicked={isPicked}
-                        handleHeroClick={handleHeroClick}
-                        handleHeroBan={handleHeroBan}
-                      />
-                    );
-                  })}
-                </div>
+              <div className="flex gap-4">
+                {["int", "all"].map((attr) => renderAttributeColumn(attr))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              {/* Row mode: all attributes in a single row */}
+              <div className="flex gap-4">
+                {["str", "agi", "int", "all"].map((attr) => renderAttributeColumn(attr))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* The sidebar */}
