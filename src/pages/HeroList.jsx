@@ -164,6 +164,16 @@ export default function HeroList() {
     );
   }
 
+  function getWinProbability(delta) {
+    const maxWinrate = 80;
+    const minWinrate = 20;
+    const growthRate = 0.025;
+    const adjusted = delta * growthRate;
+
+    const probability = 50 + (maxWinrate - 50) * Math.tanh(adjusted);
+    return Math.max(minWinrate, Math.min(maxWinrate, probability.toFixed(2)));
+  }
+
   const handleHeroClick = async (hero) => {
   if (clickLockedHeroes.has(hero.HeroId)) return;
 
@@ -521,8 +531,8 @@ export default function HeroList() {
                         const allyTotal = fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
                         const enemyTotal = fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
                         const delta = allyTotal - enemyTotal;
-                        const allyWin = ((50 + delta)).toFixed(1);
-                        const enemyWin = ((50 - delta)).toFixed(1);
+                        const allyWin = getWinProbability(delta);
+                        const enemyWin = ((100 - allyWin)).toFixed(2);
 
                         return (
                           <span className="text-lg font-bold">
@@ -565,7 +575,7 @@ export default function HeroList() {
             )}
           </div>
           <div className="mt-4 border-t border-gray-700 pt-2">
-            <p className="text-gray-300 text-sm mb-1">Filter by Role:</p>
+            <p className="text-gray-300 text-sm mb-1">Suggestion filters:</p>
             <div className="flex mb-3 space-x-2">
               <button
                 onClick={() => {
