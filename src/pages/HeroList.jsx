@@ -395,9 +395,14 @@ function renderAttributeColumn(attr) {
           <div className="relative w-full h-6 mb-1">
             <button
               onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-600 hover:bg-gray-700 rounded flex items-center justify-center"
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-12 h-6 bg-gray-500 rounded-full p-1 transition-colors duration-300 ease-in-out"
               title="Toggle Grid Layout"
               >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                    gridMode === "row" ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
             </button>
             <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
           </div>
