@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
@@ -34,6 +34,12 @@ export default function HeroList() {
   const [showGuide, setShowGuide] = useState(false);
 
   const [buttonPulse, setButtonPulse] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const searchInputRef = useRef(null);
+
+  const searchTimeoutRef = useRef(null);
 
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
@@ -91,7 +97,7 @@ export default function HeroList() {
       updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
   }
 
-  function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan }) {
+  function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, grayscale, highlight }) {
     const [{ isDragging }, drag] = useDrag(() => ({
       type: "HERO",
       item: { hero },
@@ -120,7 +126,9 @@ export default function HeroList() {
           ${isPicked ? "bg-gray-600 opacity-40 cursor-not-allowed" : "bg-gray-800 hover:ring-2 hover:ring-yellow-400"}
           ${isDragging ? "opacity-30" : ""}`}
       >
-        <img src={hero.icon_url} alt={hero.name} className="w-full h-15 object-contain mx-auto" />
+        <img src={hero.icon_url} alt={hero.name} className={`w-full h-15 object-contain mx-auto transition-all duration-300 ${
+          grayscale ? "grayscale opacity-30" : ""} ${highlight ? "shadow-[0_0_10px_2px_rgba(59,130,246,0.7)]" : ""}
+        `} />
         <h3 className="text-xs font-medium px-1 truncate">{hero.name}</h3>
       </button>
     );
@@ -304,6 +312,11 @@ export default function HeroList() {
     }
   }
 
+  const isHeroMatch = (hero) => {
+    if(!searchQuery.trim()) return true;
+    return hero.name.toLowerCase().includes(searchQuery.toLowerCase());
+  }
+
   useEffect(() => {
     axios
       .get(`${BASE_URL}/heroes`)
@@ -322,6 +335,37 @@ export default function HeroList() {
     setSuggestedHeroes([]);
   }
 }, [selectedHeroes, bannedHeroes]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (document.activeElement !== searchInputRef.current) {
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  })
+
+  useEffect(() => {
+    // Don't start timeout if search is empty
+    if (!searchQuery) return;
+
+    // CLear any existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Start new timeout
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchQuery("");
+    }, 3000); // 3 seconds
+
+    // Clear timeout on unmount
+    return () => {
+      clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchQuery]);
 
 function renderAttributeColumn(attr) {
   const colorMap = {
@@ -351,6 +395,8 @@ function renderAttributeColumn(attr) {
               isPicked={isPicked}
               handleHeroClick={handleHeroClick}
               handleHeroBan={handleHeroBan}
+              grayscale={searchQuery ? !isHeroMatch(hero) : false}
+              highlight={searchQuery ? isHeroMatch(hero) : false}
             />
           );
         })}
@@ -361,6 +407,15 @@ function renderAttributeColumn(attr) {
 
   return (
     <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
+      {/* Hidden search functionality */}
+      <input
+        type="text"
+        className="opacity-0 absolute"
+        autoFocus
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        ref={searchInputRef}
+      />
       {/* Drafting Panel with Title */}
       <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
         <div className="flex items-center flex-shrink-0 z-10">
@@ -585,7 +640,7 @@ function renderAttributeColumn(attr) {
                 Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                 ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
                 Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                As this is a love letter to the community, I will keep the app completely ad-free.
+                Typing at any time starts a search function, that will reset in 3 seconds of inactivity. Normal typing rules of course apply. Aliases will be supported later down the line.
               </p>
               {/*Welcome to the ultimate Dota 2 drafting tool, powered by STRATZ API. Your hero suggestions 
                   will be shown here. Once you start selecting heroes to either team, the tool will start 
