@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
+import infoButtonIcon from '../assets/info_button.png';
+import '../App.css';
 
 const BASE_URL = "https://dota2-backend.onrender.com";
 
@@ -27,11 +29,13 @@ export default function HeroList() {
 
   const [fullDraftStats, setFullDraftStats] = useState(null);
 
-  const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
-
-  const hasBans = bannedHeroes.length > 0;
-
   const [gridMode, setGridMode] = useState("default");
+
+  const [showGuide, setShowGuide] = useState(false);
+
+  const [buttonPulse, setButtonPulse] = useState(false);
+
+  const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
   const updateSynergySuggestions = (
     ally = selectedHeroes.ally,
@@ -359,8 +363,20 @@ function renderAttributeColumn(attr) {
     <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
       {/* Drafting Panel with Title */}
       <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
-        <div className="flex-shrink-0 z-10">
-          <h1 className="text-2xl font-bold text-white mr-4">Dota 2 Counter Tool</h1>
+        <div className="flex items-center flex-shrink-0 z-10">
+          <h1 className="text-2xl font-bold text-white mr-2">Dota 2 Counter Tool</h1>
+          <button
+            onClick={() => {setShowGuide(prev => !prev);
+              setButtonPulse(true);
+              setTimeout(() => setButtonPulse(false), 500);
+            }}
+            className={`w-[30px] h-[30px] bg-white bg-opacity-0 text-black font-bold rounded transition-transform duration-200 ${
+              buttonPulse ? 'animate-pulse' : ''
+            }`}
+            title="Info"
+            >
+              <img src={infoButtonIcon} alt="Info" className="filter invert"/>
+            </button>
         </div>
         <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
           <TeamDropZone team="ally" />
@@ -403,6 +419,7 @@ function renderAttributeColumn(attr) {
                     gridMode === "row" ? "translate-x-6" : "translate-x-0"
                   }`}
                 />
+                {/* Place images here */}
             </button>
             <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
           </div>
@@ -460,30 +477,10 @@ function renderAttributeColumn(attr) {
         {/* The sidebar */}
         <div className="w-64 bg-gray-800 rounded shadow flex flex-col p-4">
           <div className="flex-1 overflow-y-auto space-y-2">
-            {suggestedHeroes.length === 0 ? (
-              hasPicks ? null : hasBans ? (
+            {suggestedHeroes.length === 0 && hasPicks === false ? (
                 <p className="text-gray-400 text-sm italic">
                   Pick a hero to see recommendations.
                 </p>
-              ) : (
-                <p className="text-gray-400 text-sm italic">
-                  Guide: <br />
-                  Welcome to the ultimate Dota 2 drafting tool, powered by STRATZ API. Your hero suggestions 
-                  will be shown here. Once you start selecting heroes to either team, the tool will start 
-                  calculating the best possible picks judging by the heroes picked and what is left in the pool. <br /> <br />
-                  To select a hero, simply press the hero within the grid below the draft panel. To remove a hero, click
-                  them inside the draft panel at the top of your screen. Right click to ban heroes. You can also drag heroes
-                  to their respective teams if you so wish.
-                  On this sidebar you can see the hero's icon, name and the synergy rating. The higher the synergy rating, 
-                  the stronger the hero pick. The synergy rating shows the hero-specific increase in winrate from the
-                  baseline (50%) according to the heroes picked and banned.<br /><br />
-                  Thank you to reddit user u/Winter-Nectarine-601 for the idea. This was a fun little project to do
-                  and I'll aim to keep it updated as long as possible if it gains enough traction. Site data will be updated once a week. <br /> <br />
-                  Note: This tool is based on pure statistical analysis. It is just a prototype for now
-                  and platform-specific (i.e. mobile, different screen resolutions) support might be added later down the line.
-                  If you happen to encounter any bugs while using the tool, the "Clear All" button should restart everything.
-                </p>
-              )
             ) : (
               <>
                 {fullDraftStats ? (
@@ -575,6 +572,37 @@ function renderAttributeColumn(attr) {
               </>
             )}
           </div>
+          {showGuide && (
+            <div className="relative bg-gray-700 text-white text-sm rounded-lg p-3 mt-2 shadow-lg guide-flash">
+              <button
+                onClick={() => setShowGuide(false)}
+                className="absolute top-1 right-2 text-gray-300 hover:text-white text-lg font-bold"
+              >
+                ×
+              </button>
+              <p className="text-gray-300">
+                <strong>Guide:</strong><br />
+                Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
+                ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
+                Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
+                As this is a love letter to the community, I will keep the app completely ad-free.
+              </p>
+              {/*Welcome to the ultimate Dota 2 drafting tool, powered by STRATZ API. Your hero suggestions 
+                  will be shown here. Once you start selecting heroes to either team, the tool will start 
+                  calculating the best possible picks judging by the heroes picked and what is left in the pool. <br /> <br />
+                  To select a hero, simply press the hero within the grid below the draft panel. To remove a hero, click
+                  them inside the draft panel at the top of your screen. Right click to ban heroes. You can also drag heroes
+                  to their respective teams if you so wish.
+                  On this sidebar you can see the hero's icon, name and the synergy rating. The higher the synergy rating, 
+                  the stronger the hero pick. The synergy rating shows the hero-specific increase in winrate from the
+                  baseline (50%) according to the heroes picked and banned.<br /><br />
+                  Thank you to reddit user u/Winter-Nectarine-601 for the idea. This was a fun little project to do
+                  and I'll aim to keep it updated as long as possible if it gains enough traction. Site data will be updated once a week. <br /> <br />
+                  Note: This tool is based on pure statistical analysis. It is just a prototype for now
+                  and platform-specific (i.e. mobile, different screen resolutions) support might be added later down the line.
+                  If you happen to encounter any bugs while using the tool, the "Clear All" button should restart everything.*/}
+            </div>
+          )}
           <div className="mt-4 border-t border-gray-700 pt-2">
             <p className="text-gray-300 text-sm mb-1">Suggestion filters:</p>
             <div className="flex mb-3 space-x-2">
@@ -621,7 +649,7 @@ function renderAttributeColumn(attr) {
           </div>
           <div className="text-white text-xs border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
-            <p>Last updated: July 2</p>
+            <p>Last updated: July 4</p>
           </div>
         </div>
       </div>
