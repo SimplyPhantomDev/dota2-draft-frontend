@@ -38,6 +38,8 @@ export default function HeroList() {
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [showToolTip, setShowToolTip] = useState(true);
+
   const searchInputRef = useRef(null);
 
   const searchTimeoutRef = useRef(null);
@@ -370,6 +372,11 @@ export default function HeroList() {
     };
   }, [searchQuery]);
 
+  useEffect(() => {
+  const timeout = setTimeout(() => setShowToolTip(false), 5000);
+  return () => clearTimeout(timeout);
+}, []);
+
 function renderAttributeColumn(attr) {
   const colorMap = {
     str: { border: "border-red-600", bg: "bg-red-900/10", text: "text-red-600", label: "Strength" },
@@ -437,6 +444,17 @@ function renderAttributeColumn(attr) {
             >
               <img src={infoButtonIcon} alt="Info" className="filter invert"/>
             </button>
+            {showToolTip && (
+              <motion.div
+                initial={{ opacity:0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute top-full left-60 ml-2 bg-white text-black text-sm px-2 py-1 rounded shadow-lg z-20"
+              >
+                Click here for a guide on how to use the app.
+                <div className="absolute -top-3 left-3 w-3 h-3 bg-white rotate-45 transform origin-bottom-left" />
+              </motion.div>
+            )}
         </div>
         <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
           <TeamDropZone team="ally" />
@@ -664,22 +682,9 @@ function renderAttributeColumn(attr) {
                 Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                 ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
                 Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                Typing at any time starts a search function, that will reset in 3 seconds of inactivity. Normal typing rules of course apply. Aliases will be supported later down the line.
+                Typing at any time starts a search function, that will reset in 3 seconds of inactivity. Normal typing rules of course apply. Aliases will be supported later down the line. <br/> <br/>
+                Known issue: Hero cards and attribute containers stretch interestingly on first page load, working on a fix.
               </p>
-              {/*Welcome to the ultimate Dota 2 drafting tool, powered by STRATZ API. Your hero suggestions 
-                  will be shown here. Once you start selecting heroes to either team, the tool will start 
-                  calculating the best possible picks judging by the heroes picked and what is left in the pool. <br /> <br />
-                  To select a hero, simply press the hero within the grid below the draft panel. To remove a hero, click
-                  them inside the draft panel at the top of your screen. Right click to ban heroes. You can also drag heroes
-                  to their respective teams if you so wish.
-                  On this sidebar you can see the hero's icon, name and the synergy rating. The higher the synergy rating, 
-                  the stronger the hero pick. The synergy rating shows the hero-specific increase in winrate from the
-                  baseline (50%) according to the heroes picked and banned.<br /><br />
-                  Thank you to reddit user u/Winter-Nectarine-601 for the idea. This was a fun little project to do
-                  and I'll aim to keep it updated as long as possible if it gains enough traction. Site data will be updated once a week. <br /> <br />
-                  Note: This tool is based on pure statistical analysis. It is just a prototype for now
-                  and platform-specific (i.e. mobile, different screen resolutions) support might be added later down the line.
-                  If you happen to encounter any bugs while using the tool, the "Clear All" button should restart everything.*/}
             </div>
           )}
           <div className="mt-4 border-t border-gray-700 pt-2">
