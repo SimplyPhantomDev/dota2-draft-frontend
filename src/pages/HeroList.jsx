@@ -4,6 +4,7 @@ import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 import infoButtonIcon from '../assets/info_button.png';
 import '../App.css';
+import { motion, AnimatePresence } from "framer-motion"
 
 const BASE_URL = "https://dota2-backend.onrender.com";
 
@@ -117,20 +118,22 @@ export default function HeroList() {
     }
 
     return (
-      <button
+      <motion.button
+        layout
+        transition={{ layout: { doration: 0.4, ease: "easeInOut" } }}
         ref={drag}
         onClick={handleClick}
         onContextMenu={handleRightClick}
         disabled={isPicked}
-        className={`w-[106px] h-[76px] rounded shadow text-center transition
-          ${isPicked ? "bg-gray-600 opacity-40 cursor-not-allowed" : "bg-gray-800 hover:ring-2 hover:ring-yellow-400"}
+        className={`w-[106px] h-[76px] rounded shadow text-center transition-transform duration-300
+          ${isPicked ? "bg-gray-600 opacity-40 cursor-not-allowed" : "bg-gray-800 hover:ring-2 hover:ring-yellow-400 hover:scale-[1.03]"}
           ${isDragging ? "opacity-30" : ""}`}
       >
         <img src={hero.icon_url} alt={hero.name} className={`w-full h-15 object-contain mx-auto transition-all duration-300 ${
           grayscale ? "grayscale opacity-30" : ""} ${highlight ? "shadow-[0_0_10px_2px_rgba(59,130,246,0.7)]" : ""}
         `} />
         <h3 className="text-xs font-medium px-1 truncate">{hero.name}</h3>
-      </button>
+      </motion.button>
     );
   }
 
@@ -380,7 +383,9 @@ function renderAttributeColumn(attr) {
   return (
     <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
       <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
-      <div className="flex flex-wrap gap-2">
+      <motion.div
+        layout
+        className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
         {heroes[attr]?.map((hero) => {
           const isPicked =
             selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
@@ -400,7 +405,7 @@ function renderAttributeColumn(attr) {
             />
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -507,30 +512,49 @@ function renderAttributeColumn(attr) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main hero area */}
-        <div className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4">
-          {/* Top Row: Strength + Agility */}
-          {gridMode === "default" ? (
-            <>
-              {/* Default mode: 2 stacked rows */}
-              <div className="flex gap-4">
-                {["str", "agi"].map((attr) => renderAttributeColumn(attr))}
-              </div>
-              <div className="flex gap-4">
-                {["int", "all"].map((attr) => renderAttributeColumn(attr))}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Row mode: all attributes in a single row */}
-              <div className="flex gap-4">
+        <div className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
+          {searchQuery && (
+          <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
+            <span className="text-[100px] font-bold uppercase text-white opacity-50 select-none">
+              {searchQuery}
+            </span>
+          </div>
+        )}
+          <AnimatePresence mode="wait">
+            {gridMode === "default" ? (
+              <motion.div
+                key="default-layout"
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex gap-4">
+                  {["str", "agi"].map((attr) => renderAttributeColumn(attr))}
+                </div>
+                <div className="flex gap-4 mt-4">
+                  {["int", "all"].map((attr) => renderAttributeColumn(attr))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="row-layout"
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="flex gap-4"
+              >
                 {["str", "agi", "int", "all"].map((attr) => renderAttributeColumn(attr))}
-              </div>
-            </>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* The sidebar */}
-        <div className="w-64 bg-gray-800 rounded shadow flex flex-col p-4">
+        <div className="min-w-[260px] max-w-[350px] flex-[1] bg-gray-800 rounded shadow flex flex-col p-4">
           <div className="flex-1 overflow-y-auto space-y-2">
             {suggestedHeroes.length === 0 && hasPicks === false ? (
                 <p className="text-gray-400 text-sm italic">
