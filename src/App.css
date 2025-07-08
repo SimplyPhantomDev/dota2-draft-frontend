@@ -27,3 +27,27 @@
 .guide-flash {
   animation: flashFadeIn 0.6s ease-out;
 }
+
+.strength-gradient {
+  background: linear-gradient(135deg, rgba(185, 28, 28, 0.3), rgba(239, 68, 68, 0.3));
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  border-radius: 0.5rem;
+}
+
+.agility-gradient {
+  background: linear-gradient(135deg, rgba(21, 128, 61, 0.3), rgba(74, 222, 128, 0.3));
+  border: 2px solid rgba(74, 222, 128, 0.4);
+  border-radius: 0.5rem;
+}
+
+.intelligence-gradient {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.3), rgba(96, 165, 250, 0.3));
+  border: 2px solid rgba(96, 165, 250, 0.4);
+  border-radius: 0.5rem;
+}
+
+.universal-gradient {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.3), rgba(22, 163, 74, 0.3), rgba(37, 99, 235, 0.3));
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+}

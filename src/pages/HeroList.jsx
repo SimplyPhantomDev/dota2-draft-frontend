@@ -379,10 +379,10 @@ export default function HeroList() {
 
 function renderAttributeColumn(attr) {
   const colorMap = {
-    str: { border: "border-red-600", bg: "bg-red-900/10", text: "text-red-600", label: "Strength" },
-    agi: { border: "border-green-600", bg: "bg-green-900/10", text: "text-green-600", label: "Agility" },
-    int: { border: "border-blue-600", bg: "bg-blue-900/10", text: "text-blue-600", label: "Intelligence" },
-    all: { border: "border-purple-600", bg: "bg-purple-900/10", text: "text-purple-600", label: "Universal" },
+  str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
+  agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
+  int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
+  all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
   };
 
   const { border, bg, text, label } = colorMap[attr];
