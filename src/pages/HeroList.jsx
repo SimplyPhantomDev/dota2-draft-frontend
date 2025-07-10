@@ -3,6 +3,8 @@ import { useDrag, useDrop } from "react-dnd";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 import infoButtonIcon from '../assets/info_button.png';
+import layoutDefaultIcon from '../assets/layout_default.svg';
+import layoutRowIcon from '../assets/layout_row.svg';
 import '../App.css';
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -122,7 +124,7 @@ export default function HeroList() {
     return (
       <motion.button
         layout
-        transition={{ layout: { doration: 0.4, ease: "easeInOut" } }}
+        transition={{ layout: { duration: 0.4, ease: "easeInOut" } }}
         ref={drag}
         onClick={handleClick}
         onContextMenu={handleRightClick}
@@ -349,14 +351,14 @@ export default function HeroList() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  })
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     // Don't start timeout if search is empty
     if (!searchQuery) return;
 
-    // CLear any existing timeout
+    // Clear any existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -489,15 +491,33 @@ function renderAttributeColumn(attr) {
           <div className="relative w-full h-6 mb-1">
             <button
               onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-12 h-6 bg-gray-500 rounded-full p-1 transition-colors duration-300 ease-in-out"
+              className="absolute top-1/2 transform -translate-y-1/2 w-28 h-12 mt-6 bg-gray-800 rounded transition-colors duration-300 ease-in-out flex items-center justify-between"
               title="Toggle Grid Layout"
-              >
-                <div
-                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
-                    gridMode === "row" ? "translate-x-6" : "translate-x-0"
+            >
+
+              <div
+                  className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${
+                    gridMode === "row" ? "translate-x-16" : "translate-x-0"
                   }`}
                 />
-                {/* Place images here */}
+              {/* Icon 1: Default Layout */}
+              <div className="flex justify-between items-center w-full z-20">
+                <img
+                  src={layoutDefaultIcon}
+                  alt="Default Layout"
+                  className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
+                    gridMode === "default" ? "opacity-100" : "opacity-100"
+                  }`}
+                />
+                {/* Icon 2: Row Layout */}
+                <img
+                  src={layoutRowIcon}
+                  alt="Row Layout"
+                  className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
+                    gridMode === "row" ? "opacity-100" : "opacity-100"
+                  }`}
+                />
+              </div>
             </button>
             <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
           </div>
