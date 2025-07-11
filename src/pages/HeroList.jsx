@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useDrag, useDrop } from "react-dnd";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
+import { DraggableHero, TeamDropZone } from "../utils/structures";
+import { calculateSynergyPicks, getWinProbability } from "../utils/synergy";
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
@@ -65,6 +66,8 @@ const updateSynergySuggestions = useCallback((
     bannedHeroIds: bans.map(h => h.HeroId),
     roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
     fullDraft: ally.length === 5 && enemy.length === 5,
+    matchupData,
+    heroes
   });
 
   if (result?.mode === "fullDraft") {
@@ -76,103 +79,12 @@ const updateSynergySuggestions = useCallback((
   }
 }, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes]);
 
-
-const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], roleFilter = null, fullDraft = false }) => {
-  if (!matchupData || !heroes || Object.keys(matchupData).length === 0 || Object.keys(heroes).length === 0) return null;
-
-  const allHeroes = Object.values(heroes).flat(); // strength, agility, etc combined
-  const pickedSet = new Set([...allyHeroIds, ...enemyHeroIds, ...bannedHeroIds]);
-
-  if (fullDraft && allyHeroIds.length === 5 && enemyHeroIds.length === 5) {
-    const teamStats = { ally: [], enemy: [] };
-
-    for (const teamName of ["ally", "enemy"]) {
-      const teamIds = teamName === "ally" ? allyHeroIds : enemyHeroIds;
-      const opponentIds = teamName === "ally" ? enemyHeroIds : allyHeroIds;
-
-      for (const heroId of teamIds) {
-        const data = matchupData[heroId];
-        if (!data) continue;
-
-        const synergy = data.with
-          .filter(({ heroId2 }) => teamIds.includes(heroId2))
-          .reduce((sum, { synergy }) => sum + synergy, 0);
-
-        const counter = data.vs
-          .filter(({ heroId2 }) => opponentIds.includes(heroId2))
-          .reduce((sum, { synergy }) => sum + synergy, 0);
-
-        const hero = allHeroes.find(h => h.HeroId === heroId);
-        if (!hero) continue;
-
-        teamStats[teamName].push({
-          HeroId: hero.HeroId,
-          name: hero.name,
-          icon_url: hero.icon_url,
-          synergyScore: synergy.toFixed(2),
-          counterScore: counter.toFixed(2),
-          totalScore: (synergy + counter).toFixed(2),
-        });
-      }
-    }
-
-    return { mode: "fullDraft", teams: teamStats };
-  }
-
-  const synergyScores = {};
-  const counterScores = {};
-
-  for (const hero of allHeroes) {
-    const id = hero.HeroId;
-    if (pickedSet.has(id)) continue;
-
-    const withSynergies = matchupData[id]?.with || [];
-    const vsSynergies = matchupData[id]?.vs || [];
-
-    for (const { heroId2, synergy } of withSynergies) {
-      if (allyHeroIds.includes(heroId2)) {
-        synergyScores[id] = (synergyScores[id] || 0) + synergy;
-      }
-    }
-
-    for (const { heroId2, synergy } of vsSynergies) {
-      if (enemyHeroIds.includes(heroId2)) {
-        counterScores[id] = (counterScores[id] || 0) + synergy;
-      }
-    }
-  }
-
-  const combinedScores = {};
-  for (const hero of allHeroes) {
-    const id = hero.HeroId;
-    const isPickedOrBanned = pickedSet.has(id);
-    const roleMismatch = roleFilter && !hero.roles.includes(roleFilter);
-    if (isPickedOrBanned || roleMismatch) continue;
-
-    const synergy = synergyScores[id] || 0;
-    const counter = counterScores[id] || 0;
-    const total = synergy + counter;
-
-    combinedScores[id] = {
-      HeroId: hero.HeroId,
-      name: hero.name,
-      icon_url: hero.icon_url,
-      synergyScore: synergy.toFixed(2),
-      counterScore: counter.toFixed(2),
-      totalScore: total.toFixed(2),
-    };
-  }
-
-  const top10 = Object.values(combinedScores)
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 10);
-
-  return top10;
-};
-
-
   const lockHero = (heroId) => {
-    setClickLockedHeroes((prev) => new Set(prev).add(heroId));
+    setClickLockedHeroes(prev => {
+    const updated = new Set(prev);
+    updated.add(heroId);
+    return updated;
+  });
   };
 
   const unlockHero = (heroId) => {
@@ -186,99 +98,6 @@ const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHero
   const handleClearBans = () => {
       setBannedHeroes([]);
       updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
-  }
-
-  function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, grayscale, highlight }) {
-    const [{ isDragging }, drag] = useDrag(() => ({
-      type: "HERO",
-      item: { hero },
-      canDrag: !isPicked,
-      collect: (monitor) => ({
-        isDragging: !!monitor.isDragging(),
-      }),
-    }));
-
-    const handleClick = () => {
-      if (!isPicked) handleHeroClick(hero);
-    };
-
-    const handleRightClick = (e) => {
-      e.preventDefault();
-      if (!isPicked) handleHeroBan(hero)
-    }
-
-    return (
-      <motion.button
-        layout="position"
-        transition={{ layout: { duration: 0.4, ease: "easeInOut" } }}
-        ref={drag}
-        onClick={handleClick}
-        onContextMenu={handleRightClick}
-        disabled={isPicked}
-        className={`w-[106px] h-[76px] rounded shadow text-center transition-transform duration-300
-          ${isPicked ? "bg-gray-500 opacity-40 cursor-not-allowed" : "bg-gray-700 hover:ring-2 hover:ring-yellow-400 hover:scale-[1.03]"}
-          ${isDragging ? "opacity-30" : ""}`}
-      >
-        <img src={hero.icon_url} alt={hero.name} className={`w-full h-15 object-contain mx-auto transition-all duration-300 ${
-          grayscale ? "grayscale opacity-30" : ""} ${highlight ? "shadow-[0_0_10px_2px_rgba(59,130,246,0.7)]" : ""}
-        `} />
-        <h3 className="text-xs font-medium px-1 truncate">{hero.name}</h3>
-      </motion.button>
-    );
-  }
-
-  function TeamDropZone ({ team }) {
-    const [collectedProps, dropRef] = useDrop(() => ({
-      accept: "HERO",
-      drop: (item) => handleDrop(item.hero, team),
-      collect: (monitor) => ({
-        isOver: monitor.isOver(),
-        canDrop: monitor.canDrop(),
-      }),
-    }));
-
-    const isOver = collectedProps.isOver;
-    const isAlly = team === "ally";
-    const heroes2 = isAlly ? selectedHeroes.ally : selectedHeroes.enemy;
-
-    return (
-      <div
-        ref={dropRef}
-        className={`flex gap-2 p-1 rounded transition-all duration-200
-          ${isOver ? "bg-yellow-500/20" : ""}
-        `}
-      >
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="relative w-[106px] h-[60px] bg-gray-700 rounded overflow-hidden flex items-center justify-center">
-            {heroes2[i] && (
-              <div
-                className="relative group w-full h-full cursor-pointer"
-                onClick={() => handleHeroDeselect(heroes2[i], team)}
-              >
-                <img
-                  src={heroes2[i].icon_url}
-                  alt={heroes2[i].name}
-                  className="object-contain w-full h-full"
-                />
-                <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-75 flex items-center justify-center transition-opacity duration-200">
-                  <span className="text-red-400 font-bold text-sm">REMOVE</span>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  function getWinProbability(delta) {
-    const maxWinrate = 80;
-    const minWinrate = 20;
-    const growthRate = 0.025;
-    const adjusted = delta * growthRate;
-
-    const probability = 50 + (maxWinrate - 50) * Math.tanh(adjusted);
-    return Math.max(minWinrate, Math.min(maxWinrate, probability.toFixed(2)));
   }
 
   const handleHeroClick = (hero) => {
@@ -409,7 +228,7 @@ const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHero
     // Start new timeout
     searchTimeoutRef.current = setTimeout(() => {
       setSearchQuery("");
-    }, 3000); // 3 seconds
+    }, 3000); // 3 seconds, search timeout
 
     // Clear timeout on unmount
     return () => {
@@ -418,7 +237,7 @@ const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHero
   }, [searchQuery]);
 
   useEffect(() => {
-  const timeout = setTimeout(() => setShowToolTip(false), 5000);
+  const timeout = setTimeout(() => setShowToolTip(false), 5000); // Timeout for tooltip to disappear
   return () => clearTimeout(timeout);
 }, []);
 
@@ -502,7 +321,12 @@ function renderAttributeColumn(attr) {
             )}
         </div>
         <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
-          <TeamDropZone team="ally" />
+          <TeamDropZone
+          team="ally"
+          selectedHeroes={selectedHeroes}
+          handleDrop={handleDrop}
+          handleHeroDeselect={handleHeroDeselect}
+          />
           <div className="flex justify-center">
             <button
               onClick={() => setSelectedTeam(prev => prev === "ally" ? "enemy" : "ally")}
@@ -512,7 +336,12 @@ function renderAttributeColumn(attr) {
               Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
             </button>
           </div>
-          <TeamDropZone team="enemy" /> 
+          <TeamDropZone
+          team="enemy"
+          selectedHeroes={selectedHeroes}
+          handleDrop={handleDrop}
+          handleHeroDeselect={handleHeroDeselect}
+          />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 z-10">
           <button
@@ -529,7 +358,6 @@ function renderAttributeColumn(attr) {
           </button>
         </div>
       </div>
-      {bannedHeroes.length > 0 || true ? (
         <div className="flex flex-col items-center w-full">
           <div className="relative w-full h-6 mb-1">
             <button
@@ -565,6 +393,8 @@ function renderAttributeColumn(attr) {
             <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
           </div>
           <div className="flex justify-center mb-2 gap-2">
+
+            {/*Render in 16 hero slots for potential bans, the maximum number in normal dota game without duplicate picks */}
             {[...Array(16)].map((_, i) => (
               <div
                 key={i}
@@ -589,7 +419,6 @@ function renderAttributeColumn(attr) {
             ))}
           </div>
         </div>
-      ) : null}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main hero area */}
