@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
@@ -48,7 +48,7 @@ export default function HeroList() {
 
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
-  const updateSynergySuggestions = (
+  const updateSynergySuggestions = useCallback((
     ally = selectedHeroes.ally,
     enemy = selectedHeroes.enemy,
     bans = bannedHeroes,
@@ -83,7 +83,7 @@ export default function HeroList() {
       }
     })
     .catch(err => console.error("Failed to update synergy suggestions:", err));
-};
+}, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter]);
 
   const lockHero = (heroId) => {
     setClickLockedHeroes((prev) => new Set(prev).add(heroId));
@@ -123,14 +123,14 @@ export default function HeroList() {
 
     return (
       <motion.button
-        layout
+        layout="position"
         transition={{ layout: { duration: 0.4, ease: "easeInOut" } }}
         ref={drag}
         onClick={handleClick}
         onContextMenu={handleRightClick}
         disabled={isPicked}
         className={`w-[106px] h-[76px] rounded shadow text-center transition-transform duration-300
-          ${isPicked ? "bg-gray-600 opacity-40 cursor-not-allowed" : "bg-gray-800 hover:ring-2 hover:ring-yellow-400 hover:scale-[1.03]"}
+          ${isPicked ? "bg-gray-500 opacity-40 cursor-not-allowed" : "bg-gray-700 hover:ring-2 hover:ring-yellow-400 hover:scale-[1.03]"}
           ${isDragging ? "opacity-30" : ""}`}
       >
         <img src={hero.icon_url} alt={hero.name} className={`w-full h-15 object-contain mx-auto transition-all duration-300 ${
@@ -223,8 +223,6 @@ export default function HeroList() {
         [team]: [...selectedHeroes[team], hero],
       };
       setSelectedHeroes(updatedSelected);
-
-      setTimeout(updateSynergySuggestions, 0);
     }
 
   } catch (err) {
@@ -264,7 +262,6 @@ export default function HeroList() {
         [team]: [...selectedHeroes[team], hero]
       };
       setSelectedHeroes(updatedSelected);
-      setTimeout(updateSynergySuggestions, 0);
     } else {
       console.warn("Drop hero response:", data?.message);
     }
@@ -297,7 +294,6 @@ export default function HeroList() {
   const handleBanRemove = (hero) => {
     const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
     setBannedHeroes(updatedBans);
-    updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, updatedBans);
   }
 
   const handleHeroBan = async (hero) => {
@@ -309,8 +305,6 @@ export default function HeroList() {
     try {
       const updatedBans = [...bannedHeroes, hero];
       setBannedHeroes(updatedBans)
-
-      updateSynergySuggestions();
         
     } catch (err) {
       console.error("Failed to ban hero:", err);
@@ -393,7 +387,7 @@ function renderAttributeColumn(attr) {
     <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
       <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
       <motion.div
-        layout
+        layout="position"
         className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
         {heroes[attr]?.map((hero) => {
           const isPicked =
@@ -562,7 +556,7 @@ function renderAttributeColumn(attr) {
             {gridMode === "default" ? (
               <motion.div
                 key="default-layout"
-                layout
+                layout="position"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -578,7 +572,7 @@ function renderAttributeColumn(attr) {
             ) : (
               <motion.div
                 key="row-layout"
-                layout
+                layout="position"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
