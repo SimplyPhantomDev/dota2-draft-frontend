@@ -1,14 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import axios from "axios";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
 import '../App.css';
 import { motion, AnimatePresence } from "framer-motion"
-
-const BASE_URL = "https://dota2-backend.onrender.com";
 
 
 export default function HeroList() {
@@ -19,6 +16,8 @@ export default function HeroList() {
   });
 
   const [suggestedHeroes, setSuggestedHeroes] = useState([]);
+
+  const [matchupData, setMatchupData] = useState({});
 
   const [selectedTeam, setSelectedTeam] = useState("ally");
   
@@ -48,42 +47,129 @@ export default function HeroList() {
 
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
-  const updateSynergySuggestions = useCallback((
-    ally = selectedHeroes.ally,
-    enemy = selectedHeroes.enemy,
-    bans = bannedHeroes,
-    role = roleFilter
-  ) => {
+const updateSynergySuggestions = useCallback((
+  ally = selectedHeroes.ally,
+  enemy = selectedHeroes.enemy,
+  bans = bannedHeroes,
+  role = roleFilter
+) => {
+  if (!ally.length && !enemy.length) {
+    setSuggestedHeroes([]);
+    setFullDraftStats(null);
+    return;
+  }
 
-    if (ally.length === 0 && enemy.length === 0) {
-      setSuggestedHeroes([]);
-      return;
+  const result = calculateSynergyPicks({
+    allyHeroIds: ally.map(h => h.HeroId),
+    enemyHeroIds: enemy.map(h => h.HeroId),
+    bannedHeroIds: bans.map(h => h.HeroId),
+    roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
+    fullDraft: ally.length === 5 && enemy.length === 5,
+  });
+
+  if (result?.mode === "fullDraft") {
+    setFullDraftStats(result.teams);
+    setSuggestedHeroes([]);
+  } else {
+    setSuggestedHeroes(result);
+    setFullDraftStats(null);
+  }
+}, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes]);
+
+
+const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], roleFilter = null, fullDraft = false }) => {
+  if (!matchupData || !heroes || Object.keys(matchupData).length === 0 || Object.keys(heroes).length === 0) return null;
+
+  const allHeroes = Object.values(heroes).flat(); // strength, agility, etc combined
+  const pickedSet = new Set([...allyHeroIds, ...enemyHeroIds, ...bannedHeroIds]);
+
+  if (fullDraft && allyHeroIds.length === 5 && enemyHeroIds.length === 5) {
+    const teamStats = { ally: [], enemy: [] };
+
+    for (const teamName of ["ally", "enemy"]) {
+      const teamIds = teamName === "ally" ? allyHeroIds : enemyHeroIds;
+      const opponentIds = teamName === "ally" ? enemyHeroIds : allyHeroIds;
+
+      for (const heroId of teamIds) {
+        const data = matchupData[heroId];
+        if (!data) continue;
+
+        const synergy = data.with
+          .filter(({ heroId2 }) => teamIds.includes(heroId2))
+          .reduce((sum, { synergy }) => sum + synergy, 0);
+
+        const counter = data.vs
+          .filter(({ heroId2 }) => opponentIds.includes(heroId2))
+          .reduce((sum, { synergy }) => sum + synergy, 0);
+
+        const hero = allHeroes.find(h => h.HeroId === heroId);
+        if (!hero) continue;
+
+        teamStats[teamName].push({
+          HeroId: hero.HeroId,
+          name: hero.name,
+          icon_url: hero.icon_url,
+          synergyScore: synergy.toFixed(2),
+          counterScore: counter.toFixed(2),
+          totalScore: (synergy + counter).toFixed(2),
+        });
+      }
     }
 
-    const isFullDraft = ally.length === 5 && enemy.length === 5;
+    return { mode: "fullDraft", teams: teamStats };
+  }
 
-    fetch(`${BASE_URL}/api/synergy-picks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        allyHeroIds: ally.map(h => h.HeroId),
-        enemyHeroIds: enemy.map(h => h.HeroId),
-        bannedHeroIds: bans.map(h => h.HeroId),
-        roleFilter: isFullDraft ? null : role,
-        fullDraft: isFullDraft
-      }),
-    })
-      .then(res => res.json())
-    .then(data => {
-      if (isFullDraft && data.teams) {
-        setFullDraftStats(data.teams);
-      } else {
-        setSuggestedHeroes(data);
-        setFullDraftStats(null);
+  const synergyScores = {};
+  const counterScores = {};
+
+  for (const hero of allHeroes) {
+    const id = hero.HeroId;
+    if (pickedSet.has(id)) continue;
+
+    const withSynergies = matchupData[id]?.with || [];
+    const vsSynergies = matchupData[id]?.vs || [];
+
+    for (const { heroId2, synergy } of withSynergies) {
+      if (allyHeroIds.includes(heroId2)) {
+        synergyScores[id] = (synergyScores[id] || 0) + synergy;
       }
-    })
-    .catch(err => console.error("Failed to update synergy suggestions:", err));
-}, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter]);
+    }
+
+    for (const { heroId2, synergy } of vsSynergies) {
+      if (enemyHeroIds.includes(heroId2)) {
+        counterScores[id] = (counterScores[id] || 0) + synergy;
+      }
+    }
+  }
+
+  const combinedScores = {};
+  for (const hero of allHeroes) {
+    const id = hero.HeroId;
+    const isPickedOrBanned = pickedSet.has(id);
+    const roleMismatch = roleFilter && !hero.roles.includes(roleFilter);
+    if (isPickedOrBanned || roleMismatch) continue;
+
+    const synergy = synergyScores[id] || 0;
+    const counter = counterScores[id] || 0;
+    const total = synergy + counter;
+
+    combinedScores[id] = {
+      HeroId: hero.HeroId,
+      name: hero.name,
+      icon_url: hero.icon_url,
+      synergyScore: synergy.toFixed(2),
+      counterScore: counter.toFixed(2),
+      totalScore: total.toFixed(2),
+    };
+  }
+
+  const top10 = Object.values(combinedScores)
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, 10);
+
+  return top10;
+};
+
 
   const lockHero = (heroId) => {
     setClickLockedHeroes((prev) => new Set(prev).add(heroId));
@@ -195,81 +281,39 @@ export default function HeroList() {
     return Math.max(minWinrate, Math.min(maxWinrate, probability.toFixed(2)));
   }
 
-  const handleHeroClick = async (hero) => {
+  const handleHeroClick = (hero) => {
   if (clickLockedHeroes.has(hero.HeroId)) return;
 
   lockHero(hero.HeroId);
 
   const team = selectedTeam;
-  const allyIds = selectedHeroes.ally.map(h => h.HeroId);
-  const enemyIds = selectedHeroes.enemy.map(h => h.HeroId);
 
-  try {
-    const response = await fetch(`${BASE_URL}/api/select-hero`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        heroId: hero.HeroId,
-        team,
-        allyHeroIds: allyIds,
-        enemyHeroIds: enemyIds,
-      }),
-    });
-
-    const data = await response.json();
-    if (data?.message === "Hero selected") {
-      const updatedSelected = {
+  const updatedSelected = {
         ...selectedHeroes,
         [team]: [...selectedHeroes[team], hero],
       };
-      setSelectedHeroes(updatedSelected);
-    }
+  
+  setSelectedHeroes(updatedSelected);
 
-  } catch (err) {
-    console.error("❌ Failed to select hero:", err);
-  } finally {
+  unlockHero(hero.HeroId);
+  }
+
+
+  const handleDrop = (hero, team) => {
+    if (clickLockedHeroes.has(hero.HeroId)) return;
+    if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
+    if (selectedHeroes[team].length >= 5) return;
+
+    lockHero(hero.HeroId);
+
+    const updatedSelected = {
+          ...selectedHeroes,
+          [team]: [...selectedHeroes[team], hero]
+        };
+
+    setSelectedHeroes(updatedSelected);
+
     unlockHero(hero.HeroId);
-  }
-  }
-
-
-  const handleDrop = async (hero, team) => {
-  if (clickLockedHeroes.has(hero.HeroId)) return;
-  if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
-  if (selectedHeroes[team].length >= 5) return;
-
-  lockHero(hero.HeroId);
-
-  const allyIds = selectedHeroes.ally.map(h => h.HeroId);
-  const enemyIds = selectedHeroes.enemy.map(h => h.HeroId);
-
-  try {
-    const response = await fetch(`${BASE_URL}/api/select-hero`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        heroId: hero.HeroId,
-        team,
-        allyHeroIds: allyIds,
-        enemyHeroIds: enemyIds,
-      }),
-    });
-
-    const data = await response.json();
-    if (data?.message === "Hero selected") {
-      const updatedSelected = {
-        ...selectedHeroes,
-        [team]: [...selectedHeroes[team], hero]
-      };
-      setSelectedHeroes(updatedSelected);
-    } else {
-      console.warn("Drop hero response:", data?.message);
-    }
-  } catch (err) {
-    console.error(`Failed to drop hero to ${team} team`, err);
-  } finally {
-    unlockHero(hero.HeroId);
-  }
   }
 
   const handleHeroDeselect = (hero, team) => {
@@ -296,22 +340,18 @@ export default function HeroList() {
     setBannedHeroes(updatedBans);
   }
 
-  const handleHeroBan = async (hero) => {
+  const handleHeroBan = (hero) => {
     if (bannedHeroes.length >= 16) return;
     if (clickLockedHeroes.has(hero.HeroId)) return;
 
     lockHero(hero.HeroId);
 
-    try {
-      const updatedBans = [...bannedHeroes, hero];
-      setBannedHeroes(updatedBans)
-        
-    } catch (err) {
-      console.error("Failed to ban hero:", err);
-    } finally {
-      unlockHero(hero.HeroId);
+    const updatedBans = [...bannedHeroes, hero];
+
+    setBannedHeroes(updatedBans)
+
+    unlockHero(hero.HeroId);
     }
-  }
 
   const isHeroMatch = (hero) => {
     if(!searchQuery.trim()) return true;
@@ -319,13 +359,22 @@ export default function HeroList() {
   }
 
   useEffect(() => {
-    axios
-      .get(`${BASE_URL}/heroes`)
-      .then((res) => {
-        const grouped = groupAndSortHeroes(res.data);
-        setHeroes(grouped);
+    fetch("/heroes.json")
+    .then((res) => res.json())
+    .then((data) => {
+      const grouped = groupAndSortHeroes(data);
+      setHeroes(grouped);
+    })
+    .catch((err) => console.error("Failed to load static hero data:", err));
+  }, []);
+
+  useEffect(() => {
+    fetch("/synergyMatrix.json")
+      .then((res) => res.json())
+      .then((data) => {
+        setMatchupData(data);
       })
-      .catch((err) => console.error("Failed to fetch heroes:", err));
+      .catch((err) => console.error("Failed to load synergy data", err));
   }, []);
 
   useEffect(() => {
@@ -335,7 +384,7 @@ export default function HeroList() {
     // Clear suggestions if all heroes are removed
     setSuggestedHeroes([]);
   }
-}, [selectedHeroes, bannedHeroes]);
+  }, [selectedHeroes, bannedHeroes]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -747,7 +796,7 @@ function renderAttributeColumn(attr) {
           </div>
           <div className="text-white text-xs border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
-            <p>Last updated: July 4</p>
+            <p>Last updated: July 11</p>
           </div>
         </div>
       </div>
