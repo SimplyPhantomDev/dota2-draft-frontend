@@ -42,13 +42,17 @@ export default function HeroList() {
 
   const [showToolTip, setShowToolTip] = useState(true);
 
+  const [hoveredHero, setHoveredHero] = useState(null);
+
+  const [hoveredHeroPosition, setHoveredHeroPosition] = useState({ x: 0, y: 0 });
+
   const searchInputRef = useRef(null);
 
   const searchTimeoutRef = useRef(null);
 
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
-const updateSynergySuggestions = useCallback((
+  const updateSynergySuggestions = useCallback((
   ally = selectedHeroes.ally,
   enemy = selectedHeroes.enemy,
   bans = bannedHeroes,
@@ -77,7 +81,7 @@ const updateSynergySuggestions = useCallback((
     setSuggestedHeroes(result);
     setFullDraftStats(null);
   }
-}, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes]);
+  }, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes]);
 
   const lockHero = (heroId) => {
     setClickLockedHeroes(prev => {
@@ -98,42 +102,51 @@ const updateSynergySuggestions = useCallback((
   const handleClearBans = () => {
       setBannedHeroes([]);
       updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
-  }
+  };
 
   const handleHeroClick = (hero) => {
   if (clickLockedHeroes.has(hero.HeroId)) return;
 
-  lockHero(hero.HeroId);
-
   const team = selectedTeam;
 
+  // Prevent over-picking
+  if (selectedHeroes[team].length >= 5) return;
+
+  // Prevent duplicate pick (just in case)
+  if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
+
+  lockHero(hero.HeroId);
+
   const updatedSelected = {
-        ...selectedHeroes,
-        [team]: [...selectedHeroes[team], hero],
-      };
-  
+    ...selectedHeroes,
+    [team]: [...selectedHeroes[team], hero],
+  };
+
   setSelectedHeroes(updatedSelected);
 
   unlockHero(hero.HeroId);
-  }
+  };
 
 
   const handleDrop = (hero, team) => {
     if (clickLockedHeroes.has(hero.HeroId)) return;
-    if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
-    if (selectedHeroes[team].length >= 5) return;
 
-    lockHero(hero.HeroId);
+    setSelectedHeroes(prev => {
+      if (prev[team].some(h => h.HeroId === hero.HeroId)) return prev;
+      if (prev[team].length >= 5) return prev;
 
-    const updatedSelected = {
-          ...selectedHeroes,
-          [team]: [...selectedHeroes[team], hero]
-        };
+      lockHero(hero.HeroId);
 
-    setSelectedHeroes(updatedSelected);
+      const updated = {
+        ...prev,
+        [team]: [...prev[team], hero]
+      };
 
-    unlockHero(hero.HeroId);
-  }
+      unlockHero(hero.HeroId);
+
+      return updated;
+    });
+  };
 
   const handleHeroDeselect = (hero, team) => {
 
@@ -145,7 +158,7 @@ const updateSynergySuggestions = useCallback((
     setSelectedHeroes(newSelected);
 
     updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
-  }
+  };
 
   const handleClear = () => {
     setSelectedHeroes({ ally: [], enemy: [] });
@@ -157,7 +170,7 @@ const updateSynergySuggestions = useCallback((
   const handleBanRemove = (hero) => {
     const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
     setBannedHeroes(updatedBans);
-  }
+  };
 
   const handleHeroBan = (hero) => {
     if (bannedHeroes.length >= 16) return;
@@ -170,12 +183,12 @@ const updateSynergySuggestions = useCallback((
     setBannedHeroes(updatedBans)
 
     unlockHero(hero.HeroId);
-    }
+  };
 
   const isHeroMatch = (hero) => {
     if(!searchQuery.trim()) return true;
     return hero.name.toLowerCase().includes(searchQuery.toLowerCase());
-  }
+  };
 
   useEffect(() => {
     fetch("/heroes.json")
@@ -239,47 +252,47 @@ const updateSynergySuggestions = useCallback((
   useEffect(() => {
   const timeout = setTimeout(() => setShowToolTip(false), 5000); // Timeout for tooltip to disappear
   return () => clearTimeout(timeout);
-}, []);
+  }, []);
 
-function renderAttributeColumn(attr) {
-  const colorMap = {
-  str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
-  agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
-  int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
-  all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
+  function renderAttributeColumn(attr) {
+    const colorMap = {
+    str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
+    agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
+    int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
+    all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
+    };
+
+    const { border, bg, text, label } = colorMap[attr];
+
+    return (
+      <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
+        <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
+        <motion.div
+          layout="position"
+          className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
+          {heroes[attr]?.map((hero) => {
+            const isPicked =
+              selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
+              selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId) ||
+              bannedHeroes.some(h => h.HeroId === hero.HeroId) ||
+              clickLockedHeroes.has(hero.HeroId);
+
+            return (
+              <DraggableHero
+                key={hero.HeroId}
+                hero={hero}
+                isPicked={isPicked}
+                handleHeroClick={handleHeroClick}
+                handleHeroBan={handleHeroBan}
+                grayscale={searchQuery ? !isHeroMatch(hero) : false}
+                highlight={searchQuery ? isHeroMatch(hero) : false}
+              />
+            );
+          })}
+        </motion.div>
+      </div>
+    );
   };
-
-  const { border, bg, text, label } = colorMap[attr];
-
-  return (
-    <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
-      <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
-      <motion.div
-        layout="position"
-        className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
-        {heroes[attr]?.map((hero) => {
-          const isPicked =
-            selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
-            selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId) ||
-            bannedHeroes.some(h => h.HeroId === hero.HeroId) ||
-            clickLockedHeroes.has(hero.HeroId);
-
-          return (
-            <DraggableHero
-              key={hero.HeroId}
-              hero={hero}
-              isPicked={isPicked}
-              handleHeroClick={handleHeroClick}
-              handleHeroBan={handleHeroBan}
-              grayscale={searchQuery ? !isHeroMatch(hero) : false}
-              highlight={searchQuery ? isHeroMatch(hero) : false}
-            />
-          );
-        })}
-      </motion.div>
-    </div>
-  );
-}
 
   return (
     <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
@@ -489,7 +502,16 @@ function renderAttributeColumn(attr) {
                       const enemy = fullDraftStats.enemy[i];
                       return (
                         <div key={i} className="flex items-center justify-between bg-gray-700 rounded px-2 py-1">
-                          <img src={ally.icon_url} alt="" className="w-10 h-10 object-contain" />
+                          <img
+                            src={ally.icon_url}
+                            alt={ally.name}
+                            className="w-10 h-10 object-contain"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setHoveredHero({ ...ally, team: 'ally' });
+                              setHoveredHeroPosition({ x: rect.left, y: rect.bottom });}}
+                            onMouseLeave={() => setHoveredHero(null)}
+                          />
                           <span className="text-green-400 text-sm font-mono w-10 text-right">
                             {ally.totalScore}
                           </span>
@@ -497,7 +519,16 @@ function renderAttributeColumn(attr) {
                           <span className="text-red-400 text-sm font-mono w-10 text-left">
                             {enemy.totalScore}
                           </span>
-                          <img src={enemy.icon_url} alt="" className="w-10 h-10 object-contain" />
+                          <img
+                            src={enemy.icon_url}
+                            alt={enemy.name}
+                            className="w-10 h-10 object-contain"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setHoveredHero({ ...enemy, team: 'enemy' });
+                              setHoveredHeroPosition({ x: rect.left, y: rect.bottom });}}
+                            onMouseLeave={() => setHoveredHero(null)}
+                          />
                         </div>
                       );
                     })}
@@ -530,7 +561,62 @@ function renderAttributeColumn(attr) {
                         );
                       })()}
                     </div>
-                    </>
+
+                    {hoveredHero && (
+                      <div
+                        className="absolute bg-gray-900 border border-gray-600 rounded p-4 text-sm shadow-lg z-30 w-[300px] max-h-[400px] overflow-y-auto"
+                        style={{
+                          top: `${hoveredHeroPosition.y}px`,
+                          left: `${hoveredHeroPosition.x}px`,
+                          transform: 'translate(-100%, 0)' // align top-right of box to the hovered icon
+                        }}
+                      >
+                        <h3 className="text-white font-bold mb-2">
+                          Synergy breakdown: {hoveredHero.name}
+                        </h3>
+                        <ul className="text-gray-300 space-y-1">
+                          {(hoveredHero.team === 'ally'
+                            ? [...selectedHeroes.ally, ...selectedHeroes.enemy]
+                            : [...selectedHeroes.enemy, ...selectedHeroes.ally]
+                          )
+                            .filter(h => h.HeroId !== hoveredHero.HeroId)
+                            .map(other => {
+                              const heroMatchup = matchupData?.[String(hoveredHero.HeroId)];
+
+                              const sameTeam = (
+                                (hoveredHero.team === 'ally' && selectedHeroes.ally.some(h => h.HeroId === other.HeroId)) ||
+                                (hoveredHero.team === 'enemy' && selectedHeroes.enemy.some(h => h.HeroId === other.HeroId))
+                              );
+
+                              const relation = sameTeam
+                                ? heroMatchup?.with?.find(entry => entry.heroId2 === other.HeroId)
+                                : heroMatchup?.vs?.find(entry => entry.heroId2 === other.HeroId);
+
+                              const score = typeof relation?.synergy === 'number' ? relation.synergy : 0;
+                              
+
+                              console.log("Hovered Hero ID:", hoveredHero.HeroId);
+                              console.log("Other Hero ID:", other.HeroId);
+                              console.log("Accessing:", sameTeam ? 'with' : 'vs');
+                              console.log("Matchup entry:", matchupData?.[String(hoveredHero.HeroId)]);
+                              console.log("Score value:", score);
+                              return (
+                                <li key={other.HeroId} className="flex justify-between">
+                                  <span>{other.name}</span>
+                                  <span
+                                    className={`font-mono ${
+                                      score > 0 ? 'text-green-400' : score < 0 ? 'text-red-400' : 'text-gray-400'
+                                    }`}
+                                  >
+                                    {score > 0 ? '+' : ''}{score.toFixed(1)}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <>
                     <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">

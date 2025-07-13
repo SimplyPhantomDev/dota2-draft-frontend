@@ -43,7 +43,17 @@ export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, 
 export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDeselect }) {
     const [collectedProps, dropRef] = useDrop(() => ({
     accept: "HERO",
-    drop: (item) => handleDrop(item.hero, team),
+    canDrop: () => {
+      const teamHeroes = team === "ally" ? selectedHeroes.ally : selectedHeroes.enemy;
+      return teamHeroes.length < 5;
+    },
+    drop: (item, monitor) => {
+      const teamHeroes = team === "ally" ? selectedHeroes.ally : selectedHeroes.enemy;
+      // Safety check: prevent drop if team is full
+      if (teamHeroes.length < 5) {
+        handleDrop(item.hero, team);
+      }
+    },
     collect: (monitor) => ({
         isOver: monitor.isOver(),
         canDrop: monitor.canDrop(),
@@ -51,6 +61,7 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
     }));
   
     const isOver = collectedProps.isOver;
+    const canDrop = collectedProps.canDrop;
     const isAlly = team === "ally";
     const heroes2 = isAlly ? selectedHeroes.ally : selectedHeroes.enemy;
   
