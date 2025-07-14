@@ -46,6 +46,8 @@ export default function HeroList() {
 
   const [hoveredHeroPosition, setHoveredHeroPosition] = useState({ x: 0, y: 0 });
 
+  const [showWinrateInfo, setShowWinrateInfo] = useState(false);
+
   const searchInputRef = useRef(null);
 
   const searchTimeoutRef = useRef(null);
@@ -308,7 +310,7 @@ export default function HeroList() {
       {/* Drafting Panel with Title */}
       <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
         <div className="flex items-center flex-shrink-0 z-10">
-          <h1 className="text-2xl font-bold text-white mr-2">Dota 2 Counter Tool</h1>
+          <h1 className="font-serif text-2xl font-bold text-white mr-2">Dota 2 Counter Tool</h1>
           <button
             onClick={() => {setShowGuide(prev => !prev);
               setButtonPulse(true);
@@ -329,7 +331,7 @@ export default function HeroList() {
                 className="absolute top-full left-60 ml-2 bg-white text-black text-sm px-2 py-1 rounded shadow-lg z-20"
               >
                 Click here for a guide on how to use the app.
-                <div className="absolute -top-3 left-3 w-3 h-3 bg-white rotate-45 transform origin-bottom-left" />
+                <div className="absolute -top-3 left-8 w-3 h-3 bg-white rotate-45 transform origin-bottom-left" />
               </motion.div>
             )}
         </div>
@@ -343,7 +345,7 @@ export default function HeroList() {
           <div className="flex justify-center">
             <button
               onClick={() => setSelectedTeam(prev => prev === "ally" ? "enemy" : "ally")}
-              className={`w-[188px] px-4 py-1 rounded-full text-white text-sm font-semibold transition 
+              className={`w-[215px] px-4 py-1 font-serif rounded-full text-white text-sm font-semibold transition 
               ${selectedTeam === "ally" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
             >
               Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
@@ -438,7 +440,7 @@ export default function HeroList() {
         <div className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
           {searchQuery && (
           <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
-            <span className="text-[100px] font-bold uppercase text-white opacity-50 select-none">
+            <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
               {searchQuery}
             </span>
           </div>
@@ -512,12 +514,24 @@ export default function HeroList() {
                               setHoveredHeroPosition({ x: rect.left, y: rect.bottom });}}
                             onMouseLeave={() => setHoveredHero(null)}
                           />
-                          <span className="text-green-400 text-sm font-mono w-10 text-right">
-                            {ally.totalScore}
+                          <span
+                            className={`text-sm font-mono w-10 text-right ${
+                              ally.totalScore > 0 ? 'text-green-400' :
+                              ally.totalScore < 0 ? 'text-red-400' :
+                              'text-gray-400'
+                            }`}
+                          >
+                            {ally.totalScore > 0 ? '+' : ''}{ally.totalScore}
                           </span>
                           <div className="border-1 border-gray-600 h-6 mx-1" />
-                          <span className="text-red-400 text-sm font-mono w-10 text-left">
-                            {enemy.totalScore}
+                          <span
+                            className={`text-sm font-mono w-10 text-left ${
+                              enemy.totalScore > 0 ? 'text-red-400' :
+                              enemy.totalScore < 0 ? 'text-green-400' :
+                              'text-gray-400'
+                            }`}
+                          >
+                            {enemy.totalScore > 0 ? '+' : ''}{enemy.totalScore}
                           </span>
                           <img
                             src={enemy.icon_url}
@@ -544,7 +558,7 @@ export default function HeroList() {
                     </div>
 
                     {/* Outcome prediction */}
-                    <div className="mt-1 text-center">
+                    <div className="mt-1 text-center relative group">
                       {(() => {
                         const allyTotal = fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
                         const enemyTotal = fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
@@ -557,9 +571,26 @@ export default function HeroList() {
                             <span className="text-green-400">{allyWin}%</span>
                             <span className="text-gray-400 mx-1">/</span>
                             <span className="text-red-400">{enemyWin}%</span>
+
+                            <button
+                              onClick={() => setShowWinrateInfo(prev => !prev)}
+                              className="ml-2 text-xs bg-white bg-opacity-0 rounded-full w-4 h-4 inline-flex items-center justify-center hover:bg-gray-600"
+                              title="Winrate info"
+                              >
+                                <img src={infoButtonIcon} alt="WinrateInfo" className="filter invert"/>
+                              </button>
                           </span>
                         );
                       })()}
+                      {showWinrateInfo && (
+                        <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-[260px] bg-gray-900 text-white text-xs p-3 rounded shadow-lg z-10">
+                          <p>
+                            NOTE! Winrate calculations are made purely based on the synergy scores of each hero.
+                            Win probability will never be above 80% for this reason. Cooperation and coordination
+                            can turn the tide even against the heaviest of outdrafts in Dota.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {hoveredHero && (
@@ -594,12 +625,6 @@ export default function HeroList() {
 
                               const score = typeof relation?.synergy === 'number' ? relation.synergy : 0;
                               
-
-                              console.log("Hovered Hero ID:", hoveredHero.HeroId);
-                              console.log("Other Hero ID:", other.HeroId);
-                              console.log("Accessing:", sameTeam ? 'with' : 'vs');
-                              console.log("Matchup entry:", matchupData?.[String(hoveredHero.HeroId)]);
-                              console.log("Score value:", score);
                               return (
                                 <li key={other.HeroId} className="flex justify-between">
                                   <span>{other.name}</span>
@@ -660,8 +685,7 @@ export default function HeroList() {
                 Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                 ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
                 Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                Typing at any time starts a search function, that will reset in 3 seconds of inactivity. Normal typing rules of course apply. Aliases will be supported later down the line. <br/> <br/>
-                Known issue: Hero cards and attribute containers stretch interestingly on first page load, working on a fix.
+                Typing at any time starts a search function that will reset in 3 seconds of inactivity, a familiar function from the Dota 2 game client. Normal typing rules of course apply. Aliases will be supported later down the line.
               </p>
             </div>
           )}
