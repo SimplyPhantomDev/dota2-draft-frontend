@@ -311,6 +311,12 @@ export default function HeroList() {
     localStorage.setItem('heroPool', JSON.stringify(heroPool));
   }, [heroPool]);
 
+  useEffect(() => {
+  if (heroPool.length < 3 && filterByHeroPool) {
+    setFilterByHeroPool(false);
+  }
+  }, [heroPool, filterByHeroPool]);
+
   function renderAttributeColumn(attr) {
     const colorMap = {
     str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
@@ -445,7 +451,7 @@ export default function HeroList() {
           <div className="relative w-full h-6 mb-1">
             <button
               onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
-              className="absolute top-1/2 transform -translate-y-1/2 w-28 h-12 mt-6 bg-gray-800 rounded transition-colors duration-300 ease-in-out flex items-center justify-between"
+              className="absolute ml-4 top-1/2 transform -translate-y-1/2 w-28 h-12 mt-6 bg-gray-800 rounded transition-colors duration-300 ease-in-out flex items-center justify-between"
               title="Toggle Grid Layout"
             >
 
