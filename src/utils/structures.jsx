@@ -1,7 +1,7 @@
 import { motion } from "framer-motion"
 import { useDrag, useDrop } from "react-dnd";
 
-export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, grayscale, highlight }) {
+export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, grayscale, highlight, glowPurple }) {
     const [{ isDragging }, drag] = useDrag(() => ({
       type: "HERO",
       item: { hero },
@@ -29,10 +29,12 @@ export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, 
         onContextMenu={handleRightClick}
         disabled={isPicked}
         className={`w-[106px] h-[76px] rounded shadow text-center transition-transform duration-300
-        ${isPicked ? "bg-gray-500 opacity-40 cursor-not-allowed" : "bg-gray-700 hover:ring-2 hover:ring-yellow-400 hover:scale-[1.03]"}
-        ${isDragging ? "opacity-30" : ""}`}
+          ${isPicked ? "bg-gray-500 opacity-40 cursor-not-allowed" : "bg-gray-700 hover:ring-2 hover:ring-yellow-400 hover:scale-[1.03]"}
+          ${isDragging ? "opacity-30" : ""}
+          ${glowPurple ? "animate-pulseSlow shadow-[0_0_12px_2px_rgba(128,0,128,0.6)]" : ""}
+        `}
         >
-        <img src={hero.icon_url} alt={hero.name} className={`w-full h-15 object-contain mx-auto transition-all duration-300 ${
+        <img src={hero.icon_url} alt={hero.name} className={`w-full rounded h-15 object-contain mx-auto transition-all duration-300 ${
         grayscale ? "grayscale opacity-30" : ""} ${highlight ? "shadow-[0_0_10px_2px_rgba(59,130,246,0.7)]" : ""}
         `} />
         <h3 className="text-xs font-medium px-1 truncate">{hero.name}</h3>

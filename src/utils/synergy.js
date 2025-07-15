@@ -1,4 +1,4 @@
-export const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], roleFilter = null, fullDraft = false, matchupData, heroes }) => {
+export const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], roleFilter = null, fullDraft = false, matchupData, heroes, heroPool = null, filterByHeroPool }) => {
   if (!matchupData || !heroes || Object.keys(matchupData).length === 0 || Object.keys(heroes).length === 0) return null;
 
   const allHeroes = Object.values(heroes).flat(); // strength, agility, etc combined
@@ -84,11 +84,25 @@ export const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], ban
     };
   }
 
-  const top10 = Object.values(combinedScores)
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 10);
+  const allSuggestions = Object.values(combinedScores).sort((a, b) => b.totalScore - a.totalScore);
 
-  return top10;
+  let inPool = [];
+  let outPool = [];
+
+  for (const hero of allSuggestions) {
+    if (heroPool && heroPool.includes(hero.HeroId)) {
+      inPool.push(hero);
+    } else {
+      outPool.push(hero);
+    }
+  }
+
+  // Return both groups for separate rendering
+  return {
+    mode: "suggestion",
+    inPool,
+    outPool,
+  };
 };
 
 export function getWinProbability(delta) {

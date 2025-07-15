@@ -48,42 +48,67 @@ export default function HeroList() {
 
   const [showWinrateInfo, setShowWinrateInfo] = useState(false);
 
+  const [heroPool, setHeroPool] = useState(() => {
+    const saved = localStorage.getItem('heroPool');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [filterByHeroPool, setFilterByHeroPool] = useState(true);
+
+  const [editHeroPoolMode, setEditHeroPoolMode] = useState(false);
+
+  const [statusMessage, setStatusMessage] = useState(null);
+
+  const [poolSuggestions, setPoolSuggestions] = useState([]);
+
+  const [globalSuggestions, setGlobalSuggestions] = useState([]);
+
+  const [showStatus, setShowStatus] = useState(false);
+
   const searchInputRef = useRef(null);
 
   const searchTimeoutRef = useRef(null);
 
+  const fadeTimeoutRef = useRef(null);
+
+  const removeTimeoutRef = useRef(null);
+
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
   const updateSynergySuggestions = useCallback((
-  ally = selectedHeroes.ally,
-  enemy = selectedHeroes.enemy,
-  bans = bannedHeroes,
-  role = roleFilter
-) => {
-  if (!ally.length && !enemy.length) {
-    setSuggestedHeroes([]);
-    setFullDraftStats(null);
-    return;
-  }
+    ally = selectedHeroes.ally,
+    enemy = selectedHeroes.enemy,
+    bans = bannedHeroes,
+    role = roleFilter
+  ) => {
+    if (!ally.length && !enemy.length) {
+      setSuggestedHeroes([]);
+      setFullDraftStats(null);
+      return;
+    }
 
-  const result = calculateSynergyPicks({
-    allyHeroIds: ally.map(h => h.HeroId),
-    enemyHeroIds: enemy.map(h => h.HeroId),
-    bannedHeroIds: bans.map(h => h.HeroId),
-    roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
-    fullDraft: ally.length === 5 && enemy.length === 5,
-    matchupData,
-    heroes
-  });
+    const result = calculateSynergyPicks({
+      allyHeroIds: ally.map(h => h.HeroId),
+      enemyHeroIds: enemy.map(h => h.HeroId),
+      bannedHeroIds: bans.map(h => h.HeroId),
+      roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
+      fullDraft: ally.length === 5 && enemy.length === 5,
+      matchupData,
+      heroes,
+      heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null,
+      filterByHeroPool
+    });
 
-  if (result?.mode === "fullDraft") {
-    setFullDraftStats(result.teams);
-    setSuggestedHeroes([]);
-  } else {
-    setSuggestedHeroes(result);
-    setFullDraftStats(null);
-  }
-  }, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes]);
+    if (result?.mode === "fullDraft") {
+      setFullDraftStats(result.teams);
+      setSuggestedHeroes([]);
+    } else if (result?.mode === "suggestion"){
+      const { inPool = [], outPool = [] } = result;
+      setPoolSuggestions(inPool.slice(0, 3));
+      setGlobalSuggestions(outPool.slice(0, 10));
+      setFullDraftStats(null);
+    }
+  }, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes, heroPool, filterByHeroPool]);
 
   const lockHero = (heroId) => {
     setClickLockedHeroes(prev => {
@@ -107,26 +132,48 @@ export default function HeroList() {
   };
 
   const handleHeroClick = (hero) => {
-  if (clickLockedHeroes.has(hero.HeroId)) return;
+    if (clickLockedHeroes.has(hero.HeroId)) return;
 
-  const team = selectedTeam;
+    if (editHeroPoolMode) {
+      const inPool = heroPool.includes(hero.HeroId);
+      const updatedPool = inPool
+        ? heroPool.filter(id => id !== hero.HeroId)
+        : [...heroPool, hero.HeroId];
 
-  // Prevent over-picking
-  if (selectedHeroes[team].length >= 5) return;
+        setHeroPool(updatedPool);
 
-  // Prevent duplicate pick (just in case)
-  if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
+        clearTimeout(fadeTimeoutRef.current);
+        clearTimeout(removeTimeoutRef.current);
 
-  lockHero(hero.HeroId);
+        setStatusMessage({
+          text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
+          type: inPool ? "removed" : "added"
+        });
+        setShowStatus(true);
 
-  const updatedSelected = {
-    ...selectedHeroes,
-    [team]: [...selectedHeroes[team], hero],
-  };
+        fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
+        removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
+        return;
+    }
 
-  setSelectedHeroes(updatedSelected);
+    const team = selectedTeam;
 
-  unlockHero(hero.HeroId);
+    // Prevent over-picking
+    if (selectedHeroes[team].length >= 5) return;
+
+    // Prevent duplicate pick (just in case)
+    if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
+
+    lockHero(hero.HeroId);
+
+    const updatedSelected = {
+      ...selectedHeroes,
+      [team]: [...selectedHeroes[team], hero],
+    };
+
+    setSelectedHeroes(updatedSelected);
+
+    unlockHero(hero.HeroId);
   };
 
 
@@ -193,6 +240,10 @@ export default function HeroList() {
   };
 
   useEffect(() => {
+    updateSynergySuggestions();
+  }, [filterByHeroPool]);
+
+  useEffect(() => {
     fetch("/heroes.json")
     .then((res) => res.json())
     .then((data) => {
@@ -256,6 +307,10 @@ export default function HeroList() {
   return () => clearTimeout(timeout);
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('heroPool', JSON.stringify(heroPool));
+  }, [heroPool]);
+
   function renderAttributeColumn(attr) {
     const colorMap = {
     str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
@@ -288,6 +343,7 @@ export default function HeroList() {
                 handleHeroBan={handleHeroBan}
                 grayscale={searchQuery ? !isHeroMatch(hero) : false}
                 highlight={searchQuery ? isHeroMatch(hero) : false}
+                glowPurple={editHeroPoolMode && heroPool.includes(hero.HeroId)}
               />
             );
           })}
@@ -297,7 +353,9 @@ export default function HeroList() {
   };
 
   return (
-    <div className="p-2 bg-black text-white h-screen overflow-hidden flex flex-col">
+    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${
+      editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
+    }`}>
       {/* Hidden search functionality */}
       <input
         type="text"
@@ -359,6 +417,16 @@ export default function HeroList() {
           />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 z-10">
+          <button
+            onClick={() => setEditHeroPoolMode(prev => !prev)}
+            className={`w-[71px] h-[60px] font-bold rounded transition-colors duration-150 ${
+              editHeroPoolMode
+                ? "bg-purple-600 text-white animate-pulse"
+                : "bg-gray-200 text-black hover:bg-gray-300"
+            }`}
+          >
+            {editHeroPoolMode ? "Editing Pool" : "Edit Pool"}
+          </button>
           <button
             onClick={handleClearBans}
             className="w-[71px] h-[60px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded"
@@ -649,23 +717,53 @@ export default function HeroList() {
                       <span className="flex-1 pl-2">Name</span>
                       <span className="text-right pr-1">Synergy</span>
                     </div>
-                    {suggestedHeroes.map((hero) => (
-                      <div
-                        key={hero.HeroId}
-                        className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
-                      >
-                        <img
-                          src={hero.icon_url}
-                          alt={hero.name}
-                          className="w-10 h-10 object-contain mr-2"
-                        />
-                        <span className="flex-1 text-sm font-medium text-white truncate">
-                          {hero.name}
-                        </span>
-                        <span className="text-green-400 text-sm font-mono pl-2">
-                          {hero.totalScore}
-                        </span>
-                      </div>
+
+                    {filterByHeroPool && (
+                      <>
+                        <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
+                          From Your Hero Pool
+                        </div>
+                        {poolSuggestions.map((hero) => (
+                          <div
+                            key={`pool-${hero.HeroId}`}
+                            className="flex items-center justify-between bg-purple-800/30 rounded px-2 py-1"
+                          >
+                            <img
+                              src={hero.icon_url}
+                              alt={hero.name}
+                              className="w-10 h-10 object-contain mr-2"
+                            />
+                            <span className="flex-1 text-sm font-medium text-white truncate">
+                              {hero.name}
+                            </span>
+                            <span className="text-green-400 text-sm font-mono pl-2">
+                              {hero.totalScore}
+                            </span>
+                          </div>
+                        ))}
+
+                        <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
+                          Other Strong Picks
+                        </div>
+                      </>
+                    )}
+                    {globalSuggestions.map((hero) => (
+                        <div
+                          key={`global-${hero.HeroId}`}
+                          className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
+                        >
+                          <img
+                            src={hero.icon_url}
+                            alt={hero.name}
+                            className="w-10 h-10 object-contain mr-2"
+                          />
+                          <span className="flex-1 text-sm font-medium text-white truncate">
+                            {hero.name}
+                          </span>
+                          <span className="text-green-400 text-sm font-mono pl-2">
+                            {hero.totalScore}
+                          </span>
+                        </div>
                     ))}
                   </>
                 )}
@@ -685,12 +783,31 @@ export default function HeroList() {
                 Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                 ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
                 Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                Typing at any time starts a search function that will reset in 3 seconds of inactivity, a familiar function from the Dota 2 game client. Normal typing rules of course apply. Aliases will be supported later down the line.
+                Typing at any time starts a search function that will reset in 3 seconds of inactivity, a familiar function from the Dota 2 game client. Normal typing 
+                rules of course apply. Aliases will be supported later down the line. Use the hero pool toggle button below to set your personalized hero pool and the tool will adjust.
               </p>
             </div>
           )}
-          <div className="mt-4 border-t border-gray-700 pt-2">
+          <div className="flex flex-wrap justify-between mt-4 border-t border-gray-700 pt-2">
             <p className="text-gray-300 text-sm mb-1">Suggestion filters:</p>
+            <div className="relative group">
+              <button
+                onClick={() => setFilterByHeroPool(prev => !prev)}
+                disabled={heroPool.length < 3}
+                className={`px-2 py-1 rounded text-xs font-bold transition duration-300 ${
+                  filterByHeroPool ? "bg-purple-700 text-white" : "bg-gray-700 text-gray-300"}
+                  ${heroPool.length < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-purple-600"}`}
+              >
+                {filterByHeroPool ? "Hero Pool: ON" : "Hero Pool: OFF"}
+              </button>
+              {heroPool.length < 3 && (
+                <div
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-gray-500 text-white text-[11px] px-3 py-2 rounded shadow-lg opacity-0 
+                    group-hover:opacity-100 transition-opacity duration-300 z-50">
+                  You need at least 3 heroes in your hero pool to activate this feature.
+                </div>
+              )}
+            </div>
             <div className="flex mb-3 space-x-2">
               <button
                 onClick={() => {
@@ -739,6 +856,16 @@ export default function HeroList() {
           </div>
         </div>
       </div>
+    {statusMessage && (
+      <div
+        className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
+          transition-opacity duration-400 ease-in-out
+          ${showStatus ? "opacity-100" : "opacity-0"}
+          ${statusMessage.type === "added" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
+      >
+        {statusMessage.text}
+      </div>
+    )}
     </div>
   );
 }
