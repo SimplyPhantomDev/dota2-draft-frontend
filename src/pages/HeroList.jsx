@@ -374,7 +374,7 @@ export default function HeroList() {
       {/* Drafting Panel with Title */}
       <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
         <div className="flex items-center flex-shrink-0 z-10">
-          <h1 className="font-serif text-2xl font-bold text-white mr-2">Dota 2 Counter Tool</h1>
+          <h1 className="font-serif text-2xl font-bold text-white mr-2">Dota 2 Drafting Tool</h1>
           <button
             onClick={() => {setShowGuide(prev => !prev);
               setButtonPulse(true);
