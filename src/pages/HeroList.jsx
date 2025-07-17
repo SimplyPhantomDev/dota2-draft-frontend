@@ -11,248 +11,139 @@ import { motion, AnimatePresence } from "framer-motion"
 
 export default function HeroList() {
 
+
+  //==============================================
+  //============= Drafting State =================
+  //==============================================
+
+  // Selected heroes for both team
   const [selectedHeroes, setSelectedHeroes] = useState({
     ally: [],
     enemy: []
   });
 
-  const [suggestedHeroes, setSuggestedHeroes] = useState([]);
-
-  const [matchupData, setMatchupData] = useState({});
-
-  const [selectedTeam, setSelectedTeam] = useState("ally");
-  
+  // Heroes that have been banned from the draft
   const [bannedHeroes, setBannedHeroes] = useState([]);
 
+  // Static matchup data (synergy/counter values between heroes)
+  const [matchupData, setMatchupData] = useState({});
+
+  // The team currently being drafted
+  const [selectedTeam, setSelectedTeam] = useState("ally");
+
+  // Heroes that are temporarily click-locked (Emergency fallback for quick inputs)
   const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
 
+  // All hero data grouped by attribute (STR, AGI, INT, UNI)
   const [heroes, setHeroes] = useState({});
+
+  // Suggestions calculated based on current draft and filters
+  const [suggestedHeroes, setSuggestedHeroes] = useState([]);
+
+  // Full synergy breakdown shown when both teams have their teams' full
+  const [fullDraftStats, setFullDraftStats] = useState(null);
   
+  // Filtering suggestions by selected role (e.g., "carry", "support")
   const[roleFilter, setRoleFilter] = useState(null);
 
-  const [fullDraftStats, setFullDraftStats] = useState(null);
+  //==============================================
+  //================ UI State ====================
+  //==============================================
 
+  // Layout mode: "default" = 2x2, "row" = 4x1
   const [gridMode, setGridMode] = useState("default");
 
+  // Whether to show the tool's short tutorial
   const [showGuide, setShowGuide] = useState(false);
 
+  // Button pulse effect (used for visual alerts)
   const [buttonPulse, setButtonPulse] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
-
+  // Tooltip visibility toggle for info box to help users begin using the tool
   const [showToolTip, setShowToolTip] = useState(true);
 
+  // Currently hovered hero (for synergy breakdown display)
   const [hoveredHero, setHoveredHero] = useState(null);
 
+  // Screen position of hovered hero (used for positioning hover box)
   const [hoveredHeroPosition, setHoveredHeroPosition] = useState({ x: 0, y: 0 });
 
+  // Show/hide specific information about how winrate prediction is calculated
   const [showWinrateInfo, setShowWinrateInfo] = useState(false);
 
+  // Hero search bar input value
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Container position (used for centering search word)
+  const [containerRect, setContainerRect] = useState(null);
+
+  //==============================================
+  //============ Hero Pool System ================
+  //==============================================
+
+  // User specific hero pool (stored in localStorage and editable by user)
   const [heroPool, setHeroPool] = useState(() => {
     const saved = localStorage.getItem('heroPool');
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Whether to show suggestions based on the user's hero pool or not
   const [filterByHeroPool, setFilterByHeroPool] = useState(true);
 
+  // Whether "Hero Pool Manipulation" mode is active (click to add/remove heroes)
   const [editHeroPoolMode, setEditHeroPoolMode] = useState(false);
 
-  const [statusMessage, setStatusMessage] = useState(null);
-
+  // Suggestions from the user's hero pool
   const [poolSuggestions, setPoolSuggestions] = useState([]);
 
+  // Best picks only taking draft into account
   const [globalSuggestions, setGlobalSuggestions] = useState([]);
 
+  //==============================================
+  //============= Status Messages ================
+  //==============================================
+
+  // Status message shown when user interacts with the hero pool editing tool
+  const [statusMessage, setStatusMessage] = useState(null);
+
+  // Cosmetic useState added to add a slight fade out to the status message
   const [showStatus, setShowStatus] = useState(false);
 
-  const [containerRect, setContainerRect] = useState(null);
+  //==============================================
+  //=========== Refs (DOM + Timing) ==============
+  //==============================================
 
+  // Ref to the container where all the hero cards are rendered
   const containerRef = useRef(null);
 
+  // Ref to the search input for automatic focus on keyboard input
   const searchInputRef = useRef(null);
 
-  const searchTimeoutRef = useRef(null);
-
+  // Timeout used to delay fade-out of hero pool edit status message
   const fadeTimeoutRef = useRef(null);
 
+  // Timeout used to delay removal of status messages
   const removeTimeoutRef = useRef(null);
 
+  // Timestamp of last user interaction (used for search backspace logic)
   const lastInteractionRef = useRef(Date.now());
 
+  // Flag to bypass above timestamp with quick inputs when searching
+  // and picking heroes quickly
   const bypassTimerRef = useRef(false);
 
+  //==============================================
+  //============== Derived Values ================
+  //==============================================
+
+  // True if either team has selected at least one hero
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
-  const updateSynergySuggestions = useCallback((
-    ally = selectedHeroes.ally,
-    enemy = selectedHeroes.enemy,
-    bans = bannedHeroes,
-    role = roleFilter
-  ) => {
-    if (!ally.length && !enemy.length) {
-      setSuggestedHeroes([]);
-      setFullDraftStats(null);
-      return;
-    }
+  //==============================================
+  //=========== Data Initialization ==============
+  //==============================================
 
-    const result = calculateSynergyPicks({
-      allyHeroIds: ally.map(h => h.HeroId),
-      enemyHeroIds: enemy.map(h => h.HeroId),
-      bannedHeroIds: bans.map(h => h.HeroId),
-      roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
-      fullDraft: ally.length === 5 && enemy.length === 5,
-      matchupData,
-      heroes,
-      heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null,
-      filterByHeroPool
-    });
-
-    if (result?.mode === "fullDraft") {
-      setFullDraftStats(result.teams);
-      setSuggestedHeroes([]);
-    } else if (result?.mode === "suggestion"){
-      const { inPool = [], outPool = [] } = result;
-      setPoolSuggestions(inPool.slice(0, 3));
-      setGlobalSuggestions(outPool.slice(0, 10));
-      setFullDraftStats(null);
-    }
-  }, [selectedHeroes.ally, selectedHeroes.enemy, bannedHeroes, roleFilter, matchupData, heroes, heroPool, filterByHeroPool]);
-
-  const lockHero = (heroId) => {
-    setClickLockedHeroes(prev => {
-    const updated = new Set(prev);
-    updated.add(heroId);
-    return updated;
-  });
-  };
-
-  const unlockHero = (heroId) => {
-    setClickLockedHeroes((prev) => {
-      const updated = new Set(prev);
-      updated.delete(heroId);
-      return updated;
-    });
-  };
-
-  const handleClearBans = () => {
-      setBannedHeroes([]);
-      updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
-  };
-
-  const handleHeroClick = (hero) => {
-    if (clickLockedHeroes.has(hero.HeroId)) return;
-
-    bypassTimerRef.current = true;
-
-    if (editHeroPoolMode) {
-      const inPool = heroPool.includes(hero.HeroId);
-      const updatedPool = inPool
-        ? heroPool.filter(id => id !== hero.HeroId)
-        : [...heroPool, hero.HeroId];
-
-        setHeroPool(updatedPool);
-
-        clearTimeout(fadeTimeoutRef.current);
-        clearTimeout(removeTimeoutRef.current);
-
-        setStatusMessage({
-          text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
-          type: inPool ? "removed" : "added"
-        });
-        setShowStatus(true);
-
-        fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
-        removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
-        return;
-    }
-
-    const team = selectedTeam;
-
-    // Prevent over-picking
-    if (selectedHeroes[team].length >= 5) return;
-
-    // Prevent duplicate pick (just in case)
-    if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
-
-    lockHero(hero.HeroId);
-
-    const updatedSelected = {
-      ...selectedHeroes,
-      [team]: [...selectedHeroes[team], hero],
-    };
-
-    setSelectedHeroes(updatedSelected);
-
-    unlockHero(hero.HeroId);
-  };
-
-
-  const handleDrop = (hero, team) => {
-    if (clickLockedHeroes.has(hero.HeroId)) return;
-
-    setSelectedHeroes(prev => {
-      if (prev[team].some(h => h.HeroId === hero.HeroId)) return prev;
-      if (prev[team].length >= 5) return prev;
-
-      lockHero(hero.HeroId);
-
-      const updated = {
-        ...prev,
-        [team]: [...prev[team], hero]
-      };
-
-      unlockHero(hero.HeroId);
-
-      return updated;
-    });
-  };
-
-  const handleHeroDeselect = (hero, team) => {
-
-    const newSelected = {
-      ...selectedHeroes,
-      [team]: selectedHeroes[team].filter(h => h.HeroId !== hero.HeroId),
-    };
-
-    setSelectedHeroes(newSelected);
-
-    updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
-  };
-
-  const handleClear = () => {
-    setSelectedHeroes({ ally: [], enemy: [] });
-    setSuggestedHeroes([]);
-    setBannedHeroes([]);
-    setClickLockedHeroes(new Set());
-  };
-
-  const handleBanRemove = (hero) => {
-    const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
-    setBannedHeroes(updatedBans);
-  };
-
-  const handleHeroBan = (hero) => {
-    if (bannedHeroes.length >= 16) return;
-    if (clickLockedHeroes.has(hero.HeroId)) return;
-
-    lockHero(hero.HeroId);
-
-    const updatedBans = [...bannedHeroes, hero];
-
-    setBannedHeroes(updatedBans)
-
-    unlockHero(hero.HeroId);
-  };
-
-  const isHeroMatch = (hero) => {
-    if(!searchQuery.trim()) return true;
-    return hero.name.toLowerCase().includes(searchQuery.toLowerCase());
-  };
-
-  useEffect(() => {
-    updateSynergySuggestions();
-  }, [filterByHeroPool]);
-
+  // Load and group hero data from local JSON on mount
   useEffect(() => {
     fetch("/heroes.json")
     .then((res) => res.json())
@@ -263,6 +154,7 @@ export default function HeroList() {
     .catch((err) => console.error("Failed to load static hero data:", err));
   }, []);
 
+  // Load synergy matrix from local JSON on mount
   useEffect(() => {
     fetch("/synergyMatrix.json")
       .then((res) => res.json())
@@ -272,15 +164,45 @@ export default function HeroList() {
       .catch((err) => console.error("Failed to load synergy data", err));
   }, []);
 
+  //==============================================
+  //=========== Synergy Suggestions ==============
+  //==============================================
+
+  // Recalculate suggestions when hero pool filter is toggled
+  useEffect(() => {
+    updateSynergySuggestions();
+  }, [filterByHeroPool]);
+
+  // Recalculate or clear suggestions when selected or banned heroes change
   useEffect(() => {
   if (selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0) {
     updateSynergySuggestions();
   } else {
-    // Clear suggestions if all heroes are removed
-    setSuggestedHeroes([]);
+    setSuggestedHeroes([]); // Clear if no picks
   }
   }, [selectedHeroes, bannedHeroes]);
 
+  //==============================================
+  //========== Hero Pool Persistence =============
+  //==============================================
+
+  // Save hero pool to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('heroPool', JSON.stringify(heroPool));
+  }, [heroPool]);
+
+  // Automatically disable filter if hero pool is too small
+  useEffect(() => {
+    if (heroPool.length < 3 && filterByHeroPool) {
+      setFilterByHeroPool(false);
+    }
+  }, [heroPool, filterByHeroPool]);
+
+  //==============================================
+  //========= Keyboard & Search Logic ============
+  //==============================================
+
+  // Handle typing and backspace logic for search bar focus and clearing
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (document.activeElement !== searchInputRef.current) {
@@ -306,21 +228,17 @@ export default function HeroList() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  //==============================================
+  //========== UI Hehavior & Layout ==============
+  //==============================================
+
+  // Automatically hide tooltip for guide after 5 seconds
   useEffect(() => {
   const timeout = setTimeout(() => setShowToolTip(false), 5000); // Timeout for tooltip to disappear
   return () => clearTimeout(timeout);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('heroPool', JSON.stringify(heroPool));
-  }, [heroPool]);
-
-  useEffect(() => {
-  if (heroPool.length < 3 && filterByHeroPool) {
-    setFilterByHeroPool(false);
-  }
-  }, [heroPool, filterByHeroPool]);
-
+  // Track container's screen dimensions for positioning of search element
   useEffect(() => {
     const updateRect = () => {
       if (containerRef.current) {
@@ -333,6 +251,272 @@ export default function HeroList() {
     return () => window.removeEventListener("resize", updateRect);
   }, []);
 
+  //==============================================
+  //========= Synergy Suggestion Engine ==========
+  //==============================================
+
+  /**
+   * Updates synergy suggestions or final draft stats based on the current draft state.
+   * 
+   * This function:
+   * - Gathers selected heroes, bans, roles, and filter settings
+   * - Calls the core synergy calculation engine
+   * - Decides whether to show:
+   *   - Full team synergy stats (if both team are full), OR
+   *   - Suggested heroes to pick next (split into hero pool and global is hero pool toggle is on)
+   * 
+   * It is memoized to avoid unnecessary recalculations.
+   */
+
+  const updateSynergySuggestions = useCallback((
+    ally = selectedHeroes.ally,    // Selected heroes on the user's team
+    enemy = selectedHeroes.enemy,  // Selected heroes on the enemy team
+    bans = bannedHeroes,           // Banned heroes
+    role = roleFilter              // Current role filter (e.g. carry, support)
+  ) => {
+
+    // If no heroes are picked on either team, clear all suggestions and stats
+    if (!ally.length && !enemy.length) {
+      setSuggestedHeroes([]);
+      setFullDraftStats(null);
+      return;
+    }
+
+    // Run synergy engine with all draft-related inputs
+    const result = calculateSynergyPicks({
+      allyHeroIds: ally.map(h => h.HeroId),
+      enemyHeroIds: enemy.map(h => h.HeroId),
+      bannedHeroIds: bans.map(h => h.HeroId),
+      roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
+      fullDraft: ally.length === 5 && enemy.length === 5,
+      matchupData,
+      heroes,
+      heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null,
+      filterByHeroPool
+    });
+
+    // === CASE 1: Full Draft Complete ===
+    // Show full synergy breakdown for both teams
+    if (result?.mode === "fullDraft") {
+      setFullDraftStats(result.teams);
+      setSuggestedHeroes([]); // No suggestions needed anymore
+    }
+    
+    // === CASE 2: Still Drafting - Show Suggestions ===
+    // Show top synergy picks (in and out of personal hero pool)
+    else if (result?.mode === "suggestion"){
+      const { inPool = [], outPool = [] } = result;
+      setPoolSuggestions(inPool.slice(0, 3));     // Limit in-pool picks to top 3
+      setGlobalSuggestions(outPool.slice(0, 10)); // Limit global picks to top 10
+      setFullDraftStats(null);                    // Clear full drafts view
+    }
+  }, [
+    selectedHeroes.ally,
+    selectedHeroes.enemy,
+    bannedHeroes,
+    roleFilter,
+    matchupData,
+    heroes,
+    heroPool,
+    filterByHeroPool
+  ]);
+
+  //==============================================
+  //============== Locking Helpers ===============
+  //==============================================
+
+  /**
+   * Locks a hero to prevent it from being clicked or selected multiple times during
+   * This helper is only called through other components 
+   * @param {*} heroId The unique identifier of the hero being interacted with
+   */
+  const lockHero = (heroId) => {
+    setClickLockedHeroes(prev => {
+    const updated = new Set(prev);
+    updated.add(heroId);
+    return updated;
+  });
+  };
+
+  /**
+   * Unlocks a previously locked hero, restoring interactivity.
+   * @param {*} heroId The unique identifier of the hero whose interactivity is being restored
+   */
+  const unlockHero = (heroId) => {
+    setClickLockedHeroes((prev) => {
+      const updated = new Set(prev);
+      updated.delete(heroId);
+      return updated;
+    });
+  };
+
+  //==============================================
+  //=============== Draft Actions ================
+  //==============================================
+
+  /**
+   * Clears all bans and recalculates suggestions without any banned heroes
+   */
+  const handleClearBans = () => {
+      setBannedHeroes([]);
+      updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
+  };
+
+  /**
+   * Handles selecting a hero by clicking
+   * - Adds to ally or enemy draft depending on selected team
+   * - Updates hero Pool if in edit mode
+   * - Shows status message if in edit mode
+   * @param {*} hero The unique identifier of the hero being interacted with
+   */
+  const handleHeroClick = (hero) => {
+    if (clickLockedHeroes.has(hero.HeroId)) return;
+
+    bypassTimerRef.current = true;
+
+    // === Pool Editing Mode ===
+    if (editHeroPoolMode) {
+      const inPool = heroPool.includes(hero.HeroId);
+      const updatedPool = inPool
+        ? heroPool.filter(id => id !== hero.HeroId)
+        : [...heroPool, hero.HeroId];
+
+        setHeroPool(updatedPool);
+
+        clearTimeout(fadeTimeoutRef.current);
+        clearTimeout(removeTimeoutRef.current);
+
+        setStatusMessage({
+          text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
+          type: inPool ? "removed" : "added"
+        });
+        setShowStatus(true);
+
+        fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
+        removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
+        return;
+    }
+
+
+    // === Draft Pick Logic ===
+    const team = selectedTeam;
+    if (selectedHeroes[team].length >= 5) return;
+    if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
+
+    lockHero(hero.HeroId);
+
+    const updatedSelected = {
+      ...selectedHeroes,
+      [team]: [...selectedHeroes[team], hero],
+    };
+
+    setSelectedHeroes(updatedSelected);
+
+    unlockHero(hero.HeroId);
+  };
+
+  /**
+   * Handles dropping a hero card into a team (drag-and-drop).
+   * @param {*} hero The hero being dragged
+   * @param {*} team The team the hero is being dragged to
+   * @returns 
+   */
+  const handleDrop = (hero, team) => {
+    if (clickLockedHeroes.has(hero.HeroId)) return;
+
+    setSelectedHeroes(prev => {
+      if (prev[team].some(h => h.HeroId === hero.HeroId)) return prev;
+      if (prev[team].length >= 5) return prev;
+
+      lockHero(hero.HeroId);
+
+      const updated = {
+        ...prev,
+        [team]: [...prev[team], hero]
+      };
+
+      unlockHero(hero.HeroId);
+
+      return updated;
+    });
+  };
+
+  /**
+   * Deselects a hero from the team and updates synergy suggestions.
+   * @param {*} hero The hero being removed
+   * @param {*} team The team the hero is being removed from
+   */
+  const handleHeroDeselect = (hero, team) => {
+
+    const newSelected = {
+      ...selectedHeroes,
+      [team]: selectedHeroes[team].filter(h => h.HeroId !== hero.HeroId),
+    };
+
+    setSelectedHeroes(newSelected);
+
+    updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
+  };
+
+  /**
+   * Clears all picks, bans, suggestions and locked heroes (not hero pool)
+   */
+  const handleClear = () => {
+    setSelectedHeroes({ ally: [], enemy: [] });
+    setSuggestedHeroes([]);
+    setBannedHeroes([]);
+    setClickLockedHeroes(new Set());
+  };
+
+  /**
+   * Removes a single hero from the bans
+   * @param {*} hero The hero being removed from the bans
+   */
+  const handleBanRemove = (hero) => {
+    const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
+    setBannedHeroes(updatedBans);
+  };
+
+  /**
+   * Bans a hero (maximum of 16). Uses locking to prevent double-clicks.
+   * @param {*} hero The hero being banned
+   */
+  const handleHeroBan = (hero) => {
+    if (bannedHeroes.length >= 16) return;
+    if (clickLockedHeroes.has(hero.HeroId)) return;
+
+    lockHero(hero.HeroId);
+
+    const updatedBans = [...bannedHeroes, hero];
+
+    setBannedHeroes(updatedBans)
+
+    unlockHero(hero.HeroId);
+  };
+
+  //==============================================
+  //========= Search & Filtering Helpers =========
+  //==============================================
+
+  /**
+   * Checks whether a hero matches the current search query.
+   * @param {*} hero the
+   * @returns true if there's no query or the hero name includes the query
+   */
+  const isHeroMatch = (hero) => {
+    if(!searchQuery.trim()) return true;
+    return hero.name.toLowerCase().includes(searchQuery.toLowerCase());
+  };
+
+  //==============================================
+  //=============== Render Helpers ===============
+  //==============================================
+
+  /**
+   * Renders a single attribute column (STR, AGI, INT, UNI).
+   * Includes hero grid with proper styling and interactivity.
+   * @param {*} attr the attribute whiches column is being rendered (for color coding)
+   */
   function renderAttributeColumn(attr) {
     const colorMap = {
     str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
@@ -375,10 +559,11 @@ export default function HeroList() {
   };
 
   return (
+    // === Main App Container ===
     <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${
       editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
     }`}>
-      {/* Hidden search functionality */}
+      {/* === Search Input (invisible, global key listener) === */}
       <input
         type="text"
         className="opacity-0 absolute"
@@ -389,6 +574,7 @@ export default function HeroList() {
       />
       {/* Drafting Panel with Title */}
       <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
+        {/* App Title & Guide Button */}
         <div className="flex items-center flex-shrink-0 z-10">
           <h1 className="font-serif text-2xl font-bold tracking-widest text-white mr-2">D2 DT</h1>
           <button
@@ -415,6 +601,7 @@ export default function HeroList() {
               </motion.div>
             )}
         </div>
+        {/* Team DropZones + Pick Toggle */}
         <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
           <TeamDropZone
           team="ally"
@@ -438,6 +625,7 @@ export default function HeroList() {
           handleHeroDeselect={handleHeroDeselect}
           />
         </div>
+        {/* Pool Edit, Clear Bans, Clear All buttons */}
         <div className="flex items-center gap-2 flex-shrink-0 z-10">
           <button
             onClick={() => setEditHeroPoolMode(prev => !prev)}
@@ -497,9 +685,9 @@ export default function HeroList() {
             </button>
             <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
           </div>
+          {/* === Ban Slots (16 max) === */}
           <div className="flex justify-center mb-2 gap-2">
-
-            {/*Render in 16 hero slots for potential bans, the maximum number in normal dota game without duplicate picks */}
+            {/* Each slot: empty or contains a banned hero with "REMOVE" hover overlay */}
             {[...Array(16)].map((_, i) => (
               <div
                 key={i}
@@ -525,8 +713,8 @@ export default function HeroList() {
           </div>
         </div>
 
+      {/* Main Hero Grid Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Main hero area */}
         <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
           {searchQuery && (
           <div
@@ -575,7 +763,7 @@ export default function HeroList() {
           </AnimatePresence>
         </div>
 
-        {/* The sidebar */}
+        {/* === Sidebar Panel (suggestions / full draft analysis) === */}
         <div className="min-w-[260px] max-w-[350px] flex-[1] bg-gray-800 rounded shadow flex flex-col p-4">
           <div className="flex-1 overflow-y-auto space-y-2">
             {suggestedHeroes.length === 0 && hasPicks === false ? (
@@ -799,6 +987,7 @@ export default function HeroList() {
               </>
             )}
           </div>
+          {/* === User Guide Box === */}
           {showGuide && (
             <div className="relative bg-gray-700 text-white text-sm rounded-lg p-3 mt-2 shadow-lg guide-flash">
               <button
@@ -817,6 +1006,7 @@ export default function HeroList() {
               </p>
             </div>
           )}
+          {/* === Suggestion Filters: Pool & Role === */}
           <div className="flex flex-wrap justify-between mt-4 border-t border-gray-700 pt-2">
             <p className="text-gray-300 text-sm mb-1">Suggestion filters:</p>
             <div className="relative group">
@@ -879,12 +1069,14 @@ export default function HeroList() {
               </button>
             </div>
           </div>
+          {/* === App Footer Info === */}
           <div className="text-white text-xs border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
             <p>Last updated: July 16</p>
           </div>
-        </div>
-      </div>
+        </div>{/* end sidebar */}
+      </div>{/* end hero+sidebar split */}
+    {/* === Status Toast (Bottom left) === */}
     {statusMessage && (
       <div
         className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
