@@ -20,13 +20,18 @@ The Dota 2 Drafting Tool helps players make smarter pick decisions using real-ti
 
 ## Project Structure Overview
 ```text
+public/
+├──heroes.json # All hero data
+└──synergyMatrix.json # All matchup information related to all heroes
 src/
 ├── assets/ # Icons and images
 ├── utils/ # Synergy calculations, grouping functions, shared components
-├── HeroList.jsx # Main frontend logic (large component)
+├── pages/ # Main frontend logic (large component inside)
+├── App.css # Tailwind specific styling and animation handling
 ├── App.jsx # Entry point
-├── index.html
-└── styles.css
+├── index.css
+└── main.jsx
+index.html
 ```
 
 ---
