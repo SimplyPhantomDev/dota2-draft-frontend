@@ -70,8 +70,9 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
     return (
     <div
       ref={dropRef}
-      className={`flex gap-2 p-1 rounded transition-all duration-200
+      className={`flex gap-2 p-1 rounded border transition-all duration-200
         ${isOver ? "bg-yellow-500/20" : ""}
+        ${isAlly ? "border-green-700" : "border-red-700"}
       `}
     >
       {/* Render in 5 hero slots for picks for each team */}

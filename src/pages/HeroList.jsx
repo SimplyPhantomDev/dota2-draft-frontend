@@ -65,6 +65,10 @@ export default function HeroList() {
 
   const [showStatus, setShowStatus] = useState(false);
 
+  const [containerRect, setContainerRect] = useState(null);
+
+  const containerRef = useRef(null);
+
   const searchInputRef = useRef(null);
 
   const searchTimeoutRef = useRef(null);
@@ -72,6 +76,10 @@ export default function HeroList() {
   const fadeTimeoutRef = useRef(null);
 
   const removeTimeoutRef = useRef(null);
+
+  const lastInteractionRef = useRef(Date.now());
+
+  const bypassTimerRef = useRef(false);
 
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
@@ -133,6 +141,8 @@ export default function HeroList() {
 
   const handleHeroClick = (hero) => {
     if (clickLockedHeroes.has(hero.HeroId)) return;
+
+    bypassTimerRef.current = true;
 
     if (editHeroPoolMode) {
       const inPool = heroPool.includes(hero.HeroId);
@@ -276,31 +286,25 @@ export default function HeroList() {
       if (document.activeElement !== searchInputRef.current) {
         searchInputRef.current?.focus();
       }
+
+      if (e.key.length === 1 || e.key === "Backspace") {
+        const now = Date.now();
+
+        if (e.key === "Backspace") {
+          const timeSinceInteraction = now - lastInteractionRef.current;
+          if (bypassTimerRef.current || timeSinceInteraction > 2000) {
+            setSearchQuery("");
+          }
+        }
+
+        lastInteractionRef.current = now;
+        bypassTimerRef.current = false;
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  useEffect(() => {
-    // Don't start timeout if search is empty
-    if (!searchQuery) return;
-
-    // Clear any existing timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Start new timeout
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery("");
-    }, 3000); // 3 seconds, search timeout
-
-    // Clear timeout on unmount
-    return () => {
-      clearTimeout(searchTimeoutRef.current);
-    };
-  }, [searchQuery]);
 
   useEffect(() => {
   const timeout = setTimeout(() => setShowToolTip(false), 5000); // Timeout for tooltip to disappear
@@ -316,6 +320,18 @@ export default function HeroList() {
     setFilterByHeroPool(false);
   }
   }, [heroPool, filterByHeroPool]);
+
+  useEffect(() => {
+    const updateRect = () => {
+      if (containerRef.current) {
+        setContainerRect(containerRef.current.getBoundingClientRect());
+      }
+    };
+
+    updateRect();
+    window.addEventListener("resize", updateRect);
+    return () => window.removeEventListener("resize", updateRect);
+  }, []);
 
   function renderAttributeColumn(attr) {
     const colorMap = {
@@ -374,7 +390,7 @@ export default function HeroList() {
       {/* Drafting Panel with Title */}
       <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
         <div className="flex items-center flex-shrink-0 z-10">
-          <h1 className="font-serif text-2xl font-bold text-white mr-2">Dota 2 Drafting Tool</h1>
+          <h1 className="font-serif text-2xl font-bold tracking-widest text-white mr-2">D2 DT</h1>
           <button
             onClick={() => {setShowGuide(prev => !prev);
               setButtonPulse(true);
@@ -392,7 +408,7 @@ export default function HeroList() {
                 initial={{ opacity:0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="absolute top-full left-60 ml-2 bg-white text-black text-sm px-2 py-1 rounded shadow-lg z-20"
+                className="absolute top-full left-20 ml-2 bg-white text-black text-sm px-2 py-1 rounded shadow-lg z-20"
               >
                 Click here for a guide on how to use the app.
                 <div className="absolute -top-3 left-8 w-3 h-3 bg-white rotate-45 transform origin-bottom-left" />
@@ -425,7 +441,7 @@ export default function HeroList() {
         <div className="flex items-center gap-2 flex-shrink-0 z-10">
           <button
             onClick={() => setEditHeroPoolMode(prev => !prev)}
-            className={`w-[71px] h-[60px] font-bold rounded transition-colors duration-150 ${
+            className={`w-[71px] h-[60px] px-1 font-bold rounded transition-colors duration-150 ${
               editHeroPoolMode
                 ? "bg-purple-600 text-white animate-pulse"
                 : "bg-gray-200 text-black hover:bg-gray-300"
@@ -511,9 +527,16 @@ export default function HeroList() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main hero area */}
-        <div className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
+        <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
           {searchQuery && (
-          <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-0">
+          <div
+            className="fixed pointer-events-none z-50"
+            style={{
+              left: containerRect.left + containerRect.width / 2,
+              top: containerRect.top + containerRect.height / 2,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
             <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
               {searchQuery}
             </span>
@@ -858,7 +881,7 @@ export default function HeroList() {
           </div>
           <div className="text-white text-xs border-t border-gray-700 pt-2">
             <p>Patch: 7.39c</p>
-            <p>Last updated: July 11</p>
+            <p>Last updated: July 16</p>
           </div>
         </div>
       </div>
