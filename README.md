@@ -19,6 +19,7 @@ The Dota 2 Drafting Tool helps players make smarter pick decisions using real-ti
 ---
 
 ## Project Structure Overview
+```text
 src/
 ├── assets/ # Icons and images
 ├── utils/ # Synergy calculations, grouping functions, shared components
@@ -26,6 +27,7 @@ src/
 ├── App.jsx # Entry point
 ├── index.html
 └── styles.css
+```
 
 ---
 
