@@ -1,0 +1,1097 @@
+{
+  "1": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "2": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "3": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "4": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "offlane",
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "5": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "6": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "7": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "offlane",
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "8": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "9": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "10": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "11": {
+    "primary": [
+      "midlane",
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "12": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "13": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "14": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "offlane",
+      "hard support",
+      "midlane"
+    ],
+    "fallback": "safelane"
+  },
+  "15": {
+    "primary": [
+      "offlane",
+      "midlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "16": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane",
+      "support"
+    ],
+    "fallback": null
+  },
+  "17": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "18": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": "support"
+  },
+  "19": {
+    "primary": [
+      "support",
+      "midlane"
+    ],
+    "secondary": [
+      "safelane",
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "20": {
+    "primary": [
+      "hard support",
+      "support",
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "21": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "midlane",
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "22": {
+    "primary": [
+      "midlane",
+      "support"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "23": {
+    "primary": [
+      "offlane",
+      "midlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "25": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "safelane",
+      "support"
+    ],
+    "fallback": null
+  },
+  "26": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "27": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "28": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "29": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "30": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "31": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "32": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "33": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "support",
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "34": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "35": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": "support"
+  },
+  "36": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "37": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "38": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "39": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "40": {
+    "primary": [
+      "support",
+      "offlane"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "41": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "42": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "43": {
+    "primary": [
+      "midlane",
+      "offlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "44": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "45": {
+    "primary": [
+      "support",
+      "midlane"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "46": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "47": {
+    "primary": [
+      "offlane",
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "48": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": "support"
+  },
+  "49": {
+    "primary": [
+      "midlane",
+      "offlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "50": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "51": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": "offlane"
+  },
+  "52": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "53": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [
+      "midlane",
+      "safelane",
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "54": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "55": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "56": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "57": {
+    "primary": [
+      "support",
+      "hard support",
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "58": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "59": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "60": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane",
+      "support"
+    ],
+    "fallback": null
+  },
+  "61": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "offlane",
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "62": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "63": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "64": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "65": {
+    "primary": [
+      "midlane",
+      "support"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "66": {
+    "primary": [
+      "hard support"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "67": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "68": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "69": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "70": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "71": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "72": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "73": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "74": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "75": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": "midlane"
+  },
+  "76": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "77": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane",
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "78": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "79": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "80": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "safelane",
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "81": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support",
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "82": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "83": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "84": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "85": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "86": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "87": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "88": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "89": {
+    "primary": [
+      "safelane",
+      "hard support"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "90": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "91": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "92": {
+    "primary": [
+      "offlane",
+      "midlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "93": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "94": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "95": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "96": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "97": {
+    "primary": [
+      "offlane",
+      "midlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "98": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "99": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "100": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "101": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": "midlane"
+  },
+  "102": {
+    "primary": [
+      "hard support",
+      "support",
+      "offlane",
+      "safelane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "103": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "104": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "105": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "hard support"
+    ],
+    "fallback": null
+  },
+  "106": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "107": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "108": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "109": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": null
+  },
+  "110": {
+    "primary": [
+      "support"
+    ],
+    "secondary": [
+      "hard support",
+      "offlane"
+    ],
+    "fallback": "midlane"
+  },
+  "111": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "112": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "113": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  },
+  "114": {
+    "primary": [
+      "safelane",
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": "support"
+  },
+  "119": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "120": {
+    "primary": [
+      "midlane",
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "121": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "123": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "126": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "128": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": "midlane"
+  },
+  "129": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "131": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [],
+    "fallback": null
+  },
+  "135": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [],
+    "fallback": "safelane"
+  },
+  "136": {
+    "primary": [
+      "support",
+      "hard support"
+    ],
+    "secondary": [
+      "offlane"
+    ],
+    "fallback": "safelane"
+  },
+  "137": {
+    "primary": [
+      "offlane"
+    ],
+    "secondary": [
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "138": {
+    "primary": [
+      "safelane"
+    ],
+    "secondary": [
+      "support"
+    ],
+    "fallback": null
+  },
+  "145": {
+    "primary": [
+      "midlane"
+    ],
+    "secondary": [
+      "safelane"
+    ],
+    "fallback": null
+  }
+}

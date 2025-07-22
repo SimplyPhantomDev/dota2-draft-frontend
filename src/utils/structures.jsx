@@ -42,7 +42,7 @@ export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, 
     );
 };
 
-export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDeselect }) {
+export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDeselect, rolePredictions = {} }) {
     const [collectedProps, dropRef] = useDrop(() => ({
     accept: "HERO",
     canDrop: () => {
@@ -66,6 +66,9 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
     const canDrop = collectedProps.canDrop;
     const isAlly = team === "ally";
     const heroes2 = isAlly ? selectedHeroes.ally : selectedHeroes.enemy;
+
+    console.log("TeamDropZone heroes2:", heroes2);
+    console.log("Role predictions:", rolePredictions);
   
     return (
     <div
@@ -91,6 +94,17 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
               <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-75 flex items-center justify-center transition-opacity duration-200">
                 <span className="text-red-400 font-bold text-sm">REMOVE</span>
               </div>
+            </div>
+          )}
+          {heroes2[i] && !isAlly && (
+            <div className="absolute bottom-0 w-full bg-black/70 text-center z-10 pointer-events-none">
+              <span className={`text-[12px] font-semibold ${
+                rolePredictions[heroes2[i].HeroId] === "?"
+                  ? "text-gray-400 italic"
+                  : "text-white"
+              }`}>
+                {rolePredictions[heroes2[i].HeroId] || ""}
+              </span>
             </div>
           )}
         </div>

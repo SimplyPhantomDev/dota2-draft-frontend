@@ -105,6 +105,67 @@ export const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], ban
   };
 };
 
+export const calculatePoolSynergies = ({ heroPool = [], allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], matchupData, heroes }) => {
+  if (!matchupData || !heroes || heroPool.length === 0) return [];
+
+  const allHeroes = Object.values(heroes).flat();
+  const pickedSet = new Set([...allyHeroIds, ...enemyHeroIds, ...bannedHeroIds]);
+
+  const synergyScores = {};
+  const counterScores = {};
+
+  for (const id of heroPool){
+    if (pickedSet.has(id)) continue;
+
+    const withSynergies = matchupData[id]?.with || [];
+    const vsSynergies = matchupData[id]?.vs || [];
+
+    for (const { heroId2, synergy } of withSynergies) {
+      if (allyHeroIds.includes(heroId2)) {
+        synergyScores[id] = (synergyScores[id] || 0) + synergy;
+      }
+    }
+
+    for (const { heroId2, synergy } of vsSynergies) {
+      if (enemyHeroIds.includes(heroId2)) {
+        counterScores[id] = (counterScores[id] || 0) + synergy;
+      }
+    }
+  }
+
+  const poolStats = [];
+
+  for (const id of heroPool) {
+    if (pickedSet.has(id)) continue;
+
+    const hero = allHeroes.find(h => h.HeroId === id);
+    if (!hero) continue;
+
+    const synergy = synergyScores[id] || 0;
+    const counter = counterScores[id] || 0;
+    const total = synergy + counter;
+
+    poolStats.push({
+      HeroId: hero.HeroId,
+      name: hero.name,
+      icon_url: hero.icon_url,
+      totalScore: total.toFixed(2),
+    });
+  }
+
+  return poolStats.sort((a, b) => parseFloat(b.totalScore) - parseFloat(a.totalScore));
+};
+
+export const getSynergyWith = (matchupData, heroId, otherId) => {
+  const entry = matchupData?.[heroId]?.with?.find(pair => pair.heroId2 === otherId);
+  return entry?.synergy ?? 0;
+};
+
+export const getCounterVs = (matchupData, heroId, enemyId) => {
+  const entry = matchupData?.[heroId]?.vs?.find(pair => pair.heroId2 === enemyId);
+  return entry?.synergy ?? 0;
+};
+
 export function getWinProbability(delta) {
     const maxWinrate = 80;
     const minWinrate = 20;

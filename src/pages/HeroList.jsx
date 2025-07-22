@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
 import { DraggableHero, TeamDropZone } from "../utils/structures";
-import { calculateSynergyPicks, getWinProbability } from "../utils/synergy";
+import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from "../utils/synergy";
+import { predictEnemyRoles } from "../utils/predictRoles";
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
@@ -16,7 +17,7 @@ export default function HeroList() {
   //============= Drafting State =================
   //==============================================
 
-  // Selected heroes for both team
+  // Selected heroes for both teams
   const [selectedHeroes, setSelectedHeroes] = useState({
     ally: [],
     enemy: []
@@ -46,6 +47,12 @@ export default function HeroList() {
   // Filtering suggestions by selected role (e.g., "carry", "support")
   const[roleFilter, setRoleFilter] = useState(null);
 
+  // Static hero role data (hero-specific position data)
+  const [heroRoleMap, setHeroRoleMap] = useState(null);
+
+  // Predicitons of the enemy team hero positions based on picks
+  const [enemyRolePredictions, setEnemyRolePredictions] = useState({});
+
   //==============================================
   //================ UI State ====================
   //==============================================
@@ -55,6 +62,9 @@ export default function HeroList() {
 
   // Whether to show the tool's short tutorial
   const [showGuide, setShowGuide] = useState(false);
+
+  // Whether to show the breakdown of the user's entire hero pool's synergies
+  const [showPoolBreakdown, setShowPoolBreakdown] = useState(false);
 
   // Button pulse effect (used for visual alerts)
   const [buttonPulse, setButtonPulse] = useState(false);
@@ -77,6 +87,9 @@ export default function HeroList() {
   // Container position (used for centering search word)
   const [containerRect, setContainerRect] = useState(null);
 
+  // Currently hovered hero from the draft suggestions (for suggested picks panel)
+  const [hoveredSuggestedHero, setHoveredSuggestedHero] = useState(null);
+
   //==============================================
   //============ Hero Pool System ================
   //==============================================
@@ -86,6 +99,9 @@ export default function HeroList() {
     const saved = localStorage.getItem('heroPool');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Synergy scores of all heroes within the hero pool, positive and negative
+  const [fullPoolSynergies, setFullPoolSynergies] = useState([]);
 
   // Whether to show suggestions based on the user's hero pool or not
   const [filterByHeroPool, setFilterByHeroPool] = useState(true);
@@ -164,6 +180,17 @@ export default function HeroList() {
       .catch((err) => console.error("Failed to load synergy data", err));
   }, []);
 
+  // Load hero-specific position data from local JSON on mount
+  useEffect(() => {
+    fetch("/hero-roles.json")
+      .then(res => res.json())
+      .then(data => setHeroRoleMap(data))
+      .catch(err => {
+        console.error("Failed to load hero-roles.json", err);
+        setHeroRoleMap({});
+      });
+  }, []);
+
   //==============================================
   //=========== Synergy Suggestions ==============
   //==============================================
@@ -181,6 +208,31 @@ export default function HeroList() {
     setSuggestedHeroes([]); // Clear if no picks
   }
   }, [selectedHeroes, bannedHeroes]);
+
+  // Assign enemy hero roles based on already picked heroes in the enemy team
+  useEffect(() => {
+    if (!heroRoleMap || selectedHeroes.enemy.length === 0) return;
+
+    const ids = selectedHeroes.enemy.map(h => h.HeroId);
+    const predictions = predictEnemyRoles(ids, heroRoleMap);
+    setEnemyRolePredictions(predictions);
+  }, [selectedHeroes.enemy, heroRoleMap]);
+
+  // Trigger synergy calculations for all heroes within the user's hero pool
+  useEffect(() => {
+    const storedPool = JSON.parse(localStorage.getItem("heroPool")) || [];
+
+    const results = calculatePoolSynergies({
+      heroPool: storedPool,
+      allyHeroIds: selectedHeroes.ally.map(h => h.HeroId),
+      enemyHeroIds: selectedHeroes.enemy.map(h => h.HeroId),
+      bannedHeroIds: bannedHeroes.map(h => h.HeroId),
+      matchupData,
+      heroes
+    });
+
+    setFullPoolSynergies(results);
+  }, [selectedHeroes, bannedHeroes, matchupData, heroes]);
 
   //==============================================
   //========== Hero Pool Persistence =============
@@ -229,7 +281,7 @@ export default function HeroList() {
   }, []);
 
   //==============================================
-  //========== UI Hehavior & Layout ==============
+  //========== UI Behavior & Layout ==============
   //==============================================
 
   // Automatically hide tooltip for guide after 5 seconds
@@ -367,7 +419,7 @@ export default function HeroList() {
    * - Adds to ally or enemy draft depending on selected team
    * - Updates hero Pool if in edit mode
    * - Shows status message if in edit mode
-   * @param {*} hero The unique identifier of the hero being interacted with
+   * @param {*} hero The hero object being interacted with
    */
   const handleHeroClick = (hero) => {
     if (clickLockedHeroes.has(hero.HeroId)) return;
@@ -417,7 +469,7 @@ export default function HeroList() {
 
   /**
    * Handles dropping a hero card into a team (drag-and-drop).
-   * @param {*} hero The hero being dragged
+   * @param {*} hero The hero object being dragged
    * @param {*} team The team the hero is being dragged to
    * @returns 
    */
@@ -443,7 +495,7 @@ export default function HeroList() {
 
   /**
    * Deselects a hero from the team and updates synergy suggestions.
-   * @param {*} hero The hero being removed
+   * @param {*} hero The hero object being removed
    * @param {*} team The team the hero is being removed from
    */
   const handleHeroDeselect = (hero, team) => {
@@ -479,7 +531,7 @@ export default function HeroList() {
 
   /**
    * Bans a hero (maximum of 16). Uses locking to prevent double-clicks.
-   * @param {*} hero The hero being banned
+   * @param {*} hero The hero object being banned
    */
   const handleHeroBan = (hero) => {
     if (bannedHeroes.length >= 16) return;
@@ -499,8 +551,8 @@ export default function HeroList() {
   //==============================================
 
   /**
-   * Checks whether a hero matches the current search query.
-   * @param {*} hero the
+   * Checks whether a hero's name matches the current search query.
+   * @param {*} hero the hero object which's name is being inspected
    * @returns true if there's no query or the hero name includes the query
    */
   const isHeroMatch = (hero) => {
@@ -623,6 +675,7 @@ export default function HeroList() {
           selectedHeroes={selectedHeroes}
           handleDrop={handleDrop}
           handleHeroDeselect={handleHeroDeselect}
+          rolePredictions={enemyRolePredictions}
           />
         </div>
         {/* Pool Edit, Clear Bans, Clear All buttons */}
@@ -764,7 +817,7 @@ export default function HeroList() {
         </div>
 
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
-        <div className="min-w-[260px] max-w-[350px] flex-[1] bg-gray-800 rounded shadow flex flex-col p-4">
+        <div className="relative min-w-[260px] max-w-[350px] flex-[1] bg-gray-800 rounded shadow flex flex-col p-4">
           <div className="flex-1 overflow-y-auto space-y-2">
             {suggestedHeroes.length === 0 && hasPicks === false ? (
                 <p className="text-gray-400 text-sm italic">
@@ -937,18 +990,28 @@ export default function HeroList() {
 
                     {filterByHeroPool && (
                       <>
-                        <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
-                          From Your Hero Pool
+                        <div className="flex items-center justify-between px-2 py-1">
+                          <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
+                            From Your Hero Pool
+                          </div>
+                          <button
+                            className="p-1 hover:opacity-80"
+                            onClick={() => setShowPoolBreakdown((prev) => !prev)}
+                          >
+                            <img src={infoButtonIcon} alt="info" className="w-4 h-4 filter invert" />
+                          </button>
                         </div>
                         {poolSuggestions.map((hero) => (
                           <div
                             key={`pool-${hero.HeroId}`}
+                            onMouseEnter={() => setHoveredSuggestedHero(hero)}
+                            onMouseLeave={() => setHoveredSuggestedHero(null)}
                             className="flex items-center justify-between bg-purple-800/30 rounded px-2 py-1"
                           >
                             <img
                               src={hero.icon_url}
                               alt={hero.name}
-                              className="w-10 h-10 object-contain mr-2"
+                              className="w-16 h-10 object-contain mr-2"
                             />
                             <span className="flex-1 text-sm font-medium text-white truncate">
                               {hero.name}
@@ -967,12 +1030,14 @@ export default function HeroList() {
                     {globalSuggestions.map((hero) => (
                         <div
                           key={`global-${hero.HeroId}`}
+                          onMouseEnter={() => setHoveredSuggestedHero(hero)}
+                          onMouseLeave={() => setHoveredSuggestedHero(null)}
                           className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
                         >
                           <img
                             src={hero.icon_url}
                             alt={hero.name}
-                            className="w-10 h-10 object-contain mr-2"
+                            className="w-16 h-10 object-contain mr-2"
                           />
                           <span className="flex-1 text-sm font-medium text-white truncate">
                             {hero.name}
@@ -982,6 +1047,70 @@ export default function HeroList() {
                           </span>
                         </div>
                     ))}
+                    {hoveredSuggestedHero && (
+                      <div className="absolute right-4 bottom-36 bg-gray-900 border border-gray-600 rounded opacity-90 p-6 text-sm shadow-lg z-30 w-[320px] max-h-[400px] overflow-y-auto pointer-events-none">
+                        <h3 className="text-white font-bold mb-2">{hoveredSuggestedHero.name} Breakdown</h3>
+
+                        <div className="mb-2">
+                          <p className="text-green-400 font-semibold mb-1">Synergy with Allies</p>
+                          {selectedHeroes.ally.length === 0 ? (
+                            <p className="text-gray-500 italic">No allies selected</p>
+                          ) : (
+                            selectedHeroes.ally.map(ally => {
+                              const score = getSynergyWith(matchupData, hoveredSuggestedHero.HeroId, ally.HeroId);
+                              return (
+                                <div key={ally.HeroId} className="flex justify-between text-gray-300">
+                                  <span>{ally.name}</span>
+                                  <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
+                                    {score > 0 ? "+" : ""}
+                                    {score.toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-red-400 font-semibold mb-1">Effectiveness vs Enemies</p>
+                          {selectedHeroes.enemy.length === 0 ? (
+                            <p className="text-gray-500 italic">No enemies selected</p>
+                          ) : (
+                            selectedHeroes.enemy.map(enemy => {
+                              const score = getCounterVs(matchupData, hoveredSuggestedHero.HeroId, enemy.HeroId);
+                              return (
+                                <div key={enemy.HeroId} className="flex justify-between text-gray-300">
+                                  <span>{enemy.name}</span>
+                                  <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
+                                    {score > 0 ? "+" : ""}
+                                    {score.toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {showPoolBreakdown && (
+                      <div className="absolute top-4 right-[360px] bg-gray-900 border border-purple-500 rounded-lg p-4 shadow-lg w-[300px] max-h-[80vh] overflow-y-auto z-50">
+                        <div className="flex justify-between items-center mb-3">
+                          <h2 className="text-purple-400 text-sm font-semibold uppercase">Full Hero Pool Breakdown</h2>
+                          <button onClick={() => setShowPoolBreakdown(false)} className="text-white hover:text-red-400 text-lg font-bold">
+                            ×
+                          </button>
+                        </div>
+                        {fullPoolSynergies.map((hero) => (
+                          <div key={`breakdown-${hero.HeroId}`} className="flex items-center justify-between mb-2">
+                            <div className="flex items-center">
+                              <img src={hero.icon_url} alt={hero.name} className="w-14 h-8 mr-2" />
+                              <span className="text-white text-sm truncate max-w-[140px]">{hero.name}</span>
+                            </div>
+                            <span className="text-green-400 text-sm font-mono">{hero.totalScore}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
               </>
@@ -1001,8 +1130,10 @@ export default function HeroList() {
                 Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                 ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
                 Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                Typing at any time starts a search function that will reset in 3 seconds of inactivity, a familiar function from the Dota 2 game client. Normal typing 
-                rules of course apply. Aliases will be supported later down the line. Use the hero pool toggle button below to set your personalized hero pool and the tool will adjust.
+                Typing at any time starts a search function that is very familiar to people from Dota 2. Aliases will be supported later down the line. Use the hero pool
+                toggle button below to set your personalized hero pool and the tool will still suggest globally great hero choices but also three best choices from your
+                hero pool. Clicking on the info button near the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. 
+                Hovering over hero suggestions shows more details as to where the number comes from. This feature also works when inspecting a full draft.
               </p>
             </div>
           )}
