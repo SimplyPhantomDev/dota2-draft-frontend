@@ -66,9 +66,6 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
     const canDrop = collectedProps.canDrop;
     const isAlly = team === "ally";
     const heroes2 = isAlly ? selectedHeroes.ally : selectedHeroes.enemy;
-
-    console.log("TeamDropZone heroes2:", heroes2);
-    console.log("Role predictions:", rolePredictions);
   
     return (
     <div

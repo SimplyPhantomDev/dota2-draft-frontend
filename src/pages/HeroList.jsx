@@ -75,8 +75,8 @@ export default function HeroList() {
   // Currently hovered hero (for synergy breakdown display)
   const [hoveredHero, setHoveredHero] = useState(null);
 
-  // Screen position of hovered hero (used for positioning hover box)
-  const [hoveredHeroPosition, setHoveredHeroPosition] = useState({ x: 0, y: 0 });
+  // Tracking logic for user's mouse position
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // Show/hide specific information about how winrate prediction is calculated
   const [showWinrateInfo, setShowWinrateInfo] = useState(false);
@@ -301,6 +301,36 @@ export default function HeroList() {
     updateRect();
     window.addEventListener("resize", updateRect);
     return () => window.removeEventListener("resize", updateRect);
+  }, []);
+
+  useEffect(() => {
+    const allyFull = selectedHeroes.ally.length === 5;
+    const enemyFull = selectedHeroes.enemy.length === 5;
+
+    // Auto-switch to the team that still has space
+    if (allyFull && !enemyFull) {
+      setSelectedTeam("enemy");
+    } else if (enemyFull && !allyFull) {
+      setSelectedTeam("ally");
+    }
+  }, [selectedHeroes]);
+
+  // Track user's mouse movement to determine when the user is hovering a hero
+  // in the full draft stats to make the synergy breakdown show correctly
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const boxWidth = 300;
+      const boxHeight = 400;
+      const margin = 10;
+
+      const x = Math.min(e.clientX + margin, window.innerWidth - boxWidth - margin);
+      const y = Math.min(e.clientY + margin, window.innerHeight - boxHeight - margin);
+
+      setMousePosition({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   //==============================================
@@ -664,8 +694,13 @@ export default function HeroList() {
           <div className="flex justify-center">
             <button
               onClick={() => setSelectedTeam(prev => prev === "ally" ? "enemy" : "ally")}
+              disabled={selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5}
               className={`w-[215px] px-4 py-1 font-serif rounded-full text-white text-sm font-semibold transition 
-              ${selectedTeam === "ally" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+              ${selectedTeam === "ally" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+              ${selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5
+                  ? "bg-gray-500 cursor-not-allowed opacity-50"
+                  : ""
+              }`}
             >
               Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
             </button>
@@ -846,10 +881,7 @@ export default function HeroList() {
                             src={ally.icon_url}
                             alt={ally.name}
                             className="w-10 h-10 object-contain"
-                            onMouseEnter={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setHoveredHero({ ...ally, team: 'ally' });
-                              setHoveredHeroPosition({ x: rect.left, y: rect.bottom });}}
+                            onMouseEnter={() => setHoveredHero({ ...ally, team: 'ally' })}
                             onMouseLeave={() => setHoveredHero(null)}
                           />
                           <span
@@ -875,10 +907,7 @@ export default function HeroList() {
                             src={enemy.icon_url}
                             alt={enemy.name}
                             className="w-10 h-10 object-contain"
-                            onMouseEnter={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setHoveredHero({ ...enemy, team: 'enemy' });
-                              setHoveredHeroPosition({ x: rect.left, y: rect.bottom });}}
+                            onMouseEnter={() => setHoveredHero({ ...enemy, team: 'enemy' })}
                             onMouseLeave={() => setHoveredHero(null)}
                           />
                         </div>
@@ -933,11 +962,10 @@ export default function HeroList() {
 
                     {hoveredHero && (
                       <div
-                        className="absolute bg-gray-900 border border-gray-600 rounded p-4 text-sm shadow-lg z-30 w-[300px] max-h-[400px] overflow-y-auto"
+                        className="fixed bg-gray-900 border border-gray-600 rounded p-4 text-sm shadow-lg z-50 w-[300px] max-h-[400px] overflow-y-auto pointer-events-none"
                         style={{
-                          top: `${hoveredHeroPosition.y}px`,
-                          left: `${hoveredHeroPosition.x}px`,
-                          transform: 'translate(-100%, 0)' // align top-right of box to the hovered icon
+                          top: `${mousePosition.y + 10}px`,
+                          left: `${mousePosition.x + 10}px`,
                         }}
                       >
                         <h3 className="text-white font-bold mb-2">
@@ -957,6 +985,8 @@ export default function HeroList() {
                                 (hoveredHero.team === 'enemy' && selectedHeroes.enemy.some(h => h.HeroId === other.HeroId))
                               );
 
+                              console.log('Hovered hero:', hoveredHero);
+
                               const relation = sameTeam
                                 ? heroMatchup?.with?.find(entry => entry.heroId2 === other.HeroId)
                                 : heroMatchup?.vs?.find(entry => entry.heroId2 === other.HeroId);
@@ -971,7 +1001,7 @@ export default function HeroList() {
                                       score > 0 ? 'text-green-400' : score < 0 ? 'text-red-400' : 'text-gray-400'
                                     }`}
                                   >
-                                    {score > 0 ? '+' : ''}{score.toFixed(1)}
+                                    {score > 0 ? '+' : ''}{score.toFixed(2)}
                                   </span>
                                 </li>
                               );
@@ -988,65 +1018,77 @@ export default function HeroList() {
                       <span className="text-right pr-1">Synergy</span>
                     </div>
 
-                    {filterByHeroPool && (
+                    {selectedHeroes.ally.length < 5 && (
                       <>
-                        <div className="flex items-center justify-between px-2 py-1">
-                          <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
-                            From Your Hero Pool
-                          </div>
-                          <button
-                            className="p-1 hover:opacity-80"
-                            onClick={() => setShowPoolBreakdown((prev) => !prev)}
-                          >
-                            <img src={infoButtonIcon} alt="info" className="w-4 h-4 filter invert" />
-                          </button>
-                        </div>
-                        {poolSuggestions.map((hero) => (
-                          <div
-                            key={`pool-${hero.HeroId}`}
-                            onMouseEnter={() => setHoveredSuggestedHero(hero)}
-                            onMouseLeave={() => setHoveredSuggestedHero(null)}
-                            className="flex items-center justify-between bg-purple-800/30 rounded px-2 py-1"
-                          >
-                            <img
-                              src={hero.icon_url}
-                              alt={hero.name}
-                              className="w-16 h-10 object-contain mr-2"
-                            />
-                            <span className="flex-1 text-sm font-medium text-white truncate">
-                              {hero.name}
-                            </span>
-                            <span className="text-green-400 text-sm font-mono pl-2">
-                              {hero.totalScore}
-                            </span>
-                          </div>
-                        ))}
+                        {filterByHeroPool && (
+                          <>
+                            <div className="flex items-center justify-between px-2 py-1">
+                              <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
+                                From Your Hero Pool
+                              </div>
+                              <button
+                                className="p-1 hover:opacity-80"
+                                onClick={() => setShowPoolBreakdown((prev) => !prev)}
+                              >
+                                <img src={infoButtonIcon} alt="info" className="w-4 h-4 filter invert" />
+                              </button>
+                            </div>
+                            {poolSuggestions.map((hero) => (
+                              <div
+                                key={`pool-${hero.HeroId}`}
+                                onMouseEnter={() => setHoveredSuggestedHero(hero)}
+                                onMouseLeave={() => setHoveredSuggestedHero(null)}
+                                className="flex items-center justify-between bg-purple-800/30 rounded px-2 py-1"
+                              >
+                                <img
+                                  src={hero.icon_url}
+                                  alt={hero.name}
+                                  className="w-16 h-10 object-contain mr-2"
+                                />
+                                <span className="flex-1 text-sm font-medium text-white truncate">
+                                  {hero.name}
+                                </span>
+                                <span className="text-green-400 text-sm font-mono pl-2">
+                                  {hero.totalScore}
+                                </span>
+                              </div>
+                            ))}
 
-                        <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
-                          Other Strong Picks
-                        </div>
+                            <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
+                              Other Strong Picks
+                            </div>
+                          </>
+                        )}
+                        {globalSuggestions.map((hero) => (
+                            <div
+                              key={`global-${hero.HeroId}`}
+                              onMouseEnter={() => setHoveredSuggestedHero(hero)}
+                              onMouseLeave={() => setHoveredSuggestedHero(null)}
+                              className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
+                            >
+                              <img
+                                src={hero.icon_url}
+                                alt={hero.name}
+                                className="w-16 h-10 object-contain mr-2"
+                              />
+                              <span className="flex-1 text-sm font-medium text-white truncate">
+                                {hero.name}
+                              </span>
+                              <span className="text-green-400 text-sm font-mono pl-2">
+                                {hero.totalScore}
+                              </span>
+                            </div>
+                        ))}
                       </>
                     )}
-                    {globalSuggestions.map((hero) => (
-                        <div
-                          key={`global-${hero.HeroId}`}
-                          onMouseEnter={() => setHoveredSuggestedHero(hero)}
-                          onMouseLeave={() => setHoveredSuggestedHero(null)}
-                          className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
-                        >
-                          <img
-                            src={hero.icon_url}
-                            alt={hero.name}
-                            className="w-16 h-10 object-contain mr-2"
-                          />
-                          <span className="flex-1 text-sm font-medium text-white truncate">
-                            {hero.name}
-                          </span>
-                          <span className="text-green-400 text-sm font-mono pl-2">
-                            {hero.totalScore}
-                          </span>
-                        </div>
-                    ))}
+                    {selectedHeroes.ally.length === 5 && (
+                      <div className="text-small text-gray-400 mt-4 px-2 py-2 text-center">
+                        Remove an allied hero to receive suggestions.
+                        {selectedHeroes.enemy.length < 5 && (
+                          <div className="py-4">Fill out the enemy team for a full draft breakdown.</div>
+                        )}
+                      </div>
+                    )}
                     {hoveredSuggestedHero && (
                       <div className="absolute right-4 bottom-36 bg-gray-900 border border-gray-600 rounded opacity-90 p-6 text-sm shadow-lg z-30 w-[320px] max-h-[400px] overflow-y-auto pointer-events-none">
                         <h3 className="text-white font-bold mb-2">{hoveredSuggestedHero.name} Breakdown</h3>
@@ -1106,7 +1148,13 @@ export default function HeroList() {
                               <img src={hero.icon_url} alt={hero.name} className="w-14 h-8 mr-2" />
                               <span className="text-white text-sm truncate max-w-[140px]">{hero.name}</span>
                             </div>
-                            <span className="text-green-400 text-sm font-mono">{hero.totalScore}</span>
+                            <span
+                              className={`text-sm font-mono ${
+                                parseFloat(hero.totalScore) >= 0 ? "text-green-400" : "text-red-400"
+                              }`}
+                            >
+                              {hero.totalScore}
+                            </span>
                           </div>
                         ))}
                       </div>
