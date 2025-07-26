@@ -1,13 +1,16 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
-import { DraggableHero, TeamDropZone } from "../utils/structures";
+import { DraggableHero } from "../components/structures";
 import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from "../utils/synergy";
 import { predictEnemyRoles } from "../utils/predictRoles";
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
+import questionMarkIcon from '../assets/question_mark.svg';
+import Sidebar from "../components/Sidebar";
+import DraftPanel from "../components/DraftPanel";
 import '../App.css';
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion";
 
 
 export default function HeroList() {
@@ -655,133 +658,66 @@ export default function HeroList() {
         ref={searchInputRef}
       />
       {/* Drafting Panel with Title */}
-      <div className="mb-2 bg-gray-800 rounded shadow px-4 py-2 relative flex items-center justify-between">
-        {/* App Title & Guide Button */}
-        <div className="flex items-center flex-shrink-0 z-10">
-          <h1 className="font-serif text-2xl font-bold tracking-widest text-white mr-2">D2 DT</h1>
+      <DraftPanel
+        selectedHeroes={selectedHeroes}
+        selectedTeam={selectedTeam}
+        setSelectedTeam={setSelectedTeam}
+        handleDrop={handleDrop}
+        handleHeroDeselect={handleHeroDeselect}
+        enemyRolePredictions={enemyRolePredictions}
+        showToolTip={showToolTip}
+        setShowToolTip={setShowToolTip}
+        setShowGuide={setShowGuide}
+        infoButtonIcon={infoButtonIcon}
+        buttonPulse={buttonPulse}
+        setButtonPulse={setButtonPulse}
+        editHeroPoolMode={editHeroPoolMode}
+        setEditHeroPoolMode={setEditHeroPoolMode}
+        handleClear={handleClear}
+        handleClearBans={handleClearBans}
+      />
+      <div className="flex flex-col items-center w-full">
+        <div className="relative w-full h-6 mb-1">
           <button
-            onClick={() => {setShowGuide(prev => !prev);
-              setButtonPulse(true);
-              setTimeout(() => setButtonPulse(false), 500);
-            }}
-            className={`w-[30px] h-[30px] bg-white bg-opacity-0 text-black font-bold rounded transition-transform duration-200 ${
-              buttonPulse ? 'animate-pulse' : ''
-            }`}
-            title="Info"
-            >
-              <img src={infoButtonIcon} alt="Info" className="filter invert"/>
-            </button>
-            {showToolTip && (
-              <motion.div
-                initial={{ opacity:0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="absolute top-full left-20 ml-2 bg-white text-black text-sm px-2 py-1 rounded shadow-lg z-20"
-              >
-                Click here for a guide on how to use the app.
-                <div className="absolute -top-3 left-8 w-3 h-3 bg-white rotate-45 transform origin-bottom-left" />
-              </motion.div>
-            )}
-        </div>
-        {/* Team DropZones + Pick Toggle */}
-        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-6 z-0">
-          <TeamDropZone
-          team="ally"
-          selectedHeroes={selectedHeroes}
-          handleDrop={handleDrop}
-          handleHeroDeselect={handleHeroDeselect}
-          />
-          <div className="flex justify-center">
-            <button
-              onClick={() => setSelectedTeam(prev => prev === "ally" ? "enemy" : "ally")}
-              disabled={selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5}
-              className={`w-[215px] px-4 py-1 font-serif rounded-full text-white text-sm font-semibold transition 
-              ${selectedTeam === "ally" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
-              ${selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5
-                  ? "bg-gray-500 cursor-not-allowed opacity-50"
-                  : ""
-              }`}
-            >
-              Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
-            </button>
-          </div>
-          <TeamDropZone
-          team="enemy"
-          selectedHeroes={selectedHeroes}
-          handleDrop={handleDrop}
-          handleHeroDeselect={handleHeroDeselect}
-          rolePredictions={enemyRolePredictions}
-          />
-        </div>
-        {/* Pool Edit, Clear Bans, Clear All buttons */}
-        <div className="flex items-center gap-2 flex-shrink-0 z-10">
-          <button
-            onClick={() => setEditHeroPoolMode(prev => !prev)}
-            className={`w-[71px] h-[60px] px-1 font-bold rounded transition-colors duration-150 ${
-              editHeroPoolMode
-                ? "bg-purple-600 text-white animate-pulse"
-                : "bg-gray-200 text-black hover:bg-gray-300"
-            }`}
+            onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
+            className="absolute ml-4 top-1/2 transform -translate-y-1/2 w-28 h-12 mt-6 bg-gray-800 rounded transition-colors duration-300 ease-in-out flex items-center justify-between"
+            title="Toggle Grid Layout"
           >
-            {editHeroPoolMode ? "Editing Pool" : "Edit Pool"}
+            <div
+                className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${
+                  gridMode === "row" ? "translate-x-16" : "translate-x-0"
+                }`}
+              />
+            {/* Icon 1: Default Layout */}
+            <div className="flex justify-between items-center w-full z-20">
+              <img
+                src={layoutDefaultIcon}
+                alt="Default Layout"
+                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
+                  gridMode === "default" ? "opacity-100" : "opacity-100"
+                }`}
+              />
+              {/* Icon 2: Row Layout */}
+              <img
+                src={layoutRowIcon}
+                alt="Row Layout"
+                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
+                  gridMode === "row" ? "opacity-100" : "opacity-100"
+                }`}
+              />
+            </div>
           </button>
-          <button
-            onClick={handleClearBans}
-            className="w-[71px] h-[60px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded"
-          >
-            Clear Bans
-          </button>
-          <button
-            onClick={handleClear}
-            className="w-[71px] h-[60px] bg-gray-200 hover:bg-gray-300 text-black font-bold rounded"
-          >
-            Clear All
-          </button>
+          <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
         </div>
-      </div>
-        <div className="flex flex-col items-center w-full">
-          <div className="relative w-full h-6 mb-1">
-            <button
-              onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
-              className="absolute ml-4 top-1/2 transform -translate-y-1/2 w-28 h-12 mt-6 bg-gray-800 rounded transition-colors duration-300 ease-in-out flex items-center justify-between"
-              title="Toggle Grid Layout"
+        {/* === Ban Slots (16 max) === */}
+        <div className="flex justify-center mb-2 gap-2">
+          {/* Each slot: empty or contains a banned hero with "REMOVE" hover overlay */}
+          {[...Array(16)].map((_, i) => (
+            <div
+              key={i}
+              className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
             >
-
-              <div
-                  className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${
-                    gridMode === "row" ? "translate-x-16" : "translate-x-0"
-                  }`}
-                />
-              {/* Icon 1: Default Layout */}
-              <div className="flex justify-between items-center w-full z-20">
-                <img
-                  src={layoutDefaultIcon}
-                  alt="Default Layout"
-                  className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
-                    gridMode === "default" ? "opacity-100" : "opacity-100"
-                  }`}
-                />
-                {/* Icon 2: Row Layout */}
-                <img
-                  src={layoutRowIcon}
-                  alt="Row Layout"
-                  className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
-                    gridMode === "row" ? "opacity-100" : "opacity-100"
-                  }`}
-                />
-              </div>
-            </button>
-            <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
-          </div>
-          {/* === Ban Slots (16 max) === */}
-          <div className="flex justify-center mb-2 gap-2">
-            {/* Each slot: empty or contains a banned hero with "REMOVE" hover overlay */}
-            {[...Array(16)].map((_, i) => (
-              <div
-                key={i}
-                className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
-              >
-                {bannedHeroes[i] && (
+              {bannedHeroes[i] && (
                   <div
                     className="relative group w-full h-full cursor-pointer"
                     onClick={() => handleBanRemove(bannedHeroes[i])}
@@ -790,16 +726,16 @@ export default function HeroList() {
                       src={bannedHeroes[i].icon_url}
                       alt={bannedHeroes[i].name}
                       className="object-contain w-full h-full filter grayscale"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                    <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                      <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
+                    </div>
                   </div>
-                </div>
-                )}
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          ))}
         </div>
+      </div>
 
       {/* Main Hero Grid Area */}
       <div className="flex flex-1 overflow-hidden">
@@ -852,408 +788,39 @@ export default function HeroList() {
         </div>
 
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
-        <div className="relative min-w-[260px] max-w-[350px] flex-[1] bg-gray-800 rounded shadow flex flex-col p-4">
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {suggestedHeroes.length === 0 && hasPicks === false ? (
-                <p className="text-gray-400 text-sm italic">
-                  Pick a hero to see recommendations.
-                </p>
-            ) : (
-              <>
-                {fullDraftStats ? (
-                  <>
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
-                      <span className="w-10 text-left">Ally</span>
-                      <span className="w-10 text-right">Score</span>
-                      <div className="border-1 border-gray-500 h-6 mx-1"/>
-                      <span className="w-10 text-left">Score</span>
-                      <span className="w-10 text-right">Enemy</span>
-                    </div>
-
-                    {/* 5 rows for each hero */}
-                    {Array.from({ length: 5}).map((_, i) => {
-                      const ally = fullDraftStats.ally[i];
-                      const enemy = fullDraftStats.enemy[i];
-                      return (
-                        <div key={i} className="flex items-center justify-between bg-gray-700 rounded px-2 py-1">
-                          <img
-                            src={ally.icon_url}
-                            alt={ally.name}
-                            className="w-10 h-10 object-contain"
-                            onMouseEnter={() => setHoveredHero({ ...ally, team: 'ally' })}
-                            onMouseLeave={() => setHoveredHero(null)}
-                          />
-                          <span
-                            className={`text-sm font-mono w-10 text-right ${
-                              ally.totalScore > 0 ? 'text-green-400' :
-                              ally.totalScore < 0 ? 'text-red-400' :
-                              'text-gray-400'
-                            }`}
-                          >
-                            {ally.totalScore > 0 ? '+' : ''}{ally.totalScore}
-                          </span>
-                          <div className="border-1 border-gray-600 h-6 mx-1" />
-                          <span
-                            className={`text-sm font-mono w-10 text-left ${
-                              enemy.totalScore > 0 ? 'text-red-400' :
-                              enemy.totalScore < 0 ? 'text-green-400' :
-                              'text-gray-400'
-                            }`}
-                          >
-                            {enemy.totalScore > 0 ? '+' : ''}{enemy.totalScore}
-                          </span>
-                          <img
-                            src={enemy.icon_url}
-                            alt={enemy.name}
-                            className="w-10 h-10 object-contain"
-                            onMouseEnter={() => setHoveredHero({ ...enemy, team: 'enemy' })}
-                            onMouseLeave={() => setHoveredHero(null)}
-                          />
-                        </div>
-                      );
-                    })}
-                    {/* Totals */}
-                    <div className="mt-2 flex items-center justify-center gap-2 text-lg font-bold">
-                      <span className="text-green-400">
-                        {fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
-                      </span>
-                      <span className="text-gray-400 text-sm">vs</span>
-                      <span className="text-red-400">
-                        {fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
-                      </span>
-                    </div>
-
-                    {/* Outcome prediction */}
-                    <div className="mt-1 text-center relative group">
-                      {(() => {
-                        const allyTotal = fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
-                        const enemyTotal = fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
-                        const delta = allyTotal - enemyTotal;
-                        const allyWin = getWinProbability(delta);
-                        const enemyWin = ((100 - allyWin)).toFixed(2);
-
-                        return (
-                          <span className="text-lg font-bold">
-                            <span className="text-green-400">{allyWin}%</span>
-                            <span className="text-gray-400 mx-1">/</span>
-                            <span className="text-red-400">{enemyWin}%</span>
-
-                            <button
-                              onClick={() => setShowWinrateInfo(prev => !prev)}
-                              className="ml-2 text-xs bg-white bg-opacity-0 rounded-full w-4 h-4 inline-flex items-center justify-center hover:bg-gray-600"
-                              title="Winrate info"
-                              >
-                                <img src={infoButtonIcon} alt="WinrateInfo" className="filter invert"/>
-                              </button>
-                          </span>
-                        );
-                      })()}
-                      {showWinrateInfo && (
-                        <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-[260px] bg-gray-900 text-white text-xs p-3 rounded shadow-lg z-10">
-                          <p>
-                            NOTE! Winrate calculations are made purely based on the synergy scores of each hero.
-                            Win probability will never be above 80% for this reason. Cooperation and coordination
-                            can turn the tide even against the heaviest of outdrafts in Dota.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {hoveredHero && (
-                      <div
-                        className="fixed bg-gray-900 border border-gray-600 rounded p-4 text-sm shadow-lg z-50 w-[300px] max-h-[400px] overflow-y-auto pointer-events-none"
-                        style={{
-                          top: `${mousePosition.y + 10}px`,
-                          left: `${mousePosition.x + 10}px`,
-                        }}
-                      >
-                        <h3 className="text-white font-bold mb-2">
-                          Synergy breakdown: {hoveredHero.name}
-                        </h3>
-                        <ul className="text-gray-300 space-y-1">
-                          {(hoveredHero.team === 'ally'
-                            ? [...selectedHeroes.ally, ...selectedHeroes.enemy]
-                            : [...selectedHeroes.enemy, ...selectedHeroes.ally]
-                          )
-                            .filter(h => h.HeroId !== hoveredHero.HeroId)
-                            .map(other => {
-                              const heroMatchup = matchupData?.[String(hoveredHero.HeroId)];
-
-                              const sameTeam = (
-                                (hoveredHero.team === 'ally' && selectedHeroes.ally.some(h => h.HeroId === other.HeroId)) ||
-                                (hoveredHero.team === 'enemy' && selectedHeroes.enemy.some(h => h.HeroId === other.HeroId))
-                              );
-
-                              console.log('Hovered hero:', hoveredHero);
-
-                              const relation = sameTeam
-                                ? heroMatchup?.with?.find(entry => entry.heroId2 === other.HeroId)
-                                : heroMatchup?.vs?.find(entry => entry.heroId2 === other.HeroId);
-
-                              const score = typeof relation?.synergy === 'number' ? relation.synergy : 0;
-                              
-                              return (
-                                <li key={other.HeroId} className="flex justify-between">
-                                  <span>{other.name}</span>
-                                  <span
-                                    className={`font-mono ${
-                                      score > 0 ? 'text-green-400' : score < 0 ? 'text-red-400' : 'text-gray-400'
-                                    }`}
-                                  >
-                                    {score > 0 ? '+' : ''}{score.toFixed(2)}
-                                  </span>
-                                </li>
-                              );
-                            })}
-                        </ul>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
-                      <span className="w-10">Hero</span>
-                      <span className="flex-1 pl-2">Name</span>
-                      <span className="text-right pr-1">Synergy</span>
-                    </div>
-
-                    {selectedHeroes.ally.length < 5 && (
-                      <>
-                        {filterByHeroPool && (
-                          <>
-                            <div className="flex items-center justify-between px-2 py-1">
-                              <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
-                                From Your Hero Pool
-                              </div>
-                              <button
-                                className="p-1 hover:opacity-80"
-                                onClick={() => setShowPoolBreakdown((prev) => !prev)}
-                              >
-                                <img src={infoButtonIcon} alt="info" className="w-4 h-4 filter invert" />
-                              </button>
-                            </div>
-                            {poolSuggestions.map((hero) => (
-                              <div
-                                key={`pool-${hero.HeroId}`}
-                                onMouseEnter={() => setHoveredSuggestedHero(hero)}
-                                onMouseLeave={() => setHoveredSuggestedHero(null)}
-                                className="flex items-center justify-between bg-purple-800/30 rounded px-2 py-1"
-                              >
-                                <img
-                                  src={hero.icon_url}
-                                  alt={hero.name}
-                                  className="w-16 h-10 object-contain mr-2"
-                                />
-                                <span className="flex-1 text-sm font-medium text-white truncate">
-                                  {hero.name}
-                                </span>
-                                <span className="text-green-400 text-sm font-mono pl-2">
-                                  {hero.totalScore}
-                                </span>
-                              </div>
-                            ))}
-
-                            <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
-                              Other Strong Picks
-                            </div>
-                          </>
-                        )}
-                        {globalSuggestions.map((hero) => (
-                            <div
-                              key={`global-${hero.HeroId}`}
-                              onMouseEnter={() => setHoveredSuggestedHero(hero)}
-                              onMouseLeave={() => setHoveredSuggestedHero(null)}
-                              className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
-                            >
-                              <img
-                                src={hero.icon_url}
-                                alt={hero.name}
-                                className="w-16 h-10 object-contain mr-2"
-                              />
-                              <span className="flex-1 text-sm font-medium text-white truncate">
-                                {hero.name}
-                              </span>
-                              <span className="text-green-400 text-sm font-mono pl-2">
-                                {hero.totalScore}
-                              </span>
-                            </div>
-                        ))}
-                      </>
-                    )}
-                    {selectedHeroes.ally.length === 5 && (
-                      <div className="text-small text-gray-400 mt-4 px-2 py-2 text-center">
-                        Remove an allied hero to receive suggestions.
-                        {selectedHeroes.enemy.length < 5 && (
-                          <div className="py-4">Fill out the enemy team for a full draft breakdown.</div>
-                        )}
-                      </div>
-                    )}
-                    {hoveredSuggestedHero && (
-                      <div className="absolute right-4 bottom-36 bg-gray-900 border border-gray-600 rounded opacity-90 p-6 text-sm shadow-lg z-30 w-[320px] max-h-[400px] overflow-y-auto pointer-events-none">
-                        <h3 className="text-white font-bold mb-2">{hoveredSuggestedHero.name} Breakdown</h3>
-
-                        <div className="mb-2">
-                          <p className="text-green-400 font-semibold mb-1">Synergy with Allies</p>
-                          {selectedHeroes.ally.length === 0 ? (
-                            <p className="text-gray-500 italic">No allies selected</p>
-                          ) : (
-                            selectedHeroes.ally.map(ally => {
-                              const score = getSynergyWith(matchupData, hoveredSuggestedHero.HeroId, ally.HeroId);
-                              return (
-                                <div key={ally.HeroId} className="flex justify-between text-gray-300">
-                                  <span>{ally.name}</span>
-                                  <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
-                                    {score > 0 ? "+" : ""}
-                                    {score.toFixed(2)}
-                                  </span>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-
-                        <div>
-                          <p className="text-red-400 font-semibold mb-1">Effectiveness vs Enemies</p>
-                          {selectedHeroes.enemy.length === 0 ? (
-                            <p className="text-gray-500 italic">No enemies selected</p>
-                          ) : (
-                            selectedHeroes.enemy.map(enemy => {
-                              const score = getCounterVs(matchupData, hoveredSuggestedHero.HeroId, enemy.HeroId);
-                              return (
-                                <div key={enemy.HeroId} className="flex justify-between text-gray-300">
-                                  <span>{enemy.name}</span>
-                                  <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
-                                    {score > 0 ? "+" : ""}
-                                    {score.toFixed(2)}
-                                  </span>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {showPoolBreakdown && (
-                      <div className="absolute top-4 right-[360px] bg-gray-900 border border-purple-500 rounded-lg p-4 shadow-lg w-[300px] max-h-[80vh] overflow-y-auto z-50">
-                        <div className="flex justify-between items-center mb-3">
-                          <h2 className="text-purple-400 text-sm font-semibold uppercase">Full Hero Pool Breakdown</h2>
-                          <button onClick={() => setShowPoolBreakdown(false)} className="text-white hover:text-red-400 text-lg font-bold">
-                            ×
-                          </button>
-                        </div>
-                        {fullPoolSynergies.map((hero) => (
-                          <div key={`breakdown-${hero.HeroId}`} className="flex items-center justify-between mb-2">
-                            <div className="flex items-center">
-                              <img src={hero.icon_url} alt={hero.name} className="w-14 h-8 mr-2" />
-                              <span className="text-white text-sm truncate max-w-[140px]">{hero.name}</span>
-                            </div>
-                            <span
-                              className={`text-sm font-mono ${
-                                parseFloat(hero.totalScore) >= 0 ? "text-green-400" : "text-red-400"
-                              }`}
-                            >
-                              {hero.totalScore}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-          {/* === User Guide Box === */}
-          {showGuide && (
-            <div className="relative bg-gray-700 text-white text-sm rounded-lg p-3 mt-2 shadow-lg guide-flash">
-              <button
-                onClick={() => setShowGuide(false)}
-                className="absolute top-1 right-2 text-gray-300 hover:text-white text-lg font-bold"
-              >
-                ×
-              </button>
-              <p className="text-gray-300">
-                <strong>Guide:</strong><br />
-                Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
-                ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
-                Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                Typing at any time starts a search function that is very familiar to people from Dota 2. Aliases will be supported later down the line. Use the hero pool
-                toggle button below to set your personalized hero pool and the tool will still suggest globally great hero choices but also three best choices from your
-                hero pool. Clicking on the info button near the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. 
-                Hovering over hero suggestions shows more details as to where the number comes from. This feature also works when inspecting a full draft.
-              </p>
-            </div>
-          )}
-          {/* === Suggestion Filters: Pool & Role === */}
-          <div className="flex flex-wrap justify-between mt-4 border-t border-gray-700 pt-2">
-            <p className="text-gray-300 text-sm mb-1">Suggestion filters:</p>
-            <div className="relative group">
-              <button
-                onClick={() => setFilterByHeroPool(prev => !prev)}
-                disabled={heroPool.length < 3}
-                className={`px-2 py-1 rounded text-xs font-bold transition duration-300 ${
-                  filterByHeroPool ? "bg-purple-700 text-white" : "bg-gray-700 text-gray-300"}
-                  ${heroPool.length < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-purple-600"}`}
-              >
-                {filterByHeroPool ? "Hero Pool: ON" : "Hero Pool: OFF"}
-              </button>
-              {heroPool.length < 3 && (
-                <div
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-gray-500 text-white text-[11px] px-3 py-2 rounded shadow-lg opacity-0 
-                    group-hover:opacity-100 transition-opacity duration-300 z-50">
-                  You need at least 3 heroes in your hero pool to activate this feature.
-                </div>
-              )}
-            </div>
-            <div className="flex mb-3 space-x-2">
-              <button
-                onClick={() => {
-                  const newFilter = roleFilter === "Carry" ? null : "Carry";
-                  setRoleFilter(newFilter);
-                  updateSynergySuggestions(
-                    selectedHeroes.ally,
-                    selectedHeroes.enemy,
-                    bannedHeroes,
-                    newFilter
-                  );
-                }}
-                className={`px-3 py-1 rounded text-sm font-semobold transition-colors duration-150 ${
-                  roleFilter === "Carry"
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-600 text-gray-300"
-                }`}
-              >
-                Carry
-              </button>
-
-              <button
-                onClick={() => {
-                  const newFilter = roleFilter === "Support" ? null : "Support";
-                  setRoleFilter(newFilter);
-                  updateSynergySuggestions(
-                    selectedHeroes.ally,
-                    selectedHeroes.enemy,
-                    bannedHeroes,
-                    newFilter
-                  );
-                }}
-                className={`px-3 py-1 rounded text-xs font-semibold transition-colors duration-150 ${
-                  roleFilter === "Support"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-600 text-gray-300"
-                }`}
-              >
-                Support
-              </button>
-            </div>
-          </div>
-          {/* === App Footer Info === */}
-          <div className="text-white text-xs border-t border-gray-700 pt-2">
-            <p>Patch: 7.39c</p>
-            <p>Last updated: July 16</p>
-          </div>
-        </div>{/* end sidebar */}
+        <Sidebar
+          suggestedHeroes={suggestedHeroes}
+          poolSuggestions={poolSuggestions}
+          globalSuggestions={globalSuggestions}
+          selectedHeroes={selectedHeroes}
+          hoveredHero={hoveredHero}
+          setHoveredHero={setHoveredHero}
+          hoveredSuggestedHero={hoveredSuggestedHero}
+          setHoveredSuggestedHero={setHoveredSuggestedHero}
+          matchupData={matchupData}
+          getSynergyWith={getSynergyWith}
+          getCounterVs={getCounterVs}
+          fullDraftStats={fullDraftStats}
+          filterByHeroPool={filterByHeroPool}
+          setFilterByHeroPool={setFilterByHeroPool}
+          heroPool={heroPool}
+          roleFilter={roleFilter}
+          setRoleFilter={setRoleFilter}
+          showPoolBreakdown={showPoolBreakdown}
+          setShowPoolBreakdown={setShowPoolBreakdown}
+          fullPoolSynergies={fullPoolSynergies}
+          showGuide={showGuide}
+          setShowGuide={setShowGuide}
+          updateSynergySuggestions={updateSynergySuggestions}
+          mousePosition={mousePosition}
+          showWinrateInfo={showWinrateInfo}
+          setShowWinrateInfo={setShowWinrateInfo}
+          getWinProbability={getWinProbability}
+          hasPicks={hasPicks}
+          bannedHeroes={bannedHeroes}
+          infoButtonIcon={infoButtonIcon}
+          questionMarkIcon={questionMarkIcon}
+        />
       </div>{/* end hero+sidebar split */}
     {/* === Status Toast (Bottom left) === */}
     {statusMessage && (

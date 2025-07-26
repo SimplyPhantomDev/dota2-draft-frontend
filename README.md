@@ -8,10 +8,14 @@ The Dota 2 Drafting Tool helps players make smarter pick decisions using real-ti
 
 - **Real-time synergy suggestions** based on picked and banned heroes
 - **Hero pool system** for personalized recommendations
+- **Full hero pool breakdown** with synergy scores
+- **Enemy role prediction** based on smart role assignment logic
 - **Role filters** (Carry / Support) to fine-tune suggestions
 - **Drag-and-drop hero selection** with animated UI
 - **Full draft analysis** once both teams are picked
-- **Hover-based synergy breakdown** for each hero
+- **Automatic team selection** when one team is full
+- **Hover-based synergy breakdown** for drafted and suggested heroes
+- **Cursor-anchored info boxes** for synergy details
 - **Custom grid layouts** for different visual styles
 - **Interactive tutorial and tooltips** for new users
 - **Hero pool persistence** via `localStorage`
@@ -22,11 +26,13 @@ The Dota 2 Drafting Tool helps players make smarter pick decisions using real-ti
 ```text
 public/
 ├──heroes.json # All hero data
+├──hero-roles.json # All hero-specific role data
 └──synergyMatrix.json # All matchup information related to all heroes
 src/
 ├── assets/ # Icons and images
 ├── utils/ # Synergy calculations, grouping functions, shared components
-├── pages/ # Main frontend logic (large component inside)
+├── components/ # Sidebar, DraftPanel, TeamDropZone and other UI parts
+├── pages/ # Main frontend logic (connects everything)
 ├── App.css # Tailwind specific styling and animation handling
 ├── App.jsx # Entry point
 ├── index.css
@@ -41,10 +47,11 @@ index.html
 This tool uses preprocessed hero synergy data to compute:
 - **Best synergistic picks** from the remaining hero pool
 - **Role-specific suggestions** depending on your filter
-- **Total team synergy scores** when the draft is full
-- **Outcome prediction**, visualized with win probability estimation
+- **Win probability** based on full draft composition
+- **Predicted enemy positions** using role conflict resolution
+- **Transparent full breakdown** of hero pool performance
 
-The suggestion engine runs on the frontend using a custom algorithm and updates live with each pick or ban.
+All calculations happen live in the browser using custom algorithms.
 
 ---
 
@@ -54,9 +61,9 @@ The suggestion engine runs on the frontend using a custom algorithm and updates 
 |------|---------|
 |       **React**       | Frontend library |
 |   **Framer Motion**   | UI animation and transitions |
-|    **Tailwind CSS**   | Styling |
-| **JavaScript (ES6)**  | Core logic |
-|   **localStorage**    | Hero pool persistence |
+|    **Tailwind CSS**   | Styling framework |
+| **JavaScript (ES6)**  | Core logic and behavior |
+|   **localStorage**    | Hero pool memory |
 
 ## Getting Started
 
@@ -75,22 +82,22 @@ npm run dev
 ```
 
 ## Usage Guide
- - Click or drag heroes to either team
+ - Select heroes by clicking or dragging
  - Right click to ban a hero
- - Toggle between grid layouts in the UI using the grid layout switch in top left
- - Enable Hero Pool Edit Mode to build your personalized pool
- - View full draft synergy stats once both teams have 5 picks
- - Hover over a hero in the full draft view to see their detailed synergy breakdown
- - Use role filters (carry / support) for tailored suggestions
+ - Toggle between visual layouts with the layout switch
+ - Use Hero Pool Edit Mode to personalize suggestions
+ - Hover over a hero to view synergy breakdown
+ - Role prediction is shown for enemy heroes once picked
+ - View a full hero pool synergy report via the question mark button
+ - Suggestions stop once your team is full
+ - If one team is full, the app automatically picks the other team for you
 
 ## Planned features
 
-All of the features listed here are either in pre-alpha state or in planning.
-Release schedule, priority and order is highly dependent on which features are deemed most important.
+These features are still under active planning or development:
 - Alias support for search (e.g. "AM" -> "Anti-Mage", "Mortred" -> "Phantom Assassin") [pre-alpha]
-- Support for tournament mode (captain's mode draft order where the user only tells the app who has the first pick, and then bans and picks happen automatically) [planned]
-- Support for mobile users through different UI design, as well as adapting to touch controls [designing]
-- Role-specific hero pick possibilities (allied heroes can be assigned a role during the draft) [planned]
+- Captains Mode draft simulator [planned]
+- Touch controls and mobile layout [designing]
 
 ## Author
 Tomi Niemelä
