@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { TeamDropZone } from "./structures";
 
@@ -12,7 +11,6 @@ function DraftPanel({
   showToolTip,
   setShowGuide,
   infoButtonIcon,
-  setShowToolTip,
   buttonPulse,
   setButtonPulse,
   editHeroPoolMode,

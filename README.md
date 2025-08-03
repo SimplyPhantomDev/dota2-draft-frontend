@@ -30,7 +30,7 @@ public/
 └──synergyMatrix.json # All matchup information related to all heroes
 src/
 ├── assets/ # Icons and images
-├── utils/ # Synergy calculations, grouping functions, shared components
+├── utils/ # Synergy calculations, grouping functions, shared components, helper functions to generate data
 ├── components/ # Sidebar, DraftPanel, TeamDropZone and other UI parts
 ├── pages/ # Main frontend logic (connects everything)
 ├── App.css # Tailwind specific styling and animation handling
@@ -95,7 +95,6 @@ npm run dev
 ## Planned features
 
 These features are still under active planning or development:
-- Alias support for search (e.g. "AM" -> "Anti-Mage", "Mortred" -> "Phantom Assassin") [pre-alpha]
 - Captains Mode draft simulator [planned]
 - Touch controls and mobile layout [designing]
 

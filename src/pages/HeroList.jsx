@@ -590,7 +590,10 @@ export default function HeroList() {
    */
   const isHeroMatch = (hero) => {
     if(!searchQuery.trim()) return true;
-    return hero.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.toLowerCase();
+    const nameMatch = hero.name.toLowerCase().includes(query);
+    const aliasMatch = hero.aliases?.some(alias => alias.toLowerCase().includes(query));
+    return nameMatch || aliasMatch;
   };
 
   //==============================================
@@ -666,7 +669,6 @@ export default function HeroList() {
         handleHeroDeselect={handleHeroDeselect}
         enemyRolePredictions={enemyRolePredictions}
         showToolTip={showToolTip}
-        setShowToolTip={setShowToolTip}
         setShowGuide={setShowGuide}
         infoButtonIcon={infoButtonIcon}
         buttonPulse={buttonPulse}
