@@ -12,6 +12,8 @@ import DraftPanel from "../components/DraftPanel";
 import '../App.css';
 import { motion, AnimatePresence } from "framer-motion";
 
+const TOOLTIP_KEY = "guideTooltipSeen";
+
 
 export default function HeroList() {
 
@@ -73,7 +75,7 @@ export default function HeroList() {
   const [buttonPulse, setButtonPulse] = useState(false);
 
   // Tooltip visibility toggle for info box to help users begin using the tool
-  const [showToolTip, setShowToolTip] = useState(true);
+  const [showToolTip, setShowToolTip] = useState(false);
 
   // Currently hovered hero (for synergy breakdown display)
   const [hoveredHero, setHoveredHero] = useState(null);
@@ -289,8 +291,23 @@ export default function HeroList() {
 
   // Automatically hide tooltip for guide after 5 seconds
   useEffect(() => {
-  const timeout = setTimeout(() => setShowToolTip(false), 5000); // Timeout for tooltip to disappear
-  return () => clearTimeout(timeout);
+    if (!showToolTip) return;
+    const timeout = setTimeout(() => {
+      setShowToolTip(false);
+      try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch {}
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [showToolTip]);
+
+  // Track if the user has already seen the tooltip for guide
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(TOOLTIP_KEY) === "1";
+      if (!seen) setShowToolTip(true);
+    } catch {
+      // if storage is blocked, fail open (will show tooltip once this session)
+      setShowToolTip(true)
+    }
   }, []);
 
   // Track container's screen dimensions for positioning of search element
@@ -306,6 +323,7 @@ export default function HeroList() {
     return () => window.removeEventListener("resize", updateRect);
   }, []);
 
+  // Track both team sizes to automatically change team selection is need be
   useEffect(() => {
     const allyFull = selectedHeroes.ally.length === 5;
     const enemyFull = selectedHeroes.enemy.length === 5;
