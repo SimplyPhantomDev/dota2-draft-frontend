@@ -53,6 +53,7 @@ jobs:
             dist/ "$SG_USER@$SG_HOST:$SG_REMOTE_PATH"
         env:
           SG_HOST: ${{ secrets.SG_HOST }}
+          SG_PORT: ${{ secrets.SG_PORT }}
           SG_USER: ${{ secrets.SG_USER }}
           SG_REMOTE_PATH: ${{ secrets.SG_REMOTE_PATH }}
           
