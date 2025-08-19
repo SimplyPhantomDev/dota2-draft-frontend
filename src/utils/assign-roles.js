@@ -24,7 +24,7 @@ function ask(question) {
     rl.question(question, (input) => {
       const trimmed = input.trim();
       if (trimmed === '!exit') {
-        console.log("\n👋 Exiting without saving.");
+        console.log("\n Exiting without saving.");
         rl.close();
         process.exit(0);
       }
@@ -57,7 +57,7 @@ async function updateHero() {
   const result = findHeroByInput(input);
 
   if (!result) {
-    console.log("❌ Hero not found.");
+    console.log("Hero not found.");
     rl.close();
     return;
   }
@@ -84,9 +84,9 @@ async function updateHero() {
     };
 
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(roleData, null, 2));
-    console.log(`\n✅ Hero ${hero.name} updated and saved.`);
+    console.log(`\n Hero ${hero.name} updated and saved.`);
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error("Error:", err.message);
   }
 
   rl.close();
@@ -121,7 +121,7 @@ async function assignRoles() {
     }
 
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(roles, null, 2));
-    console.log(`\n✅ Role data written to ${OUTPUT_PATH}`);
+    console.log(`\n Role data written to ${OUTPUT_PATH}`);
     rl.close();
 }
 
