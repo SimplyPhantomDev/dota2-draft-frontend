@@ -431,7 +431,7 @@ function Sidebar({
             {/* === App Footer Info === */}
             <div className="text-white text-xs border-t border-gray-700 pt-2">
                 <p>Patch: 7.39d</p>
-                <p>Last updated: August 20</p>
+                <p>Last updated: August 19</p>
             </div>
         </div>
     );
