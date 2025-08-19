@@ -2,7 +2,7 @@ name: Build and Deploy to SiteGround
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   deploy:
