@@ -36,11 +36,21 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Sanity check SSH (optional but helpful)
+        run: |
+          ssh -p "$SG_PORT" -o StrictHostKeyChecking=yes "$SG_USER@$SG_HOST" "echo connected && pwd"
+        env:
+          SG_HOST: ${{ secrets.SG_HOST }}
+          SG_PORT: ${{ secrets.SG_PORT }}
+          SG_USER: ${{ secrets.SG_USER }}
+
       - name: Deploy via rsync
         run: |
+          RSYNC_RSH="ssh -p $SG_PORT -o StrictHostKeyChecking=yes"
           rsync -az --delete \
             --exclude='.well-known' \
-            dist/ ${{ secrets.SG_USER }}@${{ secrets.SG_HOST }}:${{ secrets.SG_REMOTE_PATH }}
+            -e "$RSYNC_RSH" \
+            dist/ "$SG_USER@$SG_HOST:$SG_REMOTE_PATH"
         env:
           SG_HOST: ${{ secrets.SG_HOST }}
           SG_USER: ${{ secrets.SG_USER }}
