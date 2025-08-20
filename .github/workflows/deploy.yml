@@ -49,6 +49,7 @@ jobs:
           RSYNC_RSH="ssh -p $SG_PORT -o StrictHostKeyChecking=yes"
           rsync -az --delete \
             --exclude='.well-known' \
+            --exclude='.htaccess' \
             -e "$RSYNC_RSH" \
             dist/ "$SG_USER@$SG_HOST:$SG_REMOTE_PATH"
         env:
