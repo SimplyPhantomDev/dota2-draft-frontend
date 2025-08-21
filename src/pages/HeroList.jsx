@@ -1,22 +1,23 @@
+import '../App.css';
 import { useEffect, useState, useRef, useCallback } from "react";
 import { groupAndSortHeroes } from "../utils/groupHeroes";
-import { DraggableHero } from "../components/structures";
 import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from "../utils/synergy";
 import { predictEnemyRoles } from "../utils/predictRoles";
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
 import questionMarkIcon from '../assets/question_mark.svg';
-import Sidebar from "../components/Sidebar";
-import DraftPanel from "../components/DraftPanel";
-import '../App.css';
 import { motion, AnimatePresence } from "framer-motion";
+import useIsMobile from "../hooks/useIsMobile";
+import DraftPanel from '../components/DraftPanel';
+import Sidebar from '../components/Sidebar';
+import MobileDraftColumn from '../components/MobileDraftColumn';
+import { DraggableHero } from '../components/structures';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
 
 
 export default function HeroList() {
-
 
   //==============================================
   //============= Drafting State =================
@@ -61,6 +62,9 @@ export default function HeroList() {
   //==============================================
   //================ UI State ====================
   //==============================================
+
+  // Environment mode: either mobile or desktop
+  const isMobile = useIsMobile();
 
   // Layout mode: "default" = 2x2, "row" = 4x1
   const [gridMode, setGridMode] = useState("default");
@@ -663,6 +667,31 @@ export default function HeroList() {
       </div>
     );
   };
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col">
+        {/* Top bar */}
+        <div className="h-12 flex items-center justify-between px-3 border-b border-gray-800">
+          <div className="font-bold">Dota2 Drafter</div>
+          <button aria-label="Menu">☰</button>
+        </div>
+
+        {/* Two columns: Ally / Enemy */}
+        <div className="p-3 grid grid-cols-2 gap-3">
+          <MobileDraftColumn title="Ally" picks={selectedHeroes.ally} />
+          <MobileDraftColumn title="Enemy" picks={selectedHeroes.enemy} />
+        </div>
+
+        {/* Bottom sheet handle (placeholder for now) */}
+        <div className="p-3">
+          <button className="w-full py-3 rounded border border-gray-700">
+            ▲ Suggestions / Analysis
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     // === Main App Container ===
