@@ -96,7 +96,7 @@ npm run dev
 
 These features are still under active planning or development:
 - Captains Mode draft simulator [planned]
-- Touch controls and mobile layout [designing]
+- Touch controls and mobile layout [AlphaVersionAvailable]
 
 ## Author
 Tomi Niemelä

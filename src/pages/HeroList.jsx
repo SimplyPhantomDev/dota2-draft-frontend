@@ -1,21 +1,21 @@
 import '../App.css';
-import { useEffect, useState, useRef, useCallback } from "react";
-import { groupAndSortHeroes } from "../utils/groupHeroes";
-import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from "../utils/synergy";
-import { predictEnemyRoles } from "../utils/predictRoles";
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { groupAndSortHeroes } from '../utils/groupHeroes';
+import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from '../utils/synergy';
+import { predictEnemyRoles } from '../utils/predictRoles';
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
 import questionMarkIcon from '../assets/question_mark.svg';
-import { motion, AnimatePresence } from "framer-motion";
-import useIsMobile from "../hooks/useIsMobile";
+import { motion, AnimatePresence } from 'framer-motion';
+import useIsMobile from '../hooks/useIsMobile';
 import DraftPanel from '../components/DraftPanel';
 import Sidebar from '../components/Sidebar';
-import MobileDraftColumn from '../components/MobileDraftColumn';
 import { DraggableHero } from '../components/structures';
+import MobileDraftColumn from '../components/MobileDraftColumn';
+import MobileHeroPicker from '../components/MobileHeroPicker';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
-
 
 export default function HeroList() {
 
@@ -65,6 +65,9 @@ export default function HeroList() {
 
   // Environment mode: either mobile or desktop
   const isMobile = useIsMobile();
+
+  // TBD: Add explanation here
+  const [mobilePicker, setMobilePicker] = useState(null);
 
   // Layout mode: "default" = 2x2, "row" = 4x1
   const [gridMode, setGridMode] = useState("default");
@@ -679,16 +682,36 @@ export default function HeroList() {
 
         {/* Two columns: Ally / Enemy */}
         <div className="p-3 grid grid-cols-2 gap-3">
-          <MobileDraftColumn title="Ally" picks={selectedHeroes.ally} />
-          <MobileDraftColumn title="Enemy" picks={selectedHeroes.enemy} />
+          <MobileDraftColumn
+            title="Ally"
+            picks={selectedHeroes.ally}
+            onSlotTap={(slot) => setMobilePicker({ team: "ally", slot })}
+          />
+          <MobileDraftColumn
+            title="Enemy"
+            picks={selectedHeroes.enemy}
+            onSlotTap={(slot) => setMobilePicker({ team: "enemy", slot })}
+          />
         </div>
 
-        {/* Bottom sheet handle (placeholder for now) */}
+        {/* Bottom sheet handle (placeholder) */}
         <div className="p-3">
           <button className="w-full py-3 rounded border border-gray-700">
             ▲ Suggestions / Analysis
           </button>
         </div>
+
+        {/* TEMP picker overlay */}
+        {mobilePicker && (
+          <MobileHeroPicker
+            team={mobilePicker.team}
+            slot={mobilePicker.slot}
+            heroes={heroes}                 // already in HeroList state
+            selectedHeroes={selectedHeroes} // to gray-out already picked if you want later
+            bannedHeroes={bannedHeroes}
+            onClose={() => setMobilePicker(null)}
+          />
+        )}
       </div>
     );
   }
