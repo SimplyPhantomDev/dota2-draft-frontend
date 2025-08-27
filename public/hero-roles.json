@@ -606,7 +606,7 @@
     "secondary": [
       "offlane"
     ],
-    "fallback": null
+    "fallback": "hard support"
   },
   "72": {
     "primary": [
