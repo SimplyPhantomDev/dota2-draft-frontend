@@ -60,6 +60,7 @@ export default function HeroList() {
   //================ UI State ====================
   //==============================================
 
+
   // Layout mode: "default" = 2x2, "row" = 4x1
   const [gridMode, setGridMode] = useState("default");
 
@@ -174,14 +175,21 @@ export default function HeroList() {
   }, []);
 
   // Load synergy matrix from local JSON on mount
-  useEffect(() => {
-    fetch("/synergyMatrix.json")
-      .then((res) => res.json())
-      .then((data) => {
-        setMatchupData(data);
-      })
-      .catch((err) => console.error("Failed to load synergy data", err));
-  }, []);
+useEffect(() => {
+  const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
+  console.log("[synergy] loading from:", datasetUrl);
+
+  fetch(datasetUrl)
+    .then((res) => {
+      console.log("[synergy] fetch status:", res.status, res.ok);
+      return res.json();
+    })
+    .then((data) => {
+      console.log("[synergy] loaded keys:", data ? Object.keys(data).length : "null");
+      setMatchupData(data);
+    })
+    .catch((err) => console.error("[synergy] Failed to load synergy data", err));
+}, []);
 
   // Load hero-specific position data from local JSON on mount
   useEffect(() => {
