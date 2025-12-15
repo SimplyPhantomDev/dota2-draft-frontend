@@ -1,5 +1,5 @@
 import '../App.css';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { groupAndSortHeroes } from '../utils/groupHeroes';
 import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from '../utils/synergy';
 import { predictEnemyRoles } from '../utils/predictRoles';
@@ -29,8 +29,20 @@ export default function HeroList() {
     enemy: []
   });
 
+  // Selected heroes for both teams for mobile
+  const [mobileSelectedHeroes, setMobileSelectedHeroes] = useState({
+    ally: Array(5).fill(null),
+    enemy: Array(5).fill(null),
+  });
+
   // Heroes that have been banned from the draft
   const [bannedHeroes, setBannedHeroes] = useState([]);
+
+  // Heroes that have been banned on mobile
+  const [mobileBannedHeroes, setMobileBannedHeroes] = useState(() => new Set());
+
+  // Which slot are we picking for
+  const [mobilePicker, setMobilePicker] = useState(null);
 
   // Static matchup data (synergy/counter values between heroes)
   const [matchupData, setMatchupData] = useState({});
@@ -65,9 +77,6 @@ export default function HeroList() {
 
   // Environment mode: either mobile or desktop
   const isMobile = useIsMobile();
-
-  // TBD: Add explanation here
-  const [mobilePicker, setMobilePicker] = useState(null);
 
   // Layout mode: "default" = 2x2, "row" = 4x1
   const [gridMode, setGridMode] = useState("default");
@@ -432,7 +441,7 @@ export default function HeroList() {
   ]);
 
   //==============================================
-  //============== Locking Helpers ===============
+  //================== Helpers ===================
   //==============================================
 
   /**
@@ -460,6 +469,23 @@ export default function HeroList() {
     });
   };
 
+  /**
+   * Helper function that helps finding a hero object based on a hero's ID
+   * @param {*} id the ID of the hero being searched
+   * @param {*} groups all heroes in the designated attribute groups
+   * @returns hero object, if search unsuccessful then null
+   */
+  function findHeroById(id, groups) {
+    const needle = Number(id);
+    const pools = [groups?.str, groups?.agi, groups?.int, groups?.all];
+    for (const arr of pools) {
+      if (!arr) continue;
+      const h = arr.find(x => x.HeroId === id);
+      if (h) return h;
+    }
+    return null;
+  }
+
   //==============================================
   //=============== Draft Actions ================
   //==============================================
@@ -473,7 +499,7 @@ export default function HeroList() {
   };
 
   /**
-   * Handles selecting a hero by clicking
+   * Handles selecting a hero by clicking on desktop
    * - Adds to ally or enemy draft depending on selected team
    * - Updates hero Pool if in edit mode
    * - Shows status message if in edit mode
@@ -523,6 +549,53 @@ export default function HeroList() {
     setSelectedHeroes(updatedSelected);
 
     unlockHero(hero.HeroId);
+  };
+
+  /**
+   * Handles selecting a hero in a mobile environment
+   * @param {*} team the team into which the hero is to be picked
+   * @param {*} slot  the slot of the team where the hero will be added
+   * @param {*} heroId the id of the hero that will be added
+   */
+  const handleMobilePick = (team, slot, heroId) => {
+    const hero = heroById.get(heroId);
+    if (!hero) return;
+
+    // If you’re in Pool Editing Mode, let desktop function handle it
+    if (editHeroPoolMode) {
+      handleHeroClick(hero);
+      return;
+    }
+
+    // === Slot-aware Draft Pick Logic ===
+    // Block duplicates
+    if (selectedHeroes[team].some(h => h?.HeroId === hero.HeroId)) return;
+
+    // If team already has 5 picks and slot is out of range, abort
+    if (selectedHeroes[team].length >= 5 && (slot == null || slot > 4)) return;
+
+    // Lock to prevent double-click races
+    if (typeof lockHero === "function") lockHero(hero.HeroId);
+
+    // Place into specific slot, or append if slot is the next index
+    const teamPicks = [...selectedHeroes[team]];
+
+    if (typeof slot === "number") {
+      // Ensure array has 5 positions so assignment doesn’t create holes
+      while (teamPicks.length < 5) teamPicks.push(null);
+
+      teamPicks[slot] = hero;
+    } else {
+      // Fallback: behave like your desktop click (append)
+      teamPicks.push(hero);
+    }
+
+    setSelectedHeroes({
+      ...selectedHeroes,
+      [team]: teamPicks,
+    });
+
+    if (typeof unlockHero === "function") unlockHero(hero.HeroId);
   };
 
   /**
@@ -674,42 +747,55 @@ export default function HeroList() {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col">
-        {/* Top bar */}
         <div className="h-12 flex items-center justify-between px-3 border-b border-gray-800">
           <div className="font-bold">Dota2 Drafter</div>
           <button aria-label="Menu">☰</button>
         </div>
 
-        {/* Two columns: Ally / Enemy */}
         <div className="p-3 grid grid-cols-2 gap-3">
           <MobileDraftColumn
             title="Ally"
-            picks={selectedHeroes.ally}
+            picks={mobileSelectedHeroes.ally}
             onSlotTap={(slot) => setMobilePicker({ team: "ally", slot })}
           />
           <MobileDraftColumn
             title="Enemy"
-            picks={selectedHeroes.enemy}
+            picks={mobileSelectedHeroes.enemy}
             onSlotTap={(slot) => setMobilePicker({ team: "enemy", slot })}
           />
         </div>
 
-        {/* Bottom sheet handle (placeholder) */}
         <div className="p-3">
           <button className="w-full py-3 rounded border border-gray-700">
             ▲ Suggestions / Analysis
           </button>
         </div>
 
-        {/* TEMP picker overlay */}
         {mobilePicker && (
           <MobileHeroPicker
             team={mobilePicker.team}
             slot={mobilePicker.slot}
-            heroes={heroes}                 // already in HeroList state
-            selectedHeroes={selectedHeroes} // to gray-out already picked if you want later
-            bannedHeroes={bannedHeroes}
+            heroes={heroes} // existing grouped heroes object
+            selectedHeroes={mobileSelectedHeroes}         // mobile state only
+            bannedHeroes={[...mobileBannedHeroes]}        // for overlay/disable in the picker
             onClose={() => setMobilePicker(null)}
+            onPick={(heroId) => {
+              // place hero into the chosen team/slot in MOBILE state
+              setMobileSelectedHeroes(prev => {
+                const next = { ...prev, [mobilePicker.team]: [...prev[mobilePicker.team]] };
+                next[mobilePicker.team][mobilePicker.slot] = findHeroById(heroId, heroes);
+                return next;
+              });
+              setMobilePicker(null);
+            }}
+            onBan={(heroId) => {
+              setMobileBannedHeroes(prev => new Set(prev).add(heroId));
+            }}
+            onUnban={(heroId) => {
+              setMobileBannedHeroes(prev => {
+                const s = new Set(prev); s.delete(heroId); return s;
+              });
+            }}
           />
         )}
       </div>

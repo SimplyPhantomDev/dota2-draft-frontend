@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { TeamDropZone } from "./structures";
 
 function DraftPanel({

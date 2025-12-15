@@ -1,4 +1,3 @@
-import { motion } from "framer-motion"
 import { useDrag, useDrop } from "react-dnd";
 
 export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, grayscale, highlight, glowPurple }) {
@@ -49,7 +48,7 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
       const teamHeroes = team === "ally" ? selectedHeroes.ally : selectedHeroes.enemy;
       return teamHeroes.length < 5;
     },
-    drop: (item, monitor) => {
+    drop: (item) => {
       const teamHeroes = team === "ally" ? selectedHeroes.ally : selectedHeroes.enemy;
       // Safety check: prevent drop if team is full
       if (teamHeroes.length < 5) {
@@ -63,7 +62,6 @@ export function TeamDropZone ({ team, selectedHeroes, handleDrop, handleHeroDese
     }));
   
     const isOver = collectedProps.isOver;
-    const canDrop = collectedProps.canDrop;
     const isAlly = team === "ally";
     const heroes2 = isAlly ? selectedHeroes.ally : selectedHeroes.enemy;
   

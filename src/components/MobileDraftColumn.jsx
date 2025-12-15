@@ -8,7 +8,7 @@ export default function MobileDraftColumn({ title, picks, onSlotTap }) {
                 {Array.from({ length: 5 }).map((_, i) => (
                     <MobileSlot
                         key={i}
-                        hero={picks}
+                        hero={picks[i]}
                         onTap={() => onSlotTap?.(i)}
                     />
                 ))}
