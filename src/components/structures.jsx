@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { useDrag, useDrop } from "react-dnd";
 
 export function DraggableHero({ hero, isPicked, handleHeroClick, handleHeroBan, grayscale, highlight, glowPurple }) {

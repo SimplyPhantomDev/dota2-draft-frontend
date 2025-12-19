@@ -8,12 +8,10 @@ import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
 import questionMarkIcon from '../assets/question_mark.svg';
 import { motion, AnimatePresence } from 'framer-motion';
-import useIsMobile from '../hooks/useIsMobile';
 import DraftPanel from '../components/DraftPanel';
 import Sidebar from '../components/Sidebar';
 import { DraggableHero } from '../components/structures';
-import MobileDraftColumn from '../components/MobileDraftColumn';
-import MobileHeroPicker from '../components/MobileHeroPicker';
+import ReportIssueButton from '../components/ReportIssueButton';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
 
@@ -29,20 +27,8 @@ export default function HeroList() {
     enemy: []
   });
 
-  // Selected heroes for both teams for mobile
-  const [mobileSelectedHeroes, setMobileSelectedHeroes] = useState({
-    ally: Array(5).fill(null),
-    enemy: Array(5).fill(null),
-  });
-
   // Heroes that have been banned from the draft
   const [bannedHeroes, setBannedHeroes] = useState([]);
-
-  // Heroes that have been banned on mobile
-  const [mobileBannedHeroes, setMobileBannedHeroes] = useState(() => new Set());
-
-  // Which slot are we picking for
-  const [mobilePicker, setMobilePicker] = useState(null);
 
   // Static matchup data (synergy/counter values between heroes)
   const [matchupData, setMatchupData] = useState({});
@@ -61,9 +47,9 @@ export default function HeroList() {
 
   // Full synergy breakdown shown when both teams have their teams' full
   const [fullDraftStats, setFullDraftStats] = useState(null);
-  
+
   // Filtering suggestions by selected role (e.g., "carry", "support")
-  const[roleFilter, setRoleFilter] = useState(null);
+  const [roleFilter, setRoleFilter] = useState(null);
 
   // Static hero role data (hero-specific position data)
   const [heroRoleMap, setHeroRoleMap] = useState(null);
@@ -75,8 +61,6 @@ export default function HeroList() {
   //================ UI State ====================
   //==============================================
 
-  // Environment mode: either mobile or desktop
-  const isMobile = useIsMobile();
 
   // Layout mode: "default" = 2x2, "row" = 4x1
   const [gridMode, setGridMode] = useState("default");
@@ -183,22 +167,26 @@ export default function HeroList() {
   // Load and group hero data from local JSON on mount
   useEffect(() => {
     fetch("/heroes.json")
-    .then((res) => res.json())
-    .then((data) => {
-      const grouped = groupAndSortHeroes(data);
-      setHeroes(grouped);
-    })
-    .catch((err) => console.error("Failed to load static hero data:", err));
+      .then((res) => res.json())
+      .then((data) => {
+        const grouped = groupAndSortHeroes(data);
+        setHeroes(grouped);
+      })
+      .catch((err) => console.error("Failed to load static hero data:", err));
   }, []);
 
   // Load synergy matrix from local JSON on mount
   useEffect(() => {
-    fetch("/synergyMatrix.json")
-      .then((res) => res.json())
+    const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
+
+    fetch(datasetUrl)
+      .then((res) => {
+        return res.json();
+      })
       .then((data) => {
         setMatchupData(data);
       })
-      .catch((err) => console.error("Failed to load synergy data", err));
+      .catch((err) => console.error("[synergy] Failed to load synergy data", err));
   }, []);
 
   // Load hero-specific position data from local JSON on mount
@@ -223,11 +211,11 @@ export default function HeroList() {
 
   // Recalculate or clear suggestions when selected or banned heroes change
   useEffect(() => {
-  if (selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0) {
-    updateSynergySuggestions();
-  } else {
-    setSuggestedHeroes([]); // Clear if no picks
-  }
+    if (selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0) {
+      updateSynergySuggestions();
+    } else {
+      setSuggestedHeroes([]); // Clear if no picks
+    }
   }, [selectedHeroes, bannedHeroes]);
 
   // Assign enemy hero roles based on already picked heroes in the enemy team
@@ -278,6 +266,18 @@ export default function HeroList() {
   // Handle typing and backspace logic for search bar focus and clearing
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (window.__ISSUE_MODAL_OPEN__) return;
+
+      const el = document.activeElement;
+      const tag = el?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select" || el?.isContentEditable) {
+        if (el === searchInputRef.current) {
+          // continue
+        } else {
+          return;
+        }
+      }
+
       if (document.activeElement !== searchInputRef.current) {
         searchInputRef.current?.focus();
       }
@@ -310,7 +310,7 @@ export default function HeroList() {
     if (!showToolTip) return;
     const timeout = setTimeout(() => {
       setShowToolTip(false);
-      try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch {}
+      try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch { }
     }, 5000);
     return () => clearTimeout(timeout);
   }, [showToolTip]);
@@ -420,10 +420,10 @@ export default function HeroList() {
       setFullDraftStats(result.teams);
       setSuggestedHeroes([]); // No suggestions needed anymore
     }
-    
+
     // === CASE 2: Still Drafting - Show Suggestions ===
     // Show top synergy picks (in and out of personal hero pool)
-    else if (result?.mode === "suggestion"){
+    else if (result?.mode === "suggestion") {
       const { inPool = [], outPool = [] } = result;
       setPoolSuggestions(inPool.slice(0, 3));     // Limit in-pool picks to top 3
       setGlobalSuggestions(outPool.slice(0, 10)); // Limit global picks to top 10
@@ -451,10 +451,10 @@ export default function HeroList() {
    */
   const lockHero = (heroId) => {
     setClickLockedHeroes(prev => {
-    const updated = new Set(prev);
-    updated.add(heroId);
-    return updated;
-  });
+      const updated = new Set(prev);
+      updated.add(heroId);
+      return updated;
+    });
   };
 
   /**
@@ -469,23 +469,6 @@ export default function HeroList() {
     });
   };
 
-  /**
-   * Helper function that helps finding a hero object based on a hero's ID
-   * @param {*} id the ID of the hero being searched
-   * @param {*} groups all heroes in the designated attribute groups
-   * @returns hero object, if search unsuccessful then null
-   */
-  function findHeroById(id, groups) {
-    const needle = Number(id);
-    const pools = [groups?.str, groups?.agi, groups?.int, groups?.all];
-    for (const arr of pools) {
-      if (!arr) continue;
-      const h = arr.find(x => x.HeroId === id);
-      if (h) return h;
-    }
-    return null;
-  }
-
   //==============================================
   //=============== Draft Actions ================
   //==============================================
@@ -494,8 +477,8 @@ export default function HeroList() {
    * Clears all bans and recalculates suggestions without any banned heroes
    */
   const handleClearBans = () => {
-      setBannedHeroes([]);
-      updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
+    setBannedHeroes([]);
+    updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
   };
 
   /**
@@ -517,20 +500,20 @@ export default function HeroList() {
         ? heroPool.filter(id => id !== hero.HeroId)
         : [...heroPool, hero.HeroId];
 
-        setHeroPool(updatedPool);
+      setHeroPool(updatedPool);
 
-        clearTimeout(fadeTimeoutRef.current);
-        clearTimeout(removeTimeoutRef.current);
+      clearTimeout(fadeTimeoutRef.current);
+      clearTimeout(removeTimeoutRef.current);
 
-        setStatusMessage({
-          text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
-          type: inPool ? "removed" : "added"
-        });
-        setShowStatus(true);
+      setStatusMessage({
+        text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
+        type: inPool ? "removed" : "added"
+      });
+      setShowStatus(true);
 
-        fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
-        removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
-        return;
+      fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
+      removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
+      return;
     }
 
 
@@ -549,53 +532,6 @@ export default function HeroList() {
     setSelectedHeroes(updatedSelected);
 
     unlockHero(hero.HeroId);
-  };
-
-  /**
-   * Handles selecting a hero in a mobile environment
-   * @param {*} team the team into which the hero is to be picked
-   * @param {*} slot  the slot of the team where the hero will be added
-   * @param {*} heroId the id of the hero that will be added
-   */
-  const handleMobilePick = (team, slot, heroId) => {
-    const hero = heroById.get(heroId);
-    if (!hero) return;
-
-    // If you’re in Pool Editing Mode, let desktop function handle it
-    if (editHeroPoolMode) {
-      handleHeroClick(hero);
-      return;
-    }
-
-    // === Slot-aware Draft Pick Logic ===
-    // Block duplicates
-    if (selectedHeroes[team].some(h => h?.HeroId === hero.HeroId)) return;
-
-    // If team already has 5 picks and slot is out of range, abort
-    if (selectedHeroes[team].length >= 5 && (slot == null || slot > 4)) return;
-
-    // Lock to prevent double-click races
-    if (typeof lockHero === "function") lockHero(hero.HeroId);
-
-    // Place into specific slot, or append if slot is the next index
-    const teamPicks = [...selectedHeroes[team]];
-
-    if (typeof slot === "number") {
-      // Ensure array has 5 positions so assignment doesn’t create holes
-      while (teamPicks.length < 5) teamPicks.push(null);
-
-      teamPicks[slot] = hero;
-    } else {
-      // Fallback: behave like your desktop click (append)
-      teamPicks.push(hero);
-    }
-
-    setSelectedHeroes({
-      ...selectedHeroes,
-      [team]: teamPicks,
-    });
-
-    if (typeof unlockHero === "function") unlockHero(hero.HeroId);
   };
 
   /**
@@ -687,7 +623,7 @@ export default function HeroList() {
    * @returns true if there's no query or the hero name includes the query
    */
   const isHeroMatch = (hero) => {
-    if(!searchQuery.trim()) return true;
+    if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     const nameMatch = hero.name.toLowerCase().includes(query);
     const aliasMatch = hero.aliases?.some(alias => alias.toLowerCase().includes(query));
@@ -705,10 +641,10 @@ export default function HeroList() {
    */
   function renderAttributeColumn(attr) {
     const colorMap = {
-    str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
-    agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
-    int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
-    all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
+      str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
+      agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
+      int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
+      all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
     };
 
     const { border, bg, text, label } = colorMap[attr];
@@ -744,69 +680,11 @@ export default function HeroList() {
     );
   };
 
-  if (isMobile) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col">
-        <div className="h-12 flex items-center justify-between px-3 border-b border-gray-800">
-          <div className="font-bold">Dota2 Drafter</div>
-          <button aria-label="Menu">☰</button>
-        </div>
-
-        <div className="p-3 grid grid-cols-2 gap-3">
-          <MobileDraftColumn
-            title="Ally"
-            picks={mobileSelectedHeroes.ally}
-            onSlotTap={(slot) => setMobilePicker({ team: "ally", slot })}
-          />
-          <MobileDraftColumn
-            title="Enemy"
-            picks={mobileSelectedHeroes.enemy}
-            onSlotTap={(slot) => setMobilePicker({ team: "enemy", slot })}
-          />
-        </div>
-
-        <div className="p-3">
-          <button className="w-full py-3 rounded border border-gray-700">
-            ▲ Suggestions / Analysis
-          </button>
-        </div>
-
-        {mobilePicker && (
-          <MobileHeroPicker
-            team={mobilePicker.team}
-            slot={mobilePicker.slot}
-            heroes={heroes} // existing grouped heroes object
-            selectedHeroes={mobileSelectedHeroes}         // mobile state only
-            bannedHeroes={[...mobileBannedHeroes]}        // for overlay/disable in the picker
-            onClose={() => setMobilePicker(null)}
-            onPick={(heroId) => {
-              // place hero into the chosen team/slot in MOBILE state
-              setMobileSelectedHeroes(prev => {
-                const next = { ...prev, [mobilePicker.team]: [...prev[mobilePicker.team]] };
-                next[mobilePicker.team][mobilePicker.slot] = findHeroById(heroId, heroes);
-                return next;
-              });
-              setMobilePicker(null);
-            }}
-            onBan={(heroId) => {
-              setMobileBannedHeroes(prev => new Set(prev).add(heroId));
-            }}
-            onUnban={(heroId) => {
-              setMobileBannedHeroes(prev => {
-                const s = new Set(prev); s.delete(heroId); return s;
-              });
-            }}
-          />
-        )}
-      </div>
-    );
-  }
-
   return (
     // === Main App Container ===
-    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${
-      editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
-    }`}>
+    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
+      }`}
+    >
       {/* === Search Input (invisible, global key listener) === */}
       <input
         type="text"
@@ -842,26 +720,23 @@ export default function HeroList() {
             title="Toggle Grid Layout"
           >
             <div
-                className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${
-                  gridMode === "row" ? "translate-x-16" : "translate-x-0"
+              className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${gridMode === "row" ? "translate-x-16" : "translate-x-0"
                 }`}
-              />
+            />
             {/* Icon 1: Default Layout */}
             <div className="flex justify-between items-center w-full z-20">
               <img
                 src={layoutDefaultIcon}
                 alt="Default Layout"
-                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
-                  gridMode === "default" ? "opacity-100" : "opacity-100"
-                }`}
+                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${gridMode === "default" ? "opacity-100" : "opacity-100"
+                  }`}
               />
               {/* Icon 2: Row Layout */}
               <img
                 src={layoutRowIcon}
                 alt="Row Layout"
-                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
-                  gridMode === "row" ? "opacity-100" : "opacity-100"
-                }`}
+                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${gridMode === "row" ? "opacity-100" : "opacity-100"
+                  }`}
               />
             </div>
           </button>
@@ -876,19 +751,19 @@ export default function HeroList() {
               className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
             >
               {bannedHeroes[i] && (
-                  <div
-                    className="relative group w-full h-full cursor-pointer"
-                    onClick={() => handleBanRemove(bannedHeroes[i])}
-                  >
-                    <img
-                      src={bannedHeroes[i].icon_url}
-                      alt={bannedHeroes[i].name}
-                      className="object-contain w-full h-full filter grayscale"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                      <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
-                    </div>
+                <div
+                  className="relative group w-full h-full cursor-pointer"
+                  onClick={() => handleBanRemove(bannedHeroes[i])}
+                >
+                  <img
+                    src={bannedHeroes[i].icon_url}
+                    alt={bannedHeroes[i].name}
+                    className="object-contain w-full h-full filter grayscale"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                    <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
                   </div>
+                </div>
               )}
             </div>
           ))}
@@ -899,19 +774,19 @@ export default function HeroList() {
       <div className="flex flex-1 overflow-hidden">
         <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
           {searchQuery && (
-          <div
-            className="fixed pointer-events-none z-50"
-            style={{
-              left: containerRect.left + containerRect.width / 2,
-              top: containerRect.top + containerRect.height / 2,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
-              {searchQuery}
-            </span>
-          </div>
-        )}
+            <div
+              className="fixed pointer-events-none z-50"
+              style={{
+                left: containerRect.left + containerRect.width / 2,
+                top: containerRect.top + containerRect.height / 2,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
+                {searchQuery}
+              </span>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {gridMode === "default" ? (
               <motion.div
@@ -980,17 +855,18 @@ export default function HeroList() {
           questionMarkIcon={questionMarkIcon}
         />
       </div>{/* end hero+sidebar split */}
-    {/* === Status Toast (Bottom left) === */}
-    {statusMessage && (
-      <div
-        className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
+      {/* === Status Toast (Bottom left) === */}
+      {statusMessage && (
+        <div
+          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
           transition-opacity duration-400 ease-in-out
           ${showStatus ? "opacity-100" : "opacity-0"}
           ${statusMessage.type === "added" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
-      >
-        {statusMessage.text}
-      </div>
-    )}
+        >
+          {statusMessage.text}
+        </div>
+      )}
+      <ReportIssueButton />
     </div>
   );
 }

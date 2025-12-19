@@ -1,4 +1,5 @@
 export function groupAndSortHeroes(heroes) {
+    heroes = Array.isArray(heroes) ? heroes : [];
     const attributeOrder = ['str', 'agi', 'int', 'all'];
 
     const grouped = {
