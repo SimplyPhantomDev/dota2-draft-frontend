@@ -1,66 +1,37 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "enables the default permissions",
+  "identifier": "main-capability",
+  "description": "Capability for the main window",
   "windows": [
     "main"
   ],
   "permissions": [
-    {
-      "identifier": "fs:allow-mkdir",
-      "allow": [
-        {
-          "path": "$APPDATA/datasets"
-        },
-        {
-          "path": "$APPDATA/datasets/**/*"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [
-        {
-          "path": "$APPDATA/datasets"
-        },
-        {
-          "path": "$APPDATA/datasets/**/*"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-write-text-file",
-      "allow": [
-        {
-          "path": "$APPDATA/datasets/**/*"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-read-text-file",
-      "allow": [
-        {
-          "path": "$APPDATA/**"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-rename",
-      "allow": [
-        {
-          "path": "datasets/**"
-        }
-      ]
-    },
+    "core:webview:allow-create-webview-window",
+    "core:window:allow-get-all-windows",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-rename",
     {
       "identifier": "fs:scope",
       "allow": [
         {
-          "path": "$APPDATA/**"
+          "path": "$APPDATA/datasets"
+        },
+        {
+          "path": "$APPDATA/datasets/**/*"
         }
       ]
     },
-    "core:default",
-    "fs:default"
+    "core:path:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://github.com/*" },
+        { "url": "https://api.github.com/*" },
+        { "url": "https://d2dt-dataset.vercel.app" }
+      ]
+    }
   ]
 }

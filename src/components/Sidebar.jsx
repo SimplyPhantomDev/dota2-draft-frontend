@@ -356,11 +356,14 @@ function Sidebar({
                         <strong>Guide:</strong><br />
                         Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                         ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
-                        Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br/>
-                        Typing at any time starts a search function that is very familiar to people from Dota 2. Aliases will be supported later down the line. Use the hero pool
-                        toggle button below to set your personalized hero pool and the tool will still suggest globally great hero choices but also three best choices from your
-                        hero pool. Clicking on the info button near the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. 
-                        Hovering over hero suggestions shows more details as to where the number comes from. This feature also works when inspecting a full draft.
+                        Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br/><br/>
+                        Typing at any time starts a search function that is very familiar to people from Dota 2. Use the hero pool toggle button below to set your personalized
+                        hero pool and the tool will still suggest globally great hero choices but also three best choices from your hero pool. Clicking on the info button near
+                        the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. Hovering over hero suggestions shows more details
+                        as to where the number comes from. This feature also works when inspecting a full draft. <br/><br/>
+                        If you encounter any bugs or problems, you can file a bug report using the button at the bottom of the screen. Do not abuse this functionality, as the
+                        button loses its purpose and I will stop recieving and reading the bug reports. Good luck in your games! <br/>
+                        <i>- Phantom (the developer)</i>
                     </p>
                 </div>
             )}

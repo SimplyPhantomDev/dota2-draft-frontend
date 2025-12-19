@@ -16,7 +16,6 @@ export async function initSynergyMatrixUrl() {
         if (!res.ok) throw new Error(`Failed to seed synergyMatrix.json: ${res.status}`);
         const text = await res.text();
         await writeTextFile(relPath, text, { baseDir: BaseDirectory.AppData });
-        console.log("[dataset] seeded local synergyMatrix.json");
 
         const manifestRelPath = `${dir}/manifest.json`;
         const hasManifest = await exists(manifestRelPath, { baseDir: BaseDirectory.AppData });
@@ -34,8 +33,6 @@ export async function initSynergyMatrixUrl() {
             await writeTextFile(manifestRelPath, JSON.stringify(manifest, null, 2), {
                 baseDir: BaseDirectory.AppData
             });
-
-            console.log("[dataset] seeded local manifest.json");
         }
     }
 
@@ -44,14 +41,12 @@ export async function initSynergyMatrixUrl() {
     const fullPath = await join(dataDir, relPath);
     window.__SYNERGY_MATRIX_URL__ = convertFileSrc(fullPath);
 
-    console.log("[dataset] using local dataset url:", window.__SYNERGY_MATRIX_URL__);
-
     const manifestText = await readTextFile(`${dir}/manifest.json`, { baseDir: BaseDirectory.AppData });
     const manifest = JSON.parse(manifestText);
-    console.log("[dataset] local manifest:", manifest);
+    window.__LOCAL_DATASET_MANIFEST__ = manifest;
 
     const REMOTE_MANIFEST_URL =
-        "https://raw.githubusercontent.com/SimplyPhantomDev/d2dt-dataset/refs/heads/main/manifest.json";
+        "https://raw.githubusercontent.com/SimplyPhantomDev/d2dt-dataset/main/manifest.json";
 
     (async () => {
         try {
@@ -63,17 +58,14 @@ export async function initSynergyMatrixUrl() {
             if (!r.ok) throw new Error(`remote manifest fetch failed: ${r.status}`);
 
             const remote = await r.json();
-            console.log("[dataset] remote manifest:", remote);
 
             const localTime = Date.parse(manifest.generatedAt);
             const remoteTime = Date.parse(remote.generatedAt);
 
             if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && remoteTime > localTime) {
-                console.log("[dataset] UPDATE AVAILABLE (remote newer)");
 
                 // Download the dataset file referenced by the remote manifest
                 const remoteDataUrl = new URL(remote.file, REMOTE_MANIFEST_URL).toString();
-                console.log("[dataset] downloading:", remoteDataUrl);
 
                 const dataRes = await fetch(remoteDataUrl, { cache: "no-store" });
                 if (!dataRes.ok) throw new Error(`remote dataset fetch failed ${dataRes.status}`);
@@ -95,10 +87,8 @@ export async function initSynergyMatrixUrl() {
                     baseDir: BaseDirectory.AppData
                 });
 
-                console.log("[dataset] update downloaded and saved. Reloading...");
                 window.location.reload();
             } else {
-                console.log("[dataset] up to date");
             }
         } catch (e) {
             console.warn("[dataset] remote check failed (ignored):", e);

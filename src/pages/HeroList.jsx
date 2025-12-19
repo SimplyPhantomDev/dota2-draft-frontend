@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DraftPanel from '../components/DraftPanel';
 import Sidebar from '../components/Sidebar';
 import { DraggableHero } from '../components/structures';
+import ReportIssueButton from '../components/ReportIssueButton';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
 
@@ -46,9 +47,9 @@ export default function HeroList() {
 
   // Full synergy breakdown shown when both teams have their teams' full
   const [fullDraftStats, setFullDraftStats] = useState(null);
-  
+
   // Filtering suggestions by selected role (e.g., "carry", "support")
-  const[roleFilter, setRoleFilter] = useState(null);
+  const [roleFilter, setRoleFilter] = useState(null);
 
   // Static hero role data (hero-specific position data)
   const [heroRoleMap, setHeroRoleMap] = useState(null);
@@ -166,30 +167,27 @@ export default function HeroList() {
   // Load and group hero data from local JSON on mount
   useEffect(() => {
     fetch("/heroes.json")
-    .then((res) => res.json())
-    .then((data) => {
-      const grouped = groupAndSortHeroes(data);
-      setHeroes(grouped);
-    })
-    .catch((err) => console.error("Failed to load static hero data:", err));
+      .then((res) => res.json())
+      .then((data) => {
+        const grouped = groupAndSortHeroes(data);
+        setHeroes(grouped);
+      })
+      .catch((err) => console.error("Failed to load static hero data:", err));
   }, []);
 
   // Load synergy matrix from local JSON on mount
-useEffect(() => {
-  const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
-  console.log("[synergy] loading from:", datasetUrl);
+  useEffect(() => {
+    const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
 
-  fetch(datasetUrl)
-    .then((res) => {
-      console.log("[synergy] fetch status:", res.status, res.ok);
-      return res.json();
-    })
-    .then((data) => {
-      console.log("[synergy] loaded keys:", data ? Object.keys(data).length : "null");
-      setMatchupData(data);
-    })
-    .catch((err) => console.error("[synergy] Failed to load synergy data", err));
-}, []);
+    fetch(datasetUrl)
+      .then((res) => {
+        return res.json();
+      })
+      .then((data) => {
+        setMatchupData(data);
+      })
+      .catch((err) => console.error("[synergy] Failed to load synergy data", err));
+  }, []);
 
   // Load hero-specific position data from local JSON on mount
   useEffect(() => {
@@ -213,11 +211,11 @@ useEffect(() => {
 
   // Recalculate or clear suggestions when selected or banned heroes change
   useEffect(() => {
-  if (selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0) {
-    updateSynergySuggestions();
-  } else {
-    setSuggestedHeroes([]); // Clear if no picks
-  }
+    if (selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0) {
+      updateSynergySuggestions();
+    } else {
+      setSuggestedHeroes([]); // Clear if no picks
+    }
   }, [selectedHeroes, bannedHeroes]);
 
   // Assign enemy hero roles based on already picked heroes in the enemy team
@@ -268,6 +266,18 @@ useEffect(() => {
   // Handle typing and backspace logic for search bar focus and clearing
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (window.__ISSUE_MODAL_OPEN__) return;
+
+      const el = document.activeElement;
+      const tag = el?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select" || el?.isContentEditable) {
+        if (el === searchInputRef.current) {
+          // continue
+        } else {
+          return;
+        }
+      }
+
       if (document.activeElement !== searchInputRef.current) {
         searchInputRef.current?.focus();
       }
@@ -300,7 +310,7 @@ useEffect(() => {
     if (!showToolTip) return;
     const timeout = setTimeout(() => {
       setShowToolTip(false);
-      try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch {}
+      try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch { }
     }, 5000);
     return () => clearTimeout(timeout);
   }, [showToolTip]);
@@ -410,10 +420,10 @@ useEffect(() => {
       setFullDraftStats(result.teams);
       setSuggestedHeroes([]); // No suggestions needed anymore
     }
-    
+
     // === CASE 2: Still Drafting - Show Suggestions ===
     // Show top synergy picks (in and out of personal hero pool)
-    else if (result?.mode === "suggestion"){
+    else if (result?.mode === "suggestion") {
       const { inPool = [], outPool = [] } = result;
       setPoolSuggestions(inPool.slice(0, 3));     // Limit in-pool picks to top 3
       setGlobalSuggestions(outPool.slice(0, 10)); // Limit global picks to top 10
@@ -441,10 +451,10 @@ useEffect(() => {
    */
   const lockHero = (heroId) => {
     setClickLockedHeroes(prev => {
-    const updated = new Set(prev);
-    updated.add(heroId);
-    return updated;
-  });
+      const updated = new Set(prev);
+      updated.add(heroId);
+      return updated;
+    });
   };
 
   /**
@@ -459,23 +469,6 @@ useEffect(() => {
     });
   };
 
-  /**
-   * Helper function that helps finding a hero object based on a hero's ID
-   * @param {*} id the ID of the hero being searched
-   * @param {*} groups all heroes in the designated attribute groups
-   * @returns hero object, if search unsuccessful then null
-   */
-  function findHeroById(id, groups) {
-    const needle = Number(id);
-    const pools = [groups?.str, groups?.agi, groups?.int, groups?.all];
-    for (const arr of pools) {
-      if (!arr) continue;
-      const h = arr.find(x => x.HeroId === id);
-      if (h) return h;
-    }
-    return null;
-  }
-
   //==============================================
   //=============== Draft Actions ================
   //==============================================
@@ -484,8 +477,8 @@ useEffect(() => {
    * Clears all bans and recalculates suggestions without any banned heroes
    */
   const handleClearBans = () => {
-      setBannedHeroes([]);
-      updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
+    setBannedHeroes([]);
+    updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
   };
 
   /**
@@ -507,20 +500,20 @@ useEffect(() => {
         ? heroPool.filter(id => id !== hero.HeroId)
         : [...heroPool, hero.HeroId];
 
-        setHeroPool(updatedPool);
+      setHeroPool(updatedPool);
 
-        clearTimeout(fadeTimeoutRef.current);
-        clearTimeout(removeTimeoutRef.current);
+      clearTimeout(fadeTimeoutRef.current);
+      clearTimeout(removeTimeoutRef.current);
 
-        setStatusMessage({
-          text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
-          type: inPool ? "removed" : "added"
-        });
-        setShowStatus(true);
+      setStatusMessage({
+        text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
+        type: inPool ? "removed" : "added"
+      });
+      setShowStatus(true);
 
-        fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
-        removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
-        return;
+      fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
+      removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
+      return;
     }
 
 
@@ -630,7 +623,7 @@ useEffect(() => {
    * @returns true if there's no query or the hero name includes the query
    */
   const isHeroMatch = (hero) => {
-    if(!searchQuery.trim()) return true;
+    if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     const nameMatch = hero.name.toLowerCase().includes(query);
     const aliasMatch = hero.aliases?.some(alias => alias.toLowerCase().includes(query));
@@ -648,10 +641,10 @@ useEffect(() => {
    */
   function renderAttributeColumn(attr) {
     const colorMap = {
-    str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
-    agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
-    int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
-    all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
+      str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
+      agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
+      int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
+      all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
     };
 
     const { border, bg, text, label } = colorMap[attr];
@@ -689,9 +682,9 @@ useEffect(() => {
 
   return (
     // === Main App Container ===
-    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${
-      editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
-    }`}>
+    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
+      }`}
+    >
       {/* === Search Input (invisible, global key listener) === */}
       <input
         type="text"
@@ -727,26 +720,23 @@ useEffect(() => {
             title="Toggle Grid Layout"
           >
             <div
-                className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${
-                  gridMode === "row" ? "translate-x-16" : "translate-x-0"
+              className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${gridMode === "row" ? "translate-x-16" : "translate-x-0"
                 }`}
-              />
+            />
             {/* Icon 1: Default Layout */}
             <div className="flex justify-between items-center w-full z-20">
               <img
                 src={layoutDefaultIcon}
                 alt="Default Layout"
-                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
-                  gridMode === "default" ? "opacity-100" : "opacity-100"
-                }`}
+                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${gridMode === "default" ? "opacity-100" : "opacity-100"
+                  }`}
               />
               {/* Icon 2: Row Layout */}
               <img
                 src={layoutRowIcon}
                 alt="Row Layout"
-                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${
-                  gridMode === "row" ? "opacity-100" : "opacity-100"
-                }`}
+                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${gridMode === "row" ? "opacity-100" : "opacity-100"
+                  }`}
               />
             </div>
           </button>
@@ -761,19 +751,19 @@ useEffect(() => {
               className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
             >
               {bannedHeroes[i] && (
-                  <div
-                    className="relative group w-full h-full cursor-pointer"
-                    onClick={() => handleBanRemove(bannedHeroes[i])}
-                  >
-                    <img
-                      src={bannedHeroes[i].icon_url}
-                      alt={bannedHeroes[i].name}
-                      className="object-contain w-full h-full filter grayscale"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                      <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
-                    </div>
+                <div
+                  className="relative group w-full h-full cursor-pointer"
+                  onClick={() => handleBanRemove(bannedHeroes[i])}
+                >
+                  <img
+                    src={bannedHeroes[i].icon_url}
+                    alt={bannedHeroes[i].name}
+                    className="object-contain w-full h-full filter grayscale"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                    <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
                   </div>
+                </div>
               )}
             </div>
           ))}
@@ -784,19 +774,19 @@ useEffect(() => {
       <div className="flex flex-1 overflow-hidden">
         <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
           {searchQuery && (
-          <div
-            className="fixed pointer-events-none z-50"
-            style={{
-              left: containerRect.left + containerRect.width / 2,
-              top: containerRect.top + containerRect.height / 2,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
-              {searchQuery}
-            </span>
-          </div>
-        )}
+            <div
+              className="fixed pointer-events-none z-50"
+              style={{
+                left: containerRect.left + containerRect.width / 2,
+                top: containerRect.top + containerRect.height / 2,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
+                {searchQuery}
+              </span>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {gridMode === "default" ? (
               <motion.div
@@ -865,17 +855,18 @@ useEffect(() => {
           questionMarkIcon={questionMarkIcon}
         />
       </div>{/* end hero+sidebar split */}
-    {/* === Status Toast (Bottom left) === */}
-    {statusMessage && (
-      <div
-        className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
+      {/* === Status Toast (Bottom left) === */}
+      {statusMessage && (
+        <div
+          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
           transition-opacity duration-400 ease-in-out
           ${showStatus ? "opacity-100" : "opacity-0"}
           ${statusMessage.type === "added" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
-      >
-        {statusMessage.text}
-      </div>
-    )}
+        >
+          {statusMessage.text}
+        </div>
+      )}
+      <ReportIssueButton />
     </div>
   );
 }
