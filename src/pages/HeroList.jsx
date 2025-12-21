@@ -1,5 +1,5 @@
 import '../App.css';
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { groupAndSortHeroes } from '../utils/groupHeroes';
 import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from '../utils/synergy';
 import { predictEnemyRoles } from '../utils/predictRoles';
@@ -166,8 +166,13 @@ export default function HeroList() {
 
   // Load and group hero data from local JSON on mount
   useEffect(() => {
-    fetch("/heroes.json")
-      .then((res) => res.json())
+    const heroesUrl = window.__HEROES_URL__ || "/heroes.json";
+    console.log("[heroes] heroesUrl:", heroesUrl);
+
+    fetch(heroesUrl)
+      .then((res) => {
+        return res.json();
+      })
       .then((data) => {
         const grouped = groupAndSortHeroes(data);
         setHeroes(grouped);
@@ -179,6 +184,7 @@ export default function HeroList() {
   useEffect(() => {
     const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
 
+    console.log("[synergy] datasetUrl:", datasetUrl);
     fetch(datasetUrl)
       .then((res) => {
         return res.json();
@@ -853,6 +859,12 @@ export default function HeroList() {
           bannedHeroes={bannedHeroes}
           infoButtonIcon={infoButtonIcon}
           questionMarkIcon={questionMarkIcon}
+          patch={window.__LOCAL_DATASET_MANIFEST__?.patch}
+          lastUpdated={
+            window.__LOCAL_DATASET_MANIFEST__?.generatedAt
+              ? new Date(window.__LOCAL_DATASET_MANIFEST__.generatedAt).toLocaleDateString()
+              : null
+          }
         />
       </div>{/* end hero+sidebar split */}
       {/* === Status Toast (Bottom left) === */}

@@ -30,7 +30,9 @@ function Sidebar({
     getWinProbability,
     hasPicks,
     bannedHeroes,
-    infoButtonIcon
+    infoButtonIcon,
+    patch,
+    lastUpdated
 }) {
     return (
         <div className="relative min-w-[260px] max-w-[350px] flex-[1] bg-gray-800 rounded shadow flex flex-col p-4">
@@ -432,8 +434,8 @@ function Sidebar({
             </div>
             {/* === App Footer Info === */}
             <div className="text-white text-xs border-t border-gray-700 pt-2">
-                <p>Patch: 7.39d</p>
-                <p>Last updated: August 21</p>
+                <p>Patch: {patch ?? "unknown"}</p>
+                <p>Last updated: {lastUpdated ?? "unknown"}</p>
             </div>
         </div>
     );

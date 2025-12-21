@@ -5,6 +5,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 export async function initSynergyMatrixUrl() {
     const dir = "datasets";
     const relPath = `${dir}/synergyMatrix.json`;
+    const heroesRelPath = `${dir}/heroes.json`;
 
     // Ensure AppData/datasets exists
     await mkdir(dir, { baseDir: BaseDirectory.AppData, recursive: true });
@@ -34,12 +35,22 @@ export async function initSynergyMatrixUrl() {
                 baseDir: BaseDirectory.AppData
             });
         }
+    };
+
+    const hasHeroes = await exists(heroesRelPath, { baseDir: BaseDirectory.AppData });
+    if (!hasHeroes) {
+        const res = await fetch("/heroes.json");
+        if (!res.ok) throw new Error(`Failed to seed heroes.json: ${res.status}`);
+        const text = await res.text();
+        await writeTextFile(heroesRelPath, text, { baseDir: BaseDirectory.AppData });
     }
 
     // Point the app to the local file
     const dataDir = await appDataDir();
     const fullPath = await join(dataDir, relPath);
+    const heroesFullPath = await join(dataDir, heroesRelPath);
     window.__SYNERGY_MATRIX_URL__ = convertFileSrc(fullPath);
+    window.__HEROES_URL__ = convertFileSrc(heroesFullPath);
 
     const manifestText = await readTextFile(`${dir}/manifest.json`, { baseDir: BaseDirectory.AppData });
     const manifest = JSON.parse(manifestText);
@@ -66,18 +77,31 @@ export async function initSynergyMatrixUrl() {
 
                 // Download the dataset file referenced by the remote manifest
                 const remoteDataUrl = new URL(remote.file, REMOTE_MANIFEST_URL).toString();
+                const remoteHeroesUrl = new URL("heroes.json", REMOTE_MANIFEST_URL).toString();
 
                 const dataRes = await fetch(remoteDataUrl, { cache: "no-store" });
                 if (!dataRes.ok) throw new Error(`remote dataset fetch failed ${dataRes.status}`);
 
+                const heroesRes = await fetch(remoteHeroesUrl, { cache: "no-store" });
+                if (!heroesRes.ok) throw new Error(`remote heroes fetch failed ${heroesRes.status}`);
+
                 const text = await dataRes.text();
                 const tmpRelPath = `${dir}/synergyMatrix.json.tmp`;
 
+                const heroesText = await heroesRes.text();
+                const heroesTmpRelPath = `${dir}/heroes.json.tmp`;
+
                 // Temporary write first
                 await writeTextFile(tmpRelPath, text, { baseDir: BaseDirectory.AppData });
+                await writeTextFile(heroesTmpRelPath, heroesText, { baseDir: BaseDirectory.AppData });
 
                 // Swap atomically
                 await rename(tmpRelPath, relPath, {
+                    oldPathBaseDir: BaseDirectory.AppData,
+                    newPathBaseDir: BaseDirectory.AppData
+                });
+
+                await rename(heroesTmpRelPath, heroesRelPath, {
                     oldPathBaseDir: BaseDirectory.AppData,
                     newPathBaseDir: BaseDirectory.AppData
                 });

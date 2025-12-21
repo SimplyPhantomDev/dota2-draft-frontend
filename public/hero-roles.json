@@ -1054,7 +1054,9 @@
     "primary": [
       "offlane"
     ],
-    "secondary": [],
+    "secondary": [
+      "support"
+    ],
     "fallback": "safelane"
   },
   "136": {
@@ -1087,10 +1089,20 @@
   },
   "145": {
     "primary": [
-      "midlane"
+      "safelane"
     ],
     "secondary": [
-      "safelane"
+      "midlane"
+    ],
+    "fallback": null
+  },
+  "155": {
+    "primary": [
+      "hard support",
+      "support"
+    ],
+    "secondary": [
+      "offlane"
     ],
     "fallback": null
   }
