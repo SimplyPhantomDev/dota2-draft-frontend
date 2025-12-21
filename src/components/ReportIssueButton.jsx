@@ -234,7 +234,7 @@ export default function ReportIssueButton() {
                     style={{
                         padding: "6px 10px",
                         borderRadius: 10,
-                        fontSize: 12,
+                        fontSize: 16,
                         opacity: 0.9
                     }}
                 >

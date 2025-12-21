@@ -688,8 +688,9 @@ export default function HeroList() {
 
   return (
     // === Main App Container ===
-    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300 ${editHeroPoolMode ? "bg-black shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : "bg-black"
-      }`}
+    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300
+      bg-gradient-to-br from-black via-gray-950 to-gray-900
+      ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
     >
       {/* === Search Input (invisible, global key listener) === */}
       <input
@@ -717,64 +718,13 @@ export default function HeroList() {
         setEditHeroPoolMode={setEditHeroPoolMode}
         handleClear={handleClear}
         handleClearBans={handleClearBans}
+        bannedHeroes={bannedHeroes}
+        handleBanRemove={handleBanRemove}
+        gridMode={gridMode}
+        setGridMode={setGridMode}
+        layoutDefaultIcon={layoutDefaultIcon}
+        layoutRowIcon={layoutRowIcon}
       />
-      <div className="flex flex-col items-center w-full">
-        <div className="relative w-full h-6 mb-1">
-          <button
-            onClick={() => setGridMode(prev => prev === "default" ? "row" : "default")}
-            className="absolute ml-4 top-1/2 transform -translate-y-1/2 w-28 h-12 mt-6 bg-gray-800 rounded transition-colors duration-300 ease-in-out flex items-center justify-between"
-            title="Toggle Grid Layout"
-          >
-            <div
-              className={`absolute w-12 h-12 bg-gray-600 rounded shadow-md transform transition-transform duration-300 ease-in-out z-10 ${gridMode === "row" ? "translate-x-16" : "translate-x-0"
-                }`}
-            />
-            {/* Icon 1: Default Layout */}
-            <div className="flex justify-between items-center w-full z-20">
-              <img
-                src={layoutDefaultIcon}
-                alt="Default Layout"
-                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${gridMode === "default" ? "opacity-100" : "opacity-100"
-                  }`}
-              />
-              {/* Icon 2: Row Layout */}
-              <img
-                src={layoutRowIcon}
-                alt="Row Layout"
-                className={`w-12 h-12 transition-opacity duration-300 ease-in-out ${gridMode === "row" ? "opacity-100" : "opacity-100"
-                  }`}
-              />
-            </div>
-          </button>
-          <h2 className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-sm font-semibold text-white mb-1">Bans:</h2>
-        </div>
-        {/* === Ban Slots (16 max) === */}
-        <div className="flex justify-center mb-2 gap-2">
-          {/* Each slot: empty or contains a banned hero with "REMOVE" hover overlay */}
-          {[...Array(16)].map((_, i) => (
-            <div
-              key={i}
-              className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
-            >
-              {bannedHeroes[i] && (
-                <div
-                  className="relative group w-full h-full cursor-pointer"
-                  onClick={() => handleBanRemove(bannedHeroes[i])}
-                >
-                  <img
-                    src={bannedHeroes[i].icon_url}
-                    alt={bannedHeroes[i].name}
-                    className="object-contain w-full h-full filter grayscale"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                    <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Main Hero Grid Area */}
       <div className="flex flex-1 overflow-hidden">

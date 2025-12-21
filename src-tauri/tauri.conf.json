@@ -12,11 +12,15 @@
   "app": {
     "windows": [
       {
-        "title": "D2DT",
-        "width": 800,
-        "height": 600,
+        "label": "main",
+        "title": "Dota 2 Drafting Tool",
+        "center": true,
+        "width": 1850,
+        "height": 900,
+        "minWidth": 1850,
+        "minHeight": 900,
         "resizable": true,
-        "fullscreen": false,
+        "maximized": true,
         "dragDropEnabled": false
       }
     ],
