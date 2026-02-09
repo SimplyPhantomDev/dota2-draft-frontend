@@ -1,29 +1,66 @@
-export const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], roleFilter = null, fullDraft = false, matchupData, heroes, heroPool = null, filterByHeroPool }) => {
-  if (!matchupData || !heroes || Object.keys(matchupData).length === 0 || Object.keys(heroes).length === 0) return null;
+export const calculateSynergyPicks = ({
+  allyHeroIds = [],
+  enemyHeroIds = [],
+  bannedHeroIds = [],
+  roleFilter = null,
+  fullDraft = false,
+  matchupIndex,
+  heroes,
+  heroPool = null,
+}) => {
+  if (!matchupIndex || !heroes || Object.keys(matchupIndex).length === 0 || Object.keys(heroes).length === 0) {
+    return null;
+  }
+
+  const DRAFT_BONUS = 2;
+  const CRUCIAL_TRIGGER_PICKS = 2;
+  const SECONDARY_TRIGGER_PICKS = 3;
 
   const allHeroes = Object.values(heroes).flat(); // strength, agility, etc combined
+  const heroById = new Map(allHeroes.map(h => [h.HeroId, h]));
+  const countRoleOnAllies = (role) =>
+    allyHeroIds.reduce((acc, hid) => {
+      const h = heroById.get(hid);
+      return acc + (((h?.roles) || []).includes(role) ? 1 : 0);
+    }, 0);
   const pickedSet = new Set([...allyHeroIds, ...enemyHeroIds, ...bannedHeroIds]);
 
+  // Because index uses String keys
+  const allyKeys = allyHeroIds.map(String);
+  const enemyKeys = enemyHeroIds.map(String);
+
+  // ----- FULL DRAFT MODE -----
   if (fullDraft && allyHeroIds.length === 5 && enemyHeroIds.length === 5) {
     const teamStats = { ally: [], enemy: [] };
 
+    const allyTeamKeys = allyHeroIds.map(String);
+    const enemyTeamKeys = enemyHeroIds.map(String);
+
     for (const teamName of ["ally", "enemy"]) {
       const teamIds = teamName === "ally" ? allyHeroIds : enemyHeroIds;
-      const opponentIds = teamName === "ally" ? enemyHeroIds : allyHeroIds;
+      const teamKeys = teamName === "ally" ? allyTeamKeys : enemyTeamKeys;
+      const opponentKeys = teamName === "ally" ? enemyTeamKeys : allyTeamKeys;
 
       for (const heroId of teamIds) {
-        const data = matchupData[heroId];
-        if (!data) continue;
+        const entry = matchupIndex[String(heroId)];
+        if (!entry) continue;
 
-        const synergy = data.with
-          .filter(({ heroId2 }) => teamIds.includes(heroId2))
-          .reduce((sum, { synergy }) => sum + synergy, 0);
+        let synergy = 0;
+        const selfKey = String(heroId);
 
-        const counter = data.vs
-          .filter(({ heroId2 }) => opponentIds.includes(heroId2))
-          .reduce((sum, { synergy }) => sum + synergy, 0);
+        // Sum synergy with teammates (exclude self)
+        for (const mateKey of teamKeys) {
+          if (mateKey === selfKey) continue;
+          synergy += entry.withMap.get(mateKey) ?? 0;
+        }
 
-        const hero = allHeroes.find(h => h.HeroId === heroId);
+        // Sum counter vs opponents
+        let counter = 0;
+        for (const oppKey of opponentKeys) {
+          counter += entry.vsMap.get(oppKey) ?? 0;
+        }
+
+        const hero = heroById.get(heroId);
         if (!hero) continue;
 
         teamStats[teamName].push({
@@ -40,139 +77,219 @@ export const calculateSynergyPicks = ({ allyHeroIds = [], enemyHeroIds = [], ban
     return { mode: "fullDraft", teams: teamStats };
   }
 
-  const synergyScores = {};
-  const counterScores = {};
+  // ----- SUGGESTION MODE -----
+  const suggestions = [];
+
+  const needsDisable =
+    allyHeroIds.length >= SECONDARY_TRIGGER_PICKS && countRoleOnAllies("Disabler") === 0;
+
+  const needsPush =
+    allyHeroIds.length >= SECONDARY_TRIGGER_PICKS && countRoleOnAllies("Pusher") === 0;
+
+  const needsInitiator =
+    allyHeroIds.length >= CRUCIAL_TRIGGER_PICKS && countRoleOnAllies("Initiator") === 0;
 
   for (const hero of allHeroes) {
     const id = hero.HeroId;
     if (pickedSet.has(id)) continue;
 
-    const withSynergies = matchupData[id]?.with || [];
-    const vsSynergies = matchupData[id]?.vs || [];
+    const roleMismatch = roleFilter && !(hero.roles || []).includes(roleFilter);
+    if (roleMismatch) continue;
 
-    for (const { heroId2, synergy } of withSynergies) {
-      if (allyHeroIds.includes(heroId2)) {
-        synergyScores[id] = (synergyScores[id] || 0) + synergy;
-      }
+    const entry = matchupIndex[String(id)];
+    if (!entry) continue;
+
+    const bonuses = [];
+    let synergyBase = 0;
+
+    for (const allyKey of allyKeys) {
+      synergyBase += entry.withMap.get(allyKey) ?? 0;
     }
 
-    for (const { heroId2, synergy } of vsSynergies) {
-      if (enemyHeroIds.includes(heroId2)) {
-        counterScores[id] = (counterScores[id] || 0) + synergy;
-      }
+    let synergyBonus = 0;
+
+    if (needsDisable && (hero.roles || []).includes("Disabler")) {
+      synergyBonus += DRAFT_BONUS;
+      bonuses.push({
+        type: "needsDisable",
+        label: "No disablers in team",
+        value: DRAFT_BONUS,
+      });
     }
-  }
 
-  const combinedScores = {};
-  for (const hero of allHeroes) {
-    const id = hero.HeroId;
-    const isPickedOrBanned = pickedSet.has(id);
-    const roleMismatch = roleFilter && !hero.roles.includes(roleFilter);
-    if (isPickedOrBanned || roleMismatch) continue;
+    if (needsPush && (hero.roles || []).includes("Pusher")) {
+      synergyBonus += DRAFT_BONUS;
+      bonuses.push({
+        type: "needsPush",
+        label: "No pushers in team",
+        value: DRAFT_BONUS,
+      });
+    }
 
-    const synergy = synergyScores[id] || 0;
-    const counter = counterScores[id] || 0;
+    if (needsInitiator && (hero.roles || []).includes("Initiator")) {
+      synergyBonus += DRAFT_BONUS;
+      bonuses.push({
+        type: "needsInitiator",
+        label: "No initiator in team",
+        value: DRAFT_BONUS,
+      });
+    }
+
+    let counter = 0;
+    for (const enemyKey of enemyKeys) {
+      counter += entry.vsMap.get(enemyKey) ?? 0;
+    }
+
+    const synergy = synergyBase + synergyBonus;
     const total = synergy + counter;
 
-    combinedScores[id] = {
+    suggestions.push({
       HeroId: hero.HeroId,
       name: hero.name,
       icon_url: hero.icon_url,
       synergyScore: synergy.toFixed(2),
       counterScore: counter.toFixed(2),
       totalScore: total.toFixed(2),
-    };
+      synergyBase,
+      synergyBonus,
+      bonuses,
+    });
   }
 
-  const allSuggestions = Object.values(combinedScores).sort((a, b) => b.totalScore - a.totalScore);
+  // Sort by numeric value (strings from toFixed still subtract fine, but this is explicit)
+  suggestions.sort((a, b) => parseFloat(b.totalScore) - parseFloat(a.totalScore));
 
-  let inPool = [];
-  let outPool = [];
+  const inPool = [];
+  const outPool = [];
 
-  for (const hero of allSuggestions) {
-    if (heroPool && heroPool.includes(hero.HeroId)) {
-      inPool.push(hero);
-    } else {
-      outPool.push(hero);
-    }
+  for (const h of suggestions) {
+    if (heroPool && heroPool.includes(h.HeroId)) inPool.push(h);
+    else outPool.push(h);
   }
 
-  // Return both groups for separate rendering
-  return {
-    mode: "suggestion",
-    inPool,
-    outPool,
-  };
+  return { mode: "suggestion", inPool, outPool };
 };
 
-export const calculatePoolSynergies = ({ heroPool = [], allyHeroIds = [], enemyHeroIds = [], bannedHeroIds = [], matchupData, heroes }) => {
-  if (!matchupData || !heroes || heroPool.length === 0) return [];
+
+export const calculatePoolSynergies = ({
+  heroPool = [],
+  allyHeroIds = [],
+  enemyHeroIds = [],
+  bannedHeroIds = [],
+  matchupIndex,
+  heroes,
+}) => {
+  if (!matchupIndex || !heroes || heroPool.length === 0) return [];
+
+  const DRAFT_BONUS = 2;
+  const CRUCIAL_TRIGGER_PICKS = 2;
+  const SECONDARY_TRIGGER_PICKS = 3;
 
   const allHeroes = Object.values(heroes).flat();
+  const heroById = new Map(allHeroes.map(h => [h.HeroId, h]));
+  const countRoleOnAllies = (role) =>
+    allyHeroIds.reduce((acc, hid) => {
+      const h = heroById.get(hid);
+      return acc + (((h?.roles) || []).includes(role) ? 1 : 0);
+    }, 0);
   const pickedSet = new Set([...allyHeroIds, ...enemyHeroIds, ...bannedHeroIds]);
 
-  const synergyScores = {};
-  const counterScores = {};
+  const allyKeys = allyHeroIds.map(String);
+  const enemyKeys = enemyHeroIds.map(String);
 
-  for (const id of heroPool){
-    if (pickedSet.has(id)) continue;
+  const allyDisablerCount = allyHeroIds.reduce((acc, hid) => {
+    const h = heroById.get(hid);
+    return acc + (((h?.roles) || []).includes("Disabler") ? 1 : 0);
+  }, 0);
 
-    const withSynergies = matchupData[id]?.with || [];
-    const vsSynergies = matchupData[id]?.vs || [];
+  const needsDisable =
+    allyHeroIds.length >= SECONDARY_TRIGGER_PICKS && countRoleOnAllies("Disabler") === 0;
 
-    for (const { heroId2, synergy } of withSynergies) {
-      if (allyHeroIds.includes(heroId2)) {
-        synergyScores[id] = (synergyScores[id] || 0) + synergy;
-      }
-    }
+  const needsPush =
+    allyHeroIds.length >= SECONDARY_TRIGGER_PICKS && countRoleOnAllies("Pusher") === 0;
 
-    for (const { heroId2, synergy } of vsSynergies) {
-      if (enemyHeroIds.includes(heroId2)) {
-        counterScores[id] = (counterScores[id] || 0) + synergy;
-      }
-    }
-  }
+  const needsInitiator =
+    allyHeroIds.length >= CRUCIAL_TRIGGER_PICKS && countRoleOnAllies("Initiator") === 0;
 
   const poolStats = [];
 
   for (const id of heroPool) {
     if (pickedSet.has(id)) continue;
 
-    const hero = allHeroes.find(h => h.HeroId === id);
-    if (!hero) continue;
+    const entry = matchupIndex[String(id)];
+    const hero = heroById.get(id);
+    if (!entry || !hero) continue;
 
-    const synergy = synergyScores[id] || 0;
-    const counter = counterScores[id] || 0;
-    const total = synergy + counter;
+    const bonuses = [];
+    let synergyBase = 0;
+    for (const allyKey of allyKeys) {
+      synergyBase += entry.withMap.get(allyKey) ?? 0;
+    }
+
+    let counter = 0;
+    for (const enemyKey of enemyKeys) {
+      counter += entry.vsMap.get(enemyKey) ?? 0;
+    }
+
+    let synergyBonus = 0;
+    if (needsDisable && (hero.roles || []).includes("Disabler")) {
+      synergyBonus += DRAFT_BONUS;
+      bonuses.push({
+        type: "needsDisable",
+        label: "No disablers in team",
+        value: DRAFT_BONUS,
+      });
+    }
+
+    if (needsPush && (hero.roles || []).includes("Pusher")) {
+      synergyBonus += DRAFT_BONUS;
+      bonuses.push({
+        type: "needsPush",
+        label: "No pushers in team",
+        value: DRAFT_BONUS,
+      });
+    }
+
+    if (needsInitiator && (hero.roles || []).includes("Initiator")) {
+      synergyBonus += DRAFT_BONUS;
+      bonuses.push({
+        type: "needsInitiator",
+        label: "No initiator in team",
+        value: DRAFT_BONUS,
+      });
+    }
+
+    const total = (synergyBase + synergyBonus) + counter;
 
     poolStats.push({
       HeroId: hero.HeroId,
       name: hero.name,
       icon_url: hero.icon_url,
       totalScore: total.toFixed(2),
+      synergyBase,
+      synergyBonus,
+      bonuses,
     });
   }
 
   return poolStats.sort((a, b) => parseFloat(b.totalScore) - parseFloat(a.totalScore));
 };
 
-export const getSynergyWith = (matchupData, heroId, otherId) => {
-  const entry = matchupData?.[heroId]?.with?.find(pair => pair.heroId2 === otherId);
-  return entry?.synergy ?? 0;
+export const getSynergyWith = (matchupIndex, heroId, allyId) => {
+  return matchupIndex?.[String(heroId)]?.withMap?.get(String(allyId)) ?? 0;
 };
 
-export const getCounterVs = (matchupData, heroId, enemyId) => {
-  const entry = matchupData?.[heroId]?.vs?.find(pair => pair.heroId2 === enemyId);
-  return entry?.synergy ?? 0;
+export const getCounterVs = (matchupIndex, heroId, enemyId) => {
+  return matchupIndex?.[String(heroId)]?.vsMap?.get(String(enemyId)) ?? 0;
 };
 
 export function getWinProbability(delta) {
-    const maxWinrate = 80;
-    const minWinrate = 20;
-    const growthRate = 0.025;
-    const adjusted = delta * growthRate;
+  const maxWinrate = 80;
+  const minWinrate = 20;
+  const growthRate = 0.025;
+  const adjusted = delta * growthRate;
 
-    const probability = 50 + (maxWinrate - 50) * Math.tanh(adjusted);
-    return Math.max(minWinrate, Math.min(maxWinrate, probability.toFixed(2)));
-  }
+  const probability = 50 + (maxWinrate - 50) * Math.tanh(adjusted);
+  return Math.max(minWinrate, Math.min(maxWinrate, probability.toFixed(2)));
+}
 

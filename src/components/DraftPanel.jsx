@@ -1,5 +1,6 @@
 import { TeamDropZone } from "./structures";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { Entypo } from "@expo/vector-icons";
 
 function DraftPanel({
     selectedHeroes,
@@ -206,7 +207,7 @@ function DraftPanel({
                                 }`}
                         />
                         <div className="flex justify-between items-center w-full z-20">
-                            <img src={layoutDefaultIcon} alt="Default Layout" className="w-12 h-12" />
+                            <Entypo name="grid" size={48} />
                             <img src={layoutRowIcon} alt="Row Layout" className="w-12 h-12" />
                         </div>
                     </button>

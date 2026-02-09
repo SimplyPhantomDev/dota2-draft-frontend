@@ -30,8 +30,8 @@ export default function HeroList() {
   // Heroes that have been banned from the draft
   const [bannedHeroes, setBannedHeroes] = useState([]);
 
-  // Static matchup data (synergy/counter values between heroes)
-  const [matchupData, setMatchupData] = useState({});
+  // Modernized static matchup data (synergy/counter values between heroes)
+  const [matchupIndex, setMatchupIndex] = useState({});
 
   // The team currently being drafted
   const [selectedTeam, setSelectedTeam] = useState("ally");
@@ -164,6 +164,22 @@ export default function HeroList() {
   //=========== Data Initialization ==============
   //==============================================
 
+
+  function indexMatrix(data) {
+    const idx = {};
+    for (const [heroId, entry] of Object.entries(data)) {
+      const withMap = new Map();
+      const vsMap = new Map();
+
+      for (const p of entry.with || []) withMap.set(String(p.heroId2), p.synergy);
+      for (const p of entry.vs || []) vsMap.set(String(p.heroId2), p.synergy);
+
+      idx[String(heroId)] = { withMap, vsMap };
+    }
+
+    return idx;
+  }
+
   // Load and group hero data from local JSON on mount
   useEffect(() => {
     const heroesUrl = window.__HEROES_URL__ || "/heroes.json";
@@ -183,14 +199,12 @@ export default function HeroList() {
   // Load synergy matrix from local JSON on mount
   useEffect(() => {
     const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
-
-    console.log("[synergy] datasetUrl:", datasetUrl);
     fetch(datasetUrl)
       .then((res) => {
         return res.json();
       })
       .then((data) => {
-        setMatchupData(data);
+        setMatchupIndex(indexMatrix(data));
       })
       .catch((err) => console.error("[synergy] Failed to load synergy data", err));
   }, []);
@@ -242,12 +256,12 @@ export default function HeroList() {
       allyHeroIds: selectedHeroes.ally.map(h => h.HeroId),
       enemyHeroIds: selectedHeroes.enemy.map(h => h.HeroId),
       bannedHeroIds: bannedHeroes.map(h => h.HeroId),
-      matchupData,
+      matchupIndex,
       heroes
     });
 
     setFullPoolSynergies(results);
-  }, [selectedHeroes, bannedHeroes, matchupData, heroes]);
+  }, [selectedHeroes, bannedHeroes, matchupIndex, heroes]);
 
   //==============================================
   //========== Hero Pool Persistence =============
@@ -414,10 +428,9 @@ export default function HeroList() {
       bannedHeroIds: bans.map(h => h.HeroId),
       roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
       fullDraft: ally.length === 5 && enemy.length === 5,
-      matchupData,
+      matchupIndex,
       heroes,
-      heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null,
-      filterByHeroPool
+      heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null
     });
 
     // === CASE 1: Full Draft Complete ===
@@ -440,7 +453,7 @@ export default function HeroList() {
     selectedHeroes.enemy,
     bannedHeroes,
     roleFilter,
-    matchupData,
+    matchupIndex,
     heroes,
     heroPool,
     filterByHeroPool
@@ -786,7 +799,7 @@ export default function HeroList() {
           setHoveredHero={setHoveredHero}
           hoveredSuggestedHero={hoveredSuggestedHero}
           setHoveredSuggestedHero={setHoveredSuggestedHero}
-          matchupData={matchupData}
+          matchupIndex={matchupIndex}
           getSynergyWith={getSynergyWith}
           getCounterVs={getCounterVs}
           fullDraftStats={fullDraftStats}
