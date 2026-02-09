@@ -742,7 +742,7 @@ export default function HeroList() {
       {/* Main Hero Grid Area */}
       <div className="flex flex-1 overflow-hidden">
         <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
-          {searchQuery && (
+          {searchQuery && containerRect && (
             <div
               className="fixed pointer-events-none z-50"
               style={{
