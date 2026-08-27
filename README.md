@@ -103,7 +103,7 @@ Tomi Niemelä
 Frontend Developer, Computer Science Student
 
 ## License
-**Copyright © 2025 Tomi Niemelä. All rights reserved.**
+**Copyright © 2026 Tomi Niemelä. All rights reserved.**
 
 This project is proprietary and closed-source.  
 No part of this application, its source code, assets, or underlying logic may be copied, modified, distributed, or used without **explicit written permission** from the author.
