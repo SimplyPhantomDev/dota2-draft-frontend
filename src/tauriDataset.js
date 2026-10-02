@@ -10,39 +10,57 @@ export async function initSynergyMatrixUrl() {
     // Ensure AppData/datasets exists
     await mkdir(dir, { baseDir: BaseDirectory.AppData, recursive: true });
 
-    // If missing, seed it from the bundled file served by Vite/Tauri
-    const hasFile = await exists(relPath, { baseDir: BaseDirectory.AppData });
-    if (!hasFile) {
-        const res = await fetch("/synergyMatrix.json");
-        if (!res.ok) throw new Error(`Failed to seed synergyMatrix.json: ${res.status}`);
-        const text = await res.text();
-        await writeTextFile(relPath, text, { baseDir: BaseDirectory.AppData });
+    const manifestRelPath = `${dir}/manifest.json`;
+    const fsOptions = { baseDir: BaseDirectory.AppData };
 
-        const manifestRelPath = `${dir}/manifest.json`;
-        const hasManifest = await exists(manifestRelPath, { baseDir: BaseDirectory.AppData });
-
-        if (!hasManifest) {
-            const bytes = new TextEncoder().encode(text).length;
-
-            const manifest = {
-                schema: 1,
-                generatedAt: new Date().toISOString(),
-                file: "synergyMatrix.json",
-                bytes
-            };
-
-            await writeTextFile(manifestRelPath, JSON.stringify(manifest, null, 2), {
-                baseDir: BaseDirectory.AppData
-            });
+    let cachedManifest = null;
+    if (await exists(manifestRelPath, fsOptions)) {
+        try {
+            cachedManifest = JSON.parse(
+                await readTextFile(manifestRelPath, fsOptions)
+            );
+        } catch {
+            // Reinitialize an unreadable manifest from the bundled set.
         }
-    };
+    }
 
-    const hasHeroes = await exists(heroesRelPath, { baseDir: BaseDirectory.AppData });
-    if (!hasHeroes) {
-        const res = await fetch("/heroes.json");
-        if (!res.ok) throw new Error(`Failed to seed heroes.json: ${res.status}`);
-        const text = await res.text();
-        await writeTextFile(heroesRelPath, text, { baseDir: BaseDirectory.AppData });
+    const hasMatrix = await exists(relPath, fsOptions);
+    const hasHeroes = await exists(heroesRelPath, fsOptions);
+
+    // The old, locally generated manifests did not contain these hashes.
+    const needsSeed =
+        !hasMatrix ||
+        !hasHeroes ||
+        !cachedManifest?.sha256 ||
+        !cachedManifest?.heroesSha256 ||
+        !Number.isFinite(Date.parse(cachedManifest?.generatedAt));
+
+    if (needsSeed) {
+        const files = ["synergyMatrix.json", "heroes.json", "manifest.json"];
+        const [matrixText, heroesText, bundledManifestText] =
+            await Promise.all(files.map(async (file) => {
+                const res = await fetch(`/${file}`);
+                if (!res.ok) {
+                    throw new Error(`Failed to load bundled ${file}: ${res.status}`);
+                }
+                return res.text();
+            }));
+
+        const bundledManifest = JSON.parse(bundledManifestText);
+        if (
+            !bundledManifest.sha256 ||
+            !bundledManifest.heroesSha256 ||
+            !Number.isFinite(Date.parse(bundledManifest.generatedAt))
+        ) {
+            throw new Error("Bundled dataset manifest is invalid");
+        }
+        JSON.parse(matrixText);
+        JSON.parse(heroesText);
+
+        // Copy the matching dataset files and preserve the original manifest.
+        await writeTextFile(relPath, matrixText, fsOptions);
+        await writeTextFile(heroesRelPath, heroesText, fsOptions);
+        await writeTextFile(manifestRelPath, bundledManifestText, fsOptions);
     }
 
     // Point the app to the local file
