@@ -45,3 +45,10 @@
     outline-offset: 3px;
   }
 }
+
+@layer components {
+  /* Shared panel appearance; components choose their own padding. */
+  .ui-panel {
+    @apply rounded-panel border border-line bg-surface shadow-panel;
+  }
+}

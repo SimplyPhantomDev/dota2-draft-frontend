@@ -118,7 +118,7 @@ function DraftPanel({
     return (
         <div
             ref={panelRef}
-            className="mb-2 bg-gray-800 rounded shadow px-4 py-2"
+            className="ui-panel mb-ui-sm px-ui-lg py-ui-sm"
         >
             {/* hidden measurement node so we get actions width reliably */}
             <div
@@ -132,7 +132,7 @@ function DraftPanel({
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
                 {/* Left: Title + Guide */}
                 <div ref={leftRef} className="relative flex items-center flex-shrink-0">
-                    <h1 className="font-serif text-2xl font-bold tracking-widest text-white mr-2">
+                    <h1 className="font-display text-2xl font-bold tracking-widest text-ink mr-ui-sm">
                         D2 DT
                     </h1>
 
