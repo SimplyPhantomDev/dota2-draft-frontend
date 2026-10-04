@@ -110,7 +110,7 @@ The example hostname is included in the current Tauri HTTP allowlist. If you dep
 
 The client appends `/api/report-issue` to this base URL.
 
-**This variable must be configured before starting the application or creating a production build.** The current reporting module throws an error during initialisation if it is missing, even when no report is being submitted.
+**Issue reporting is optional.** Set this variable before building to enable report submissions. The application starts normally without it; attempts to submit a report show "Issue reporting is unavailable with this build."
 
 Vite embeds `VITE_` variables into the frontend build. This setting is a public service URL; API credentials belong in the backend or dataset-generation environment.
 
