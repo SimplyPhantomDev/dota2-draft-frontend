@@ -537,20 +537,7 @@ export default function HeroList() {
 
 
     // === Draft Pick Logic ===
-    const team = selectedTeam;
-    if (selectedHeroes[team].length >= 5) return;
-    if (selectedHeroes[team].some(h => h.HeroId === hero.HeroId)) return;
-
-    lockHero(hero.HeroId);
-
-    const updatedSelected = {
-      ...selectedHeroes,
-      [team]: [...selectedHeroes[team], hero],
-    };
-
-    setSelectedHeroes(updatedSelected);
-
-    unlockHero(hero.HeroId);
+    handleDrop(hero, selectedTeam);
   };
 
   /**
@@ -561,21 +548,19 @@ export default function HeroList() {
    */
   const handleDrop = (hero, team) => {
     if (clickLockedHeroes.has(hero.HeroId)) return;
+    if (bannedHeroes.some(h => h.HeroId === hero.HeroId)) return;
 
     setSelectedHeroes(prev => {
-      if (prev[team].some(h => h.HeroId === hero.HeroId)) return prev;
-      if (prev[team].length >= 5) return prev;
+      const alreadyPicked =
+        prev.ally.some(h => h.HeroId === hero.HeroId) ||
+        prev.enemy.some(h => h.HeroId === hero.HeroId);
 
-      lockHero(hero.HeroId);
+      if (alreadyPicked || prev[team].length >= 5) return prev;
 
-      const updated = {
+      return {
         ...prev,
         [team]: [...prev[team], hero]
       };
-
-      unlockHero(hero.HeroId);
-
-      return updated;
     });
   };
 
