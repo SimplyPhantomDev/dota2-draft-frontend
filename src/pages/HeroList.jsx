@@ -224,20 +224,6 @@ export default function HeroList() {
   //=========== Synergy Suggestions ==============
   //==============================================
 
-  // Recalculate suggestions when hero pool filter is toggled
-  useEffect(() => {
-    updateSynergySuggestions();
-  }, [filterByHeroPool]);
-
-  // Recalculate or clear suggestions when selected or banned heroes change
-  useEffect(() => {
-    if (selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0) {
-      updateSynergySuggestions();
-    } else {
-      setSuggestedHeroes([]); // Clear if no picks
-    }
-  }, [selectedHeroes, bannedHeroes]);
-
   // Assign enemy hero roles based on already picked heroes in the enemy team
   useEffect(() => {
     if (!heroRoleMap || selectedHeroes.enemy.length === 0) return;
@@ -249,10 +235,8 @@ export default function HeroList() {
 
   // Trigger synergy calculations for all heroes within the user's hero pool
   useEffect(() => {
-    const storedPool = JSON.parse(localStorage.getItem("heroPool")) || [];
-
     const results = calculatePoolSynergies({
-      heroPool: storedPool,
+      heroPool,
       allyHeroIds: selectedHeroes.ally.map(h => h.HeroId),
       enemyHeroIds: selectedHeroes.enemy.map(h => h.HeroId),
       bannedHeroIds: bannedHeroes.map(h => h.HeroId),
@@ -261,7 +245,7 @@ export default function HeroList() {
     });
 
     setFullPoolSynergies(results);
-  }, [selectedHeroes, bannedHeroes, matchupIndex, heroes]);
+  }, [heroPool, selectedHeroes, bannedHeroes, matchupIndex, heroes]);
 
   //==============================================
   //========== Hero Pool Persistence =============
@@ -417,6 +401,8 @@ export default function HeroList() {
     // If no heroes are picked on either team, clear all suggestions and stats
     if (!ally.length && !enemy.length) {
       setSuggestedHeroes([]);
+      setPoolSuggestions([]);
+      setGlobalSuggestions([]);
       setFullDraftStats(null);
       return;
     }
@@ -458,6 +444,25 @@ export default function HeroList() {
     heroPool,
     filterByHeroPool
   ]);
+
+  /*
+ * Automatically refresh draft recommendations when scoring inputs change.
+ *
+ * updateSynergySuggestions is memoized with useCallback. Its reference changes
+ * when its dependencies change: picks, bans, filters, the hero pool, or loaded
+ * hero/matchup data. Watching that reference here covers all those inputs
+ * without duplicating the callback's dependency list.
+ *
+ * This also refreshes suggestions after data finishes loading or the pool is
+ * edited, without requiring another pick, ban, or filter toggle.
+ *
+ * Keep this effect below the callback declaration: the dependency array reads
+ * updateSynergySuggestions during render, so it must already be defined.
+ */
+
+  useEffect(() => {
+    updateSynergySuggestions();
+  }, [updateSynergySuggestions]);
 
   //==============================================
   //================== Helpers ===================
