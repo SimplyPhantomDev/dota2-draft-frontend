@@ -709,9 +709,9 @@ export default function HeroList() {
 
   return (
     // === Main App Container ===
-    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300
-      bg-gradient-to-br from-black via-gray-950 to-gray-900
-      ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
+    <div
+      className={`p-ui-sm bg-canvas text-ink h-screen overflow-hidden flex flex-col transition-shadow duration-300
+    ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
     >
       {/* === Search Input (invisible, global key listener) === */}
       <input
@@ -749,7 +749,10 @@ export default function HeroList() {
 
       {/* Main Hero Grid Area */}
       <div className="flex flex-1 overflow-hidden">
-        <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
+        <div
+          ref={containerRef}
+          className="flex flex-col flex-1 pr-ui-md overflow-y-auto gap-ui-lg relative"
+        >
           {searchQuery && containerRect && (
             <div
               className="fixed pointer-events-none z-50"
