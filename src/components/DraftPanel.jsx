@@ -1,6 +1,5 @@
 import { TeamDropZone } from "./structures";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { Entypo } from "@expo/vector-icons";
 
 function DraftPanel({
     selectedHeroes,
@@ -44,8 +43,8 @@ function DraftPanel({
                 <button
                     onClick={() => setEditHeroPoolMode((prev) => !prev)}
                     className={`${btnClass} px-1 font-bold rounded transition-colors duration-150 ${editHeroPoolMode
-                            ? "bg-purple-600 text-white animate-pulse"
-                            : "bg-purple-300 text-black hover:bg-gray-300"
+                        ? "bg-purple-600 text-white animate-pulse"
+                        : "bg-purple-300 text-black hover:bg-gray-300"
                         }`}
                 >
                     {editHeroPoolMode ? "EDITING" : "EDIT POOL"}
@@ -207,7 +206,11 @@ function DraftPanel({
                                 }`}
                         />
                         <div className="flex justify-between items-center w-full z-20">
-                            <Entypo name="grid" size={48} />
+                            <img
+                                src={layoutDefaultIcon}
+                                alt="Grid Layout"
+                                className="w-12 h-12"
+                            />
                             <img src={layoutRowIcon} alt="Row Layout" className="w-12 h-12" />
                         </div>
                     </button>
