@@ -100,9 +100,23 @@ export default function HeroList() {
   //==============================================
 
   // User specific hero pool (stored in localStorage and editable by user)
+  // Recover safely from invalid saved data or unavailable browser storage.
   const [heroPool, setHeroPool] = useState(() => {
-    const saved = localStorage.getItem('heroPool');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("heroPool");
+      if (!saved) return [];
+
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+
+      // Store each positive integer hero ID once; discard malformed entries.
+      return [...new Set(
+        parsed.filter(id => Number.isSafeInteger(id) && id > 0)
+      )];
+    } catch (error) {
+      console.warn("Could not load the saved hero pool:", error);
+      return [];
+    }
   });
 
   // Synergy scores of all heroes within the hero pool, positive and negative
@@ -251,9 +265,13 @@ export default function HeroList() {
   //========== Hero Pool Persistence =============
   //==============================================
 
-  // Save hero pool to localStorage whenever it changes
+  // Save pool edits when storage is available; failed saves will not break drafting.
   useEffect(() => {
-    localStorage.setItem('heroPool', JSON.stringify(heroPool));
+    try {
+      localStorage.setItem("heroPool", JSON.stringify(heroPool));
+    } catch (error) {
+      console.warn("Could not save the hero pool:", error);
+    }
   }, [heroPool]);
 
   // Automatically disable filter if hero pool is too small
