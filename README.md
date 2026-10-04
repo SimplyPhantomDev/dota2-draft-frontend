@@ -60,7 +60,7 @@ The application uses three main data files:
 
 Hero and matchup data are generated from the STRATZ API in the companion [dataset repository](https://github.com/SimplyPhantomDev/d2dt-dataset).
 
-The desktop application stores local copies of `heroes.json` and `synergyMatrix.json` in its application-data directory. It checks a remote manifest and downloads replacement files when the remote generation timestamp is newer than the local timestamp.
+The desktop application caches matching copies of `heroes.json`, `synergyMatrix.json`, and their manifest in its application-data directory. During startup, it checks for newer data and verifies file sizes, SHA-256 hashes, and dataset structure before activating an update. If the update fails or network requests time out, it uses the verified local dataset. Dataset generation dates are retained from the original manifests.
 
 Position metadata in `hero-roles.json` is currently bundled with the application.
 
