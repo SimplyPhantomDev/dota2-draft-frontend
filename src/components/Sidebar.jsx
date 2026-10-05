@@ -1,3 +1,57 @@
+// Share the same compact layout between pool and global recommendations.
+function RecommendationRow({
+    hero,
+    fromPool = false,
+    onMouseEnter,
+    onMouseLeave
+}) {
+    const score = Number(hero.totalScore);
+    const scoreColor = score > 0
+        ? "text-green-400"
+        : score < 0
+            ? "text-danger"
+            : "text-ink-muted";
+
+    return (
+        <div
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            className={`grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-ui-sm rounded-control px-ui-sm py-ui-xs
+                ${fromPool ? "bg-accent/10" : "bg-surface-raised"}`}
+        >
+            <img
+                src={hero.icon_url}
+                alt={hero.name}
+                className="aspect-video w-full rounded-control object-cover"
+            />
+
+            <span
+                className="min-w-0 truncate text-sm font-medium text-ink"
+                title={hero.name}
+            >
+                {hero.name}
+            </span>
+
+            {/* Stack the included bonus below the total so it cannot crowd the name. */}
+            <div className="flex flex-col items-end gap-0.5">
+                <span
+                    className={`whitespace-nowrap font-mono text-sm tabular-nums ${scoreColor}`}
+                >
+                    {hero.totalScore}
+                </span>
+
+                {hero.synergyBonus > 0 && (
+                    <span
+                        className="rounded border border-accent/40 px-ui-xs text-[10px] font-semibold leading-4 text-accent"
+                        title="Draft adjustment included in the total score"
+                    >
+                        +{Number(hero.synergyBonus).toFixed(2)}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function Sidebar({
     suggestedHeroes,
@@ -185,10 +239,10 @@ function Sidebar({
                             </>
                         ) : (
                             <>
-                                <div className="flex items-center justify-between px-2 py-1 text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
-                                    <span className="w-10">Hero</span>
-                                    <span className="flex-1 pl-2">Name</span>
-                                    <span className="text-right pr-1">Synergy</span>
+                                <div className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-ui-sm border-b border-line px-ui-sm py-ui-xs text-xs font-semibold text-ink-muted">
+                                    <span>Hero</span>
+                                    <span>Name</span>
+                                    <span className="text-right">Score</span>
                                 </div>
 
                                 {selectedHeroes.ally.length < 5 && (
@@ -207,29 +261,13 @@ function Sidebar({
                                                     </button>
                                                 </div>
                                                 {poolSuggestions.map((hero) => (
-                                                    <div
+                                                    <RecommendationRow
                                                         key={`pool-${hero.HeroId}`}
+                                                        hero={hero}
+                                                        fromPool
                                                         onMouseEnter={() => setHoveredSuggestedHero(hero)}
                                                         onMouseLeave={() => setHoveredSuggestedHero(null)}
-                                                        className="flex items-center justify-between bg-purple-800/30 rounded px-2 py-1"
-                                                    >
-                                                        <img
-                                                            src={hero.icon_url}
-                                                            alt={hero.name}
-                                                            className="w-16 h-10 object-contain mr-2"
-                                                        />
-                                                        <span className="flex-1 text-sm font-medium text-white truncate">
-                                                            {hero.name}
-                                                        </span>
-                                                        <span className="text-green-400 text-sm font-mono pl-2">
-                                                            {hero.totalScore}
-                                                            {hero.synergyBonus > 0 && (
-                                                                <span className="ml-2 text-[10px] font-semibold text-purple-300 border border-purple-500 rounded px-1 py-[1px]">
-                                                                    +{hero.synergyBonus}
-                                                                </span>
-                                                            )}
-                                                        </span>
-                                                    </div>
+                                                    />
                                                 ))}
 
                                                 <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
@@ -238,29 +276,12 @@ function Sidebar({
                                             </>
                                         )}
                                         {globalSuggestions.map((hero) => (
-                                            <div
+                                            <RecommendationRow
                                                 key={`global-${hero.HeroId}`}
+                                                hero={hero}
                                                 onMouseEnter={() => setHoveredSuggestedHero(hero)}
                                                 onMouseLeave={() => setHoveredSuggestedHero(null)}
-                                                className="flex items-center justify-between bg-gray-700 rounded px-2 py-1"
-                                            >
-                                                <img
-                                                    src={hero.icon_url}
-                                                    alt={hero.name}
-                                                    className="w-16 h-10 object-contain mr-2"
-                                                />
-                                                <span className="flex-1 text-sm font-medium text-white truncate">
-                                                    {hero.name}
-                                                </span>
-                                                <span className="text-green-400 text-sm font-mono pl-2">
-                                                    {hero.totalScore}
-                                                    {hero.synergyBonus > 0 && (
-                                                        <span className="ml-2 text-[10px] font-semibold text-purple-300 border border-purple-500 rounded px-1 py-[1px]">
-                                                            +{hero.synergyBonus}
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            </div>
+                                            />
                                         ))}
                                     </>
                                 )}
