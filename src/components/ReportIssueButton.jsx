@@ -1,414 +1,399 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { submitIssueReport } from "../issueReporting/reportIssueApi";
 
-const modalStyles = {
-    overlay: {
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        pointerEvents: "auto",
-        background: "rgba(0,0,0,0.65)",
-        display: "grid",
-        placeItems: "center",
-        padding: 16
-    },
-    card: {
-        width: "min(720px, 100%)",
-        borderRadius: 16,
-        padding: 18,
-        background: "rgba(20, 24, 30, 0.98)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 18px 60px rgba(0,0,0,0.55)",
-        color: "rgba(255,255,255,0.92)",
-        maxHeight: "min(78vh, 780px)",
-        overflow: "auto"
-    },
-    headerRow: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12
-    },
-    title: { margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: 0.2, },
-    closeBtn: {
-        padding: "6px 10px",
-        borderRadius: 10,
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(255,255,255,0.9)",
-        cursor: "pointer"
-    },
-    form: { marginTop: 14 },
-    field: { display: "grid", gap: 6 },
-    label: {
-        fontSize: 15,
-        fontWeight: 600,
-        color: "rgba(255,255,255,0.88)"
-    },
-    help: {
-        fontSize: 12,
-        color: "rgba(255,255,255,0.65)",
-        lineHeight: 1.35
-    },
-    input: {
-        padding: "10px 12px",
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(255,255,255,0.92)",
-        outline: "none",
-        fontSize: 13
-    },
-    textarea: {
-        padding: "10px 12px",
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(255,255,255,0.92)",
-        outline: "none",
-        fontSize: 13,
-        minHeight: 110,
-        resize: "vertical"
-    },
-    select: {
-        padding: "10px 12px",
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(255,255,255,0.92)",
-        outline: "none",
-        fontSize: 13,
-        maxWidth: 240
-    },
-    actions: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 },
-    primaryBtn: {
-        padding: "8px 12px",
-        borderRadius: 12,
-        background: "rgba(70, 140, 255, 0.25)",
-        border: "1px solid rgba(70, 140, 255, 0.35)",
-        color: "rgba(255,255,255,0.95)",
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 700
-    },
-    ghostBtn: {
-        padding: "8px 12px",
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(255,255,255,0.85)",
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 600
-    },
-    error: { fontSize: 12, color: "rgba(255,120,120,0.95)" }
+const EMPTY_FIELDS = {
+    title: "",
+    description: "",
+    steps: "",
+    os: "Windows"
 };
 
+const OS_OPTIONS = ["Windows", "macOS", "Linux", "Other"];
+
+const FIELD_CLASS =
+    "w-full rounded-control border bg-surface-raised px-ui-md py-ui-sm text-sm text-ink focus:border-accent disabled:opacity-60";
+
+// Keep labels, errors and input styling consistent across the report fields.
+function ReportField({
+    id,
+    label,
+    multiline = false,
+    inputRef,
+    error,
+    ...props
+}) {
+    const Control = multiline ? "textarea" : "input";
+
+    return (
+        <label htmlFor={id} className="grid min-w-0 gap-ui-xs">
+            <span className="text-sm font-semibold text-ink">
+                {label}
+            </span>
+
+            <Control
+                {...props}
+                id={id}
+                ref={inputRef}
+                rows={multiline ? 4 : undefined}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? `${id}-error` : undefined}
+                className={`${FIELD_CLASS} ${
+                    error ? "border-danger" : "border-line"
+                } ${multiline ? "min-h-24 resize-y" : ""}`}
+            />
+
+            {error && (
+                <span id={`${id}-error`} className="text-xs text-danger">
+                    {error}
+                </span>
+            )}
+        </label>
+    );
+}
+
 export default function ReportIssueButton() {
-    const OS_OPTIONS = ["Windows", "macOS", "Linux", "Other"];
     const [open, setOpen] = useState(false);
-
-    // form fields
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [steps, setSteps] = useState("");
-    const [os, setOs] = useState("Windows");
-    const [osOpen, setOsOpen] = useState(false);
-    const osRef = useRef(null);
-    const [touched, setTouched] = useState({ title: false, description: false });
-    const [fieldErr, setFieldErr] = useState({ title: "", description: "" });
-
-    // submit state
+    const [fields, setFields] = useState(EMPTY_FIELDS);
+    const [touched, setTouched] = useState({});
     const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
     const [err, setErr] = useState("");
-    const [successUrl, setSuccessUrl] = useState("");
 
-    // Field errors
-    const showTitleErr = touched.title && !!fieldErr.title;
-    const showDescErr = touched.description && !!fieldErr.description;
+    const dialogRef = useRef(null);
+    const triggerRef = useRef(null);
+    const closeButtonRef = useRef(null);
+    const titleRef = useRef(null);
+    const descriptionRef = useRef(null);
+    const submissionPendingRef = useRef(false);
 
-    // context
-    const datasetGeneratedAt = useMemo(() => {
-        // if you later expose local manifest on window, this will pick it up
-        const m = window.__LOCAL_DATASET_MANIFEST__ || window.__SYNERGY_MANIFEST__ || null;
-        return m?.generatedAt || "";
-    }, [open]);
+    const datasetGeneratedAt =
+        window.__LOCAL_DATASET_MANIFEST__?.generatedAt ||
+        window.__SYNERGY_MANIFEST__?.generatedAt ||
+        "";
 
-    useEffect(() => {
+    const errors = {
+        title: fields.title.trim() ? "" : "Short title is required.",
+        description: fields.description.trim()
+            ? ""
+            : "Description is required."
+    };
+
+    // Opening with showModal puts the dialog above the app and keeps focus inside.
+    // Run only when open changes, so typing does not reopen it or reset focus.
+    // The flag also pauses the application's global keyboard search.
+    useLayoutEffect(() => {
         if (!open) return;
 
-        // reset modal state every time it opens
-        setErr("");
-        setSuccessUrl("");
-        setSubmitting(false);
-        setTouched({ title: false, description: false });
-        setFieldErr({ title: "", description: "" });
+        const dialog = dialogRef.current;
+        const trigger = triggerRef.current;
 
-        // optional: keep title/description if you want; I reset them
-        setTitle("");
-        setDescription("");
-        setSteps("");
-        setOs("Windows");
-    }, [open]);
+        window.__ISSUE_MODAL_OPEN__ = true;
 
-    useEffect(() => {
-        window.__ISSUE_MODAL_OPEN__ = open;
+        if (!dialog.open) dialog.showModal();
+        titleRef.current?.focus({ preventScroll: true });
+
         return () => {
+            if (dialog.open) dialog.close();
             window.__ISSUE_MODAL_OPEN__ = false;
+            trigger?.focus({ preventScroll: true });
         };
     }, [open]);
 
     useEffect(() => {
-        function onDown(e) {
-            if (osRef.current && !osRef.current.contains(e.target)) setOsOpen(false);
+        if (submitted) {
+            closeButtonRef.current?.focus({ preventScroll: true });
         }
-        document.addEventListener("mousedown", onDown);
-        return () => document.removeEventListener("mousedown", onDown);
-    }, []);
+    }, [submitted]);
 
-    async function onSubmit(e) {
-        e.preventDefault();
+    function openDialog() {
+        if (submissionPendingRef.current) return;
+
+        setFields(EMPTY_FIELDS);
+        setTouched({});
         setErr("");
-        setSuccessUrl("");
+        setSubmitted(false);
+        setOpen(true);
+    }
 
-        const v = validate();
+    function closeDialog() {
+        // Keep one report session open until its request finishes.
+        if (!submissionPendingRef.current) setOpen(false);
+    }
+
+    function updateField(name, value) {
+        setFields(prev => ({ ...prev, [name]: value }));
+    }
+
+    function markTouched(name) {
+        setTouched(prev => ({ ...prev, [name]: true }));
+    }
+
+    async function onSubmit(event) {
+        event.preventDefault();
+
+        // This ref blocks duplicate requests before React disables the button.
+        if (submissionPendingRef.current || submitted) return;
+
+        setErr("");
         setTouched({ title: true, description: true });
-        setFieldErr(v);
 
-        if (hasErrors(v)) {
-            setSubmitting(false);
+        if (errors.title || errors.description) {
+            const firstInvalid = errors.title ? titleRef : descriptionRef;
+            firstInvalid.current?.focus();
             return;
         }
 
+        submissionPendingRef.current = true;
         setSubmitting(true);
+
         try {
-            const payload = {
-                title: title.trim(),
-                description: description.trim(),
+            await submitIssueReport({
+                title: fields.title.trim(),
+                description: fields.description.trim(),
                 context: {
                     createdAt: new Date().toISOString(),
-                    os,
+                    os: fields.os,
                     userAgent: navigator.userAgent,
-                    steps: steps.trim() || undefined,
+                    steps: fields.steps.trim() || undefined,
                     appVersion: window.__APP_VERSION__ || undefined,
-                    datasetGeneratedAt: (window.__LOCAL_DATASET_MANIFEST__?.generatedAt) || undefined
+                    datasetGeneratedAt: datasetGeneratedAt || undefined
                 }
-            };
+            });
 
-            const res = await submitIssueReport(payload);
-            setSuccessUrl(res.issueUrl);
-        } catch (e2) {
-            setErr(e2?.message ?? String(e2));
+            setSubmitted(true);
+        } catch (error) {
+            setErr(error?.message ?? String(error));
         } finally {
+            submissionPendingRef.current = false;
             setSubmitting(false);
         }
-    };
-
-    const validate = () => {
-        const e = { title: "", description: "" };
-        if (!title.trim()) e.title = "Short title is required.";
-        if (!description.trim()) e.description = "Description is required.";
-        return e;
-    };
-
-    const hasErrors = (e) => Boolean(e.title || e.description);
-
-    const inputWithError = (base, isErr) => ({
-        ...base,
-        border: isErr ? "1px solid rgba(255,120,120,0.75)" : base.border
-    });
+    }
 
     return (
         <>
             <button
+                ref={triggerRef}
                 type="button"
                 className="ui-footer-link"
-                onClick={() => setOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onKeyDown={event => event.stopPropagation()}
+                onClick={openDialog}
             >
                 Report an issue
             </button>
 
-            {/* Overlay */}
-            {open && (
-                <div
-                    style={modalStyles.overlay}
-                    onMouseDown={(e) => {
-                        if (e.target === e.currentTarget) setOpen(false);
+            {open && createPortal(
+                <dialog
+                    ref={dialogRef}
+                    aria-labelledby="report-issue-title"
+                    className="ui-panel pointer-events-auto m-auto max-h-[calc(100vh_-_2rem)] w-[calc(100%_-_2rem)] max-w-2xl overflow-hidden p-0 text-ink backdrop:bg-black/60 open:flex open:flex-col"
+                    onKeyDown={event => event.stopPropagation()}
+                    onCancel={event => {
+                        event.preventDefault();
+                        closeDialog();
+                    }}
+                    onPointerDown={event => {
+                        if (event.target !== event.currentTarget) return;
+
+                        const bounds =
+                            event.currentTarget.getBoundingClientRect();
+
+                        // The backdrop targets the dialog too; check coordinates
+                        // so clicking empty space inside the card does not close it.
+                        if (
+                            event.clientX < bounds.left ||
+                            event.clientX > bounds.right ||
+                            event.clientY < bounds.top ||
+                            event.clientY > bounds.bottom
+                        ) {
+                            closeDialog();
+                        }
                     }}
                 >
-                    <div
-                        style={modalStyles.card}
+                    <header className="flex shrink-0 items-center justify-between gap-ui-md border-b border-line p-ui-md">
+                        <h2
+                            id="report-issue-title"
+                            className="text-lg font-semibold"
+                        >
+                            Report an issue
+                        </h2>
+
+                        <button
+                            ref={closeButtonRef}
+                            type="button"
+                            aria-label="Close report dialog"
+                            className="ui-button h-9 w-9 shrink-0 p-0 text-lg"
+                            disabled={submitting}
+                            onClick={closeDialog}
+                        >
+                            ×
+                        </button>
+                    </header>
+
+                    <form
+                        onSubmit={onSubmit}
+                        noValidate
+                        aria-busy={submitting}
+                        className="flex min-h-0 flex-1 flex-col"
                     >
-                        <div style={modalStyles.headerRow}>
-                            <h3 style={modalStyles.title}>Report an issue</h3>
-                            <button onClick={() => setOpen(false)} style={modalStyles.closeBtn}>
-                                Close
-                            </button>
-                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto p-ui-md">
+                            {submitted ? (
+                                <p
+                                    role="status"
+                                    className="py-ui-lg text-sm text-ink"
+                                >
+                                    Report submitted. Thanks!
+                                </p>
+                            ) : (
+                                <>
+                                    <fieldset
+                                        disabled={submitting}
+                                        className="grid min-w-0 gap-ui-md"
+                                    >
+                                        <legend className="sr-only">
+                                            Issue details
+                                        </legend>
 
-                        {/* Success */}
-                        {successUrl ? (
-                            <div style={{ marginTop: 12, fontSize: 15, lineHeight: 1.4 }}>
-                                <div style={{ marginBottom: 10 }}>
-                                    ✅ Report submitted. Thanks!
-                                </div>
-                            </div>
-                        ) : (
-                            // Form
-                            <form onSubmit={onSubmit} style={{ marginTop: 12 }}>
-                                <div style={{ display: "grid", gap: 10 }}>
-                                    <label style={modalStyles.field}>
-                                        <span style={modalStyles.label}>Short title (required)</span>
-                                        <input
-                                            value={title}
-                                            autoFocus
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setTitle(v);
-                                                if (touched.title) {
-                                                    setFieldErr((prev) => ({ ...prev, title: v.trim() ? "" : "Short title is required." }));
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                setTouched((prev) => ({ ...prev, title: true }));
-                                                setFieldErr((prev) => ({ ...prev, title: title.trim() ? "" : "Short title is required." }));
-                                            }}
-                                            placeholder="e.g. Hero images missing after first launch"
-                                            style={inputWithError(modalStyles.input, showTitleErr)}
+                                        <ReportField
+                                            id="report-issue-short-title"
+                                            label="Short title (required)"
+                                            inputRef={titleRef}
+                                            required
                                             maxLength={80}
+                                            value={fields.title}
+                                            onChange={event =>
+                                                updateField(
+                                                    "title",
+                                                    event.target.value
+                                                )
+                                            }
+                                            onBlur={() => markTouched("title")}
+                                            error={touched.title ? errors.title : ""}
+                                            placeholder="e.g. Hero images missing after first launch"
                                         />
-                                        {showTitleErr && <div style={modalStyles.error}>{fieldErr.title}</div>}
-                                    </label>
 
-                                    <label style={modalStyles.field}>
-                                        <span style={modalStyles.label}>What happened? (required)</span>
-                                        <textarea
-                                            value={description}
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setDescription(v);
-                                                if (touched.description) {
-                                                    setFieldErr((prev) => ({ ...prev, description: v.trim() ? "" : "Description is required." }));
-                                                }
-                                            }}
-                                            onBlur={() => {
-                                                setTouched((prev) => ({ ...prev, description: true }));
-                                                setFieldErr((prev) => ({ ...prev, description: description.trim() ? "" : "Description is required." }));
-                                            }}
+                                        <ReportField
+                                            id="report-issue-description"
+                                            label="What happened? (required)"
+                                            inputRef={descriptionRef}
+                                            multiline
+                                            required
+                                            value={fields.description}
+                                            onChange={event =>
+                                                updateField(
+                                                    "description",
+                                                    event.target.value
+                                                )
+                                            }
+                                            onBlur={() =>
+                                                markTouched("description")
+                                            }
+                                            error={
+                                                touched.description
+                                                    ? errors.description
+                                                    : ""
+                                            }
                                             placeholder="Describe the issue and what you expected."
-                                            style={inputWithError(modalStyles.textarea, showDescErr)}
                                         />
-                                        {showDescErr && <div style={modalStyles.error}>{fieldErr.description}</div>}
-                                    </label>
 
-                                    <label style={modalStyles.field}>
-                                        <span style={modalStyles.label}>Steps to reproduce (optional)</span>
-                                        <textarea
-                                            value={steps}
-                                            onChange={(e) => setSteps(e.target.value)}
+                                        <ReportField
+                                            id="report-issue-steps"
+                                            label="Steps to reproduce (optional)"
+                                            multiline
+                                            value={fields.steps}
+                                            onChange={event =>
+                                                updateField(
+                                                    "steps",
+                                                    event.target.value
+                                                )
+                                            }
                                             placeholder={"1) ...\n2) ...\n3) ..."}
-                                            style={modalStyles.textarea}
                                         />
-                                    </label>
 
-                                    <div style={{ ...modalStyles.field, position: "relative", maxWidth: 260 }} ref={osRef}>
-                                        <span style={modalStyles.label}>Operating system</span>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => setOsOpen((v) => !v)}
-                                            style={{
-                                                ...modalStyles.select,
-                                                width: "100%",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
-                                                cursor: "pointer"
-                                            }}
+                                        <label
+                                            htmlFor="report-issue-os"
+                                            className="grid min-w-0 gap-ui-xs"
                                         >
-                                            <span>{os}</span>
-                                            <span style={{ opacity: 0.7 }}>▾</span>
-                                        </button>
+                                            <span className="text-sm font-semibold">
+                                                Operating system
+                                            </span>
 
-                                        {osOpen && (
-                                            <div
-                                                style={{
-                                                    position: "absolute",
-                                                    top: 0,
-                                                    left: "calc(95%)",
-                                                    width: 220,
-                                                    zIndex: 999,
-                                                    background: "rgba(20, 24, 30, 0.98)",
-                                                    border: "1px solid rgba(255,255,255,0.10)",
-                                                    borderRadius: 12,
-                                                    overflow: "hidden",
-                                                    boxShadow: "0 18px 60px rgba(0,0,0,0.55)"
-                                                }}
+                                            <select
+                                                id="report-issue-os"
+                                                value={fields.os}
+                                                onChange={event =>
+                                                    updateField(
+                                                        "os",
+                                                        event.target.value
+                                                    )
+                                                }
+                                                className={`${FIELD_CLASS} max-w-xs border-line`}
                                             >
-                                                {OS_OPTIONS.map((opt) => (
-                                                    <button
-                                                        key={opt}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setOs(opt);
-                                                            setOsOpen(false);
-                                                        }}
-                                                        style={{
-                                                            width: "100%",
-                                                            textAlign: "left",
-                                                            padding: "8px 12px",
-                                                            background: "transparent",
-                                                            border: "none",
-                                                            color: "rgba(255,255,255,0.92)",
-                                                            cursor: "pointer"
-                                                        }}
+                                                {OS_OPTIONS.map(option => (
+                                                    <option
+                                                        key={option}
+                                                        value={option}
                                                     >
-                                                        {opt}
-                                                    </button>
+                                                        {option}
+                                                    </option>
                                                 ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                            </select>
+                                        </label>
+                                    </fieldset>
 
-                                    {/* Read-only context */}
-                                    <div style={modalStyles.help}>
-                                        <div><b>Auto included:</b> timestamp, OS, user agent</div>
-                                        {datasetGeneratedAt ? (
-                                            <div><b>Dataset generatedAt:</b> {datasetGeneratedAt}</div>
-                                        ) : (
-                                            <div><b>Dataset generatedAt:</b> (not available yet)</div>
+                                    <p className="mt-ui-md text-xs leading-relaxed text-ink-muted">
+                                        Included automatically: timestamp, OS
+                                        and browser information.
+
+                                        {datasetGeneratedAt && (
+                                            <span className="block">
+                                                Dataset updated:{" "}
+                                                {new Date(
+                                                    datasetGeneratedAt
+                                                ).toLocaleString()}
+                                            </span>
                                         )}
-                                    </div>
+                                    </p>
 
                                     {err && (
-                                        <div style={modalStyles.error}>
-                                            <b>Error:</b> {err}
-                                        </div>
+                                        <p
+                                            role="alert"
+                                            className="mt-ui-md break-words text-sm text-danger"
+                                        >
+                                            {err}
+                                        </p>
                                     )}
+                                </>
+                            )}
+                        </div>
 
-                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                        <button
-                                            type="submit"
-                                            disabled={submitting}
-                                            style={modalStyles.primaryBtn}
-                                        >
-                                            {submitting ? "Submitting..." : "Submit"}
-                                        </button>
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-ui-sm border-t border-line p-ui-md">
+                            {!submitted && (
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="ui-button ui-button-accent"
+                                >
+                                    {submitting
+                                        ? "Submitting..."
+                                        : "Submit report"}
+                                </button>
+                            )}
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setOpen(false)}
-                                            disabled={submitting}
-                                            style={modalStyles.ghostBtn}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        )}
-                    </div>
-                </div>
+                            <button
+                                type="button"
+                                disabled={submitting}
+                                className="ui-button"
+                                onClick={closeDialog}
+                            >
+                                {submitted ? "Done" : "Cancel"}
+                            </button>
+                        </div>
+                    </form>
+                </dialog>,
+                document.body
             )}
         </>
     );
