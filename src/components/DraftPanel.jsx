@@ -1,5 +1,4 @@
 import { TeamDropZone } from "./structures";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 function DraftPanel({
     selectedHeroes,
@@ -24,42 +23,32 @@ function DraftPanel({
     layoutDefaultIcon,
     layoutRowIcon,
 }) {
-    const panelRef = useRef(null);
-    const leftRef = useRef(null);
-    const centerRef = useRef(null);
-    const actionsMeasureRef = useRef(null);
-
-    // when true -> action buttons move down to the "Bans row"
-    const [dockActionsBelow, setDockActionsBelow] = useState(false);
-
-    const ActionButtons = ({ size = "large" }) => {
-        const btnClass =
-            size === "large"
-                ? "w-[71px] h-[60px] text-m"
-                : "w-[71px] h-[60px] text-m";
+    const ActionButtons = () => {
+        const buttonSize = "w-[71px] h-[60px] text-xs";
 
         return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-ui-sm">
                 <button
+                    type="button"
                     onClick={() => setEditHeroPoolMode((prev) => !prev)}
-                    className={`${btnClass} px-1 font-bold rounded transition-colors duration-150 ${editHeroPoolMode
-                        ? "bg-purple-600 text-white animate-pulse"
-                        : "bg-purple-300 text-black hover:bg-gray-300"
-                        }`}
+                    aria-pressed={editHeroPoolMode}
+                    className={`ui-button ui-button-accent px-ui-xs ${buttonSize}`}
                 >
                     {editHeroPoolMode ? "EDITING" : "EDIT POOL"}
                 </button>
 
                 <button
+                    type="button"
                     onClick={handleClearBans}
-                    className={`${btnClass} bg-gray-200 hover:bg-gray-300 text-black font-bold rounded`}
+                    className={`ui-button px-ui-xs ${buttonSize}`}
                 >
                     CLEAR BANS
                 </button>
 
                 <button
+                    type="button"
                     onClick={handleClear}
-                    className={`${btnClass} bg-red-400 hover:bg-gray-300 text-black font-bold rounded`}
+                    className={`ui-button ui-button-danger px-ui-xs ${buttonSize}`}
                 >
                     CLEAR ALL
                 </button>
@@ -67,72 +56,13 @@ function DraftPanel({
         );
     };
 
-    const recomputeDocking = useCallback(() => {
-        const panelEl = panelRef.current;
-        const leftEl = leftRef.current;
-        const centerEl = centerRef.current;
-        const measureEl = actionsMeasureRef.current;
-        if (!panelEl || !leftEl || !centerEl || !measureEl) return;
-
-        const panelW = panelEl.getBoundingClientRect().width;
-        const leftW = leftEl.getBoundingClientRect().width;
-
-        // use scrollWidth to avoid getting lied to by shrinking layouts
-        const centerW = Math.max(
-            centerEl.getBoundingClientRect().width,
-            centerEl.scrollWidth
-        );
-
-        const actionsW = measureEl.getBoundingClientRect().width;
-
-        // Tailwind px-4 = 16px left + 16px right
-        const horizontalPadding = 32;
-
-        // grid gap-4 ~= 16px between columns (left | center | right)
-        const gaps = 32;
-
-        // small safety buffer so it docks a bit BEFORE it looks cramped
-        const safety = 16;
-
-        const needed = leftW + centerW + actionsW + horizontalPadding + gaps + safety;
-
-        setDockActionsBelow(needed > panelW);
-    }, []);
-
-    useLayoutEffect(() => {
-        recomputeDocking();
-
-        const ro = new ResizeObserver(() => recomputeDocking());
-        if (panelRef.current) ro.observe(panelRef.current);
-        if (leftRef.current) ro.observe(leftRef.current);
-        if (centerRef.current) ro.observe(centerRef.current);
-
-        window.addEventListener("resize", recomputeDocking);
-
-        return () => {
-            ro.disconnect();
-            window.removeEventListener("resize", recomputeDocking);
-        };
-    }, [recomputeDocking]);
-
     return (
-        <div
-            ref={panelRef}
-            className="mb-2 bg-gray-800 rounded shadow px-4 py-2"
-        >
-            {/* hidden measurement node so we get actions width reliably */}
-            <div
-                ref={actionsMeasureRef}
-                className="absolute -left-[9999px] -top-[9999px] opacity-0 pointer-events-none"
-            >
-                <ActionButtons size="large" />
-            </div>
-
+        <div className="ui-panel shrink-0 mb-ui-sm px-ui-lg py-ui-sm">
             {/* ===================== ROW 1 ===================== */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-ui-sm 2xl:gap-ui-lg">
                 {/* Left: Title + Guide */}
-                <div ref={leftRef} className="relative flex items-center flex-shrink-0">
-                    <h1 className="font-serif text-2xl font-bold tracking-widest text-white mr-2">
+                <div className="relative flex items-center">
+                    <h1 className="font-display whitespace-nowrap text-2xl font-bold tracking-widest text-ink mr-ui-sm">
                         D2 DT
                     </h1>
 
@@ -152,8 +82,7 @@ function DraftPanel({
 
                 {/* Center: dropzones + toggle */}
                 <div
-                    ref={centerRef}
-                    className="justify-self-center flex items-center gap-6"
+                    className="grid w-full min-w-0 max-w-[88rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-ui-sm justify-self-center 2xl:gap-ui-lg"
                 >
                     <TeamDropZone
                         team="ally"
@@ -165,7 +94,7 @@ function DraftPanel({
                     <button
                         onClick={() => setSelectedTeam((prev) => (prev === "ally" ? "enemy" : "ally"))}
                         disabled={selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5}
-                        className={`w-[215px] px-4 py-1 font-serif rounded-full text-white text-sm font-semibold transition 
+                        className={`whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition 
               ${selectedTeam === "ally"
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-red-600 hover:bg-red-700"
@@ -187,13 +116,13 @@ function DraftPanel({
                     />
                 </div>
 
-                {/* Right: actions if not docked */}
-                <div className="justify-self-end">
-                    {!dockActionsBelow && <ActionButtons size="large" />}
+                {/* Wide windows: actions share the team row. */}
+                <div className="hidden justify-self-end 2xl:block">
+                    <ActionButtons />
                 </div>
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
-            <div className="mt-2 grid grid-cols-[1fr_auto_1fr] grid-rows-[18px,auto] gap-x-4">
+            <div className="mt-ui-sm grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[18px_auto] gap-x-ui-sm">
                 {/* Left: grid toggle spans both rows */}
                 <div className="row-span-2 self-center justify-self-start">
                     <button
@@ -221,17 +150,17 @@ function DraftPanel({
                     <span className="text-xs font-semibold text-white leading-none">Bans:</span>
                 </div>
 
-                {/* Right: docked action buttons span both rows (ONLY when needed) */}
-                <div className="col-start-3 row-span-2 self-center justify-self-end">
-                    {dockActionsBelow && <ActionButtons size="large" />}
+                {/* Below 1536px, actions move beside the two rows of bans. */}
+                <div className="col-start-3 row-span-2 self-center justify-self-end 2xl:hidden">
+                    <ActionButtons />
                 </div>
 
                 {/* Bottom middle: ban slots */}
-                <div className="col-start-2 row-start-2 flex justify-center gap-2 mt-1 justify-self-center">
+                <div className="col-start-2 row-start-2 mt-ui-xs grid w-full min-w-0 max-w-[34rem] grid-cols-8 gap-ui-xs justify-self-center 2xl:max-w-[68rem] 2xl:grid-cols-[repeat(16,minmax(0,1fr))]">
                     {[...Array(16)].map((_, i) => (
                         <div
                             key={i}
-                            className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
+                            className="min-w-0 aspect-video bg-surface-raised border border-line rounded-control flex items-center justify-center overflow-hidden"
                         >
                             {bannedHeroes[i] && (
                                 <div
@@ -241,7 +170,7 @@ function DraftPanel({
                                     <img
                                         src={bannedHeroes[i].icon_url}
                                         alt={bannedHeroes[i].name}
-                                        className="object-contain w-full h-full filter grayscale"
+                                        className="object-cover w-full h-full filter grayscale"
                                     />
                                     <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
                                         <span className="text-red-400 font-bold text-[10px]">REMOVE</span>

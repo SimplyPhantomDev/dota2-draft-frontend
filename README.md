@@ -11,14 +11,16 @@ This repository contains the application interface, drafting logic, and desktop 
 - **Interactive drafting:** build allied and enemy teams by clicking or dragging heroes into their slots.
 - **Ban tracking:** exclude unavailable heroes from recommendations.
 - **Live recommendations:** recalculate suggested picks as the draft changes.
-- **Personal hero pool:** save your preferred heroes locally and view recommendations from within and outside your pool.
+- **Personal hero pool:** save preferred heroes locally, compare pool and global recommendations, and open a full pool score breakdown.
 - **Role filters:** narrow suggestions to Carry or Support heroes.
 - **Composition adjustments:** prioritise useful traits when your team lacks initiation, disables, or pushing ability.
 - **Score breakdowns:** inspect how allied synergy, enemy matchups, and composition bonuses contribute to recommendations.
-- **Full-draft analysis:** compare both teams once all ten heroes have been selected.
+- **Full-draft analysis:** compare individual hero scores, team totals, and estimated draft advantage once all ten heroes have been selected.
 - **Enemy role estimates:** suggest positions using predefined hero-role priorities.
 - **Hero search:** find heroes by name or configured aliases.
-- **Alternative layouts:** switch between grouped and single-row attribute layouts.
+- **Alternative layouts:** choose a 2-by-2 arrangement of attribute panels or four equal-height panels side by side.
+- **Responsive desktop interface:** resize hero cards and draft controls while keeping the hero grid and recommendation list independently scrollable.
+- **Built-in help:** open the drafting guide and an explanation of the win-percentage estimate.
 - **Dataset update checks:** retrieve newer hero and matchup data independently of application releases.
 - **In-app bug reporting:** submit a description, reproduction steps, and application context through the built-in reporting form.
 
@@ -34,7 +36,9 @@ Picked and banned heroes are excluded. The selected role filter is applied befor
 
 Composition bonuses encourage an initiator after the second allied pick and disablers or pushers after the third pick when those traits are still missing.
 
-When personal-pool filtering is enabled, the interface displays up to three suggestions from your pool alongside up to ten suggestions from outside it.
+During drafting, personal-pool filtering displays up to three suggestions from your pool alongside up to ten suggestions from outside it.
+
+When the floating full-pool breakdown is open, pool scores appear in that panel and the sidebar displays the suggestions from outside your pool.
 
 ### Full-draft analysis
 
@@ -47,6 +51,38 @@ The displayed win percentage is a heuristic transformation of the difference bet
 ### Enemy role estimates
 
 Enemy positions are assigned using predefined primary, secondary, and fallback roles. The algorithm attempts to avoid assigning the same position to multiple heroes and displays `?` when it cannot find an available role.
+
+## Interface and window sizes
+
+The interface is designed for desktop mouse and keyboard use, with a minimum layout target of **1280 x 720**.
+
+The desktop application opens maximized. Its restored window size and minimum permitted size are both 1280 x 720, configured in `src-tauri/tauri.conf.json`. Tauri window dimensions use [logical pixels](https://v2.tauri.app/reference/config/#windowconfig), so account for Windows display scaling when checking available screen space.
+
+### Hero layouts and scrolling
+
+- **Default layout:** Strength and Agility panels above Intelligence and Universal panels, forming a 2-by-2 arrangement.
+- **Row layout:** all four attribute panels side by side with equal height.
+
+The selected arrangement is retained as the window resizes. Hero cards adjust their column count within each attribute panel.
+
+The hero grid and sidebar recommendations scroll independently. Draft controls, suggestion filters, patch information, and the centered **Report an issue** footer link remain accessible while scrolling.
+
+Below 1536px viewport width, ban slots use two rows and the action buttons move beside them.
+
+### Full hero pool breakdown
+
+While personal-pool filtering is enabled and allied picks are still incomplete, use the questionmark button beside the pool-recommendations heading to open the full pool scores.
+
+- At viewport widths of at least **1800px** and heights of at least **720px**, the breakdown opens as a floating panel to the left of the sidebar. Drafting remains interactive, and the sidebar shows suggestions from outside your pool.
+- In smaller viewports, it opens as a centered modal with a scrollable list.
+
+The panel changes mode when resizing across these thresholds. Close it with its close button; Escape also closes it while focus is inside the panel.
+
+### Help and issue reporting
+
+The info button beside the application title opens the drafting guide at the top of the sidebar and brings it into view. The info button beside the win percentages expands an explanation below them.
+
+The reporting dialog keeps its title and action buttons visible while the form body scrolls. Required fields are validated before submission. While a request is pending, the form and dismissal controls are disabled; failed submissions display an error and allow a retry with the entered text preserved.
 
 ## Data and updates
 
@@ -147,6 +183,25 @@ Frontend-only development can be useful for interface work. Native filesystem ac
 
 The existing GitHub Actions workflow builds and deploys the web frontend to SiteGround. Desktop packaging uses the Tauri build command.
 
+### Checking interface changes
+
+Use `npm run dev` for browser viewport checks and `npm run tauri:dev` for native window behavior.
+
+Check both hero layouts at these suggested CSS viewport sizes:
+
+| Viewport | Main checks |
+| --- | --- |
+| 1280 x 720 | Compact draft controls, two-row bans, hover labels, and dialog scrolling. |
+| 1920 x 1080 | Standard desktop layout, recommendations, and floating pool breakdown. |
+| 2560 x 1440 | Panel proportions, card spacing, and tooltip placement. |
+| 3840 x 2160 | Large-viewport spacing and both hero layouts. |
+
+In [Chrome DevTools](https://developer.chrome.com/docs/devtools/device-mode), select **Desktop** as the device type when resizing the emulated viewport. This retains mouse input for dragging and right-click bans. Touch emulation changes the input events.
+
+Include partial and completed drafts, pool editing and filtering, score hovers, and the guide and report dialog. Resize with the pool breakdown open to check its floating-panel/modal transition.
+
+Check report validation with empty fields. Mock `submitIssueReport` for request success and failure tests.
+
 ## Usage
 
 1. Select whether clicks should add heroes to the allied or enemy team, or drag heroes directly into the desired team.
@@ -168,6 +223,10 @@ The interface is designed for desktop mouse and keyboard use.
 | --- | --- |
 | `src/pages/HeroList.jsx` | Main application state, data loading, search, draft actions, and recommendation updates. |
 | `src/components/` | Draft controls, hero cards, team drop zones, analysis panels, and the reporting form. |
+| `src/index.css` and `tailwind.config.js` | Shared colors, spacing, typography, panels, buttons, and footer styling. |
+| `src/components/HeroPoolBreakdown.jsx` | Full pool scores and adaptive floating-panel/modal presentation. |
+| `src/components/HoverTooltip.jsx` | Hero score breakdown positioning within the viewport. |
+| `src/components/ReportIssueButton.jsx` | Report dialog, field validation, and submission state. |
 | `src/utils/synergy.js` | Recommendation scoring, personal-pool analysis, and the heuristic win-percentage calculation. |
 | `src/utils/predictRoles.js` | Enemy position assignment. |
 | `src/tauriDataset.js` | Local dataset initialisation, manifest checks, and downloaded data updates. |

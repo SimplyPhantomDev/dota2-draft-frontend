@@ -1,3 +1,135 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* RGB channels support Tailwind opacity classes like bg-accent/10. */
+    --color-canvas: 11 14 20;
+    --color-surface: 21 26 35;
+    --color-surface-raised: 32 39 52;
+    --color-surface-hover: 43 52 69;
+    --color-line: 57 69 88;
+    --color-ink: 235 239 247;
+    --color-ink-muted: 163 175 194;
+    --color-accent: 167 139 250;
+    --color-danger: 248 113 113;
+
+    /* Shared spacing uses rem to respect user font settings. */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.75rem;
+    --space-lg: 1rem;
+    --space-xl: 1.5rem;
+    --space-2xl: 2rem;
+
+    --radius-control: 0.375rem;
+    --radius-panel: 0.75rem;
+    --shadow-panel: 0 6px 20px rgb(0 0 0 / 0.2);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+
+  :where(button, a[href], input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+
+  /* Shared panel appearance; components choose their own padding. */
+  .ui-panel {
+    @apply rounded-panel border border-line bg-surface shadow-panel;
+  }
+
+  .ui-button {
+    @apply inline-flex items-center justify-center gap-ui-xs rounded-control border border-line bg-surface-raised px-ui-sm py-ui-xs text-sm font-semibold text-ink;
+    min-height: 2.25rem;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+
+  .ui-button:hover:not(:disabled) {
+    @apply bg-surface-hover;
+  }
+
+  .ui-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .ui-button-accent {
+    @apply border-accent/50 bg-accent/10 text-accent;
+  }
+
+  .ui-button-accent:hover:not(:disabled) {
+    @apply bg-accent/20;
+  }
+
+  .ui-button-accent[aria-pressed="true"],
+  .ui-button-accent[aria-pressed="true"]:hover:not(:disabled) {
+    @apply border-accent bg-accent text-canvas;
+  }
+
+  .ui-button-danger {
+    @apply border-danger/50 bg-danger/10 text-danger;
+  }
+
+  .ui-button-danger:hover:not(:disabled) {
+    @apply bg-danger/20;
+  }
+
+  .ui-footer {
+    @apply relative flex shrink-0 items-center justify-center px-ui-sm py-ui-xs;
+
+    /* Empty areas let clicks and scrolling reach the cards. */
+    pointer-events: none;
+  }
+
+  /* Fade the blur itself, without adding a dark background. */
+  .ui-footer::before {
+    content: "";
+    position: absolute;
+    inset: -0.75rem 0 0;
+    z-index: 0;
+    pointer-events: none;
+    background: transparent;
+
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
+    mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
+  }
+
+  .ui-footer-link {
+    @apply relative inline-flex items-center justify-center border-0 bg-transparent px-ui-md py-ui-xs text-sm font-normal text-ink-muted cursor-pointer;
+
+    z-index: 1;
+    min-height: 2.25rem;
+    pointer-events: auto;
+    text-shadow: 0 1px 4px rgb(0 0 0 / 0.85);
+    transition: color 150ms;
+  }
+
+  .ui-footer-link:hover,
+  .ui-footer-link:focus-visible {
+    @apply text-ink;
+  }
+
+  .ui-footer-link:focus-visible {
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+}

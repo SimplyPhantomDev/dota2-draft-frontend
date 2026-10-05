@@ -80,9 +80,6 @@ export default function HeroList() {
   // Currently hovered hero (for synergy breakdown display)
   const [hoveredHero, setHoveredHero] = useState(null);
 
-  // Tracking logic for user's mouse position
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
   // Show/hide specific information about how winrate prediction is calculated
   const [showWinrateInfo, setShowWinrateInfo] = useState(false);
 
@@ -374,24 +371,6 @@ export default function HeroList() {
     }
   }, [selectedHeroes]);
 
-  // Track user's mouse movement to determine when the user is hovering a hero
-  // in the full draft stats to make the synergy breakdown show correctly
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      const boxWidth = 300;
-      const boxHeight = 400;
-      const margin = 10;
-
-      const x = Math.min(e.clientX + margin, window.innerWidth - boxWidth - margin);
-      const y = Math.min(e.clientY + margin, window.innerHeight - boxHeight - margin);
-
-      setMousePosition({ x, y });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   //==============================================
   //========= Synergy Suggestion Engine ==========
   //==============================================
@@ -677,11 +656,15 @@ export default function HeroList() {
     const { border, bg, text, label } = colorMap[attr];
 
     return (
-      <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
+      <div
+        key={attr}
+        className={`flex-1 min-w-0 border-2 rounded-lg p-ui-md space-y-ui-sm 2xl:p-ui-lg ${border} ${bg}`}
+      >
         <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
+        {/* Let each attribute panel choose how many readable cards fit across its width. */}
         <motion.div
           layout="position"
-          className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,5.5rem),1fr))] gap-ui-sm transition-all duration-300 ease-in-out">
           {heroes[attr]?.map((hero) => {
             const isPicked =
               selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
@@ -709,9 +692,9 @@ export default function HeroList() {
 
   return (
     // === Main App Container ===
-    <div className={`p-2 text-white h-screen overflow-hidden flex flex-col transition-shadow duration-300
-      bg-gradient-to-br from-black via-gray-950 to-gray-900
-      ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
+    <div
+      className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-screen overflow-hidden flex flex-col transition-shadow duration-300
+    ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
     >
       {/* === Search Input (invisible, global key listener) === */}
       <input
@@ -748,8 +731,13 @@ export default function HeroList() {
       />
 
       {/* Main Hero Grid Area */}
-      <div className="flex flex-1 overflow-hidden">
-        <div ref={containerRef} className="flex flex-col flex-1 pr-3 overflow-y-auto gap-4 relative">
+      <div
+        className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_clamp(17rem,22vw,22rem)] gap-ui-md overflow-hidden"
+      >
+        <div
+          ref={containerRef}
+          className="relative col-start-1 row-start-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pb-16"
+        >
           {searchQuery && containerRect && (
             <div
               className="fixed pointer-events-none z-50"
@@ -797,6 +785,11 @@ export default function HeroList() {
           </AnimatePresence>
         </div>
 
+        {/* Share the hero column's grid cell so cards scroll behind the glass. */}
+        <footer className="ui-footer col-start-1 row-start-1 self-end">
+          <ReportIssueButton />
+        </footer>
+
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
         <Sidebar
           suggestedHeroes={suggestedHeroes}
@@ -822,7 +815,6 @@ export default function HeroList() {
           showGuide={showGuide}
           setShowGuide={setShowGuide}
           updateSynergySuggestions={updateSynergySuggestions}
-          mousePosition={mousePosition}
           showWinrateInfo={showWinrateInfo}
           setShowWinrateInfo={setShowWinrateInfo}
           getWinProbability={getWinProbability}
@@ -849,7 +841,6 @@ export default function HeroList() {
           {statusMessage.text}
         </div>
       )}
-      <ReportIssueButton />
     </div>
   );
 }
