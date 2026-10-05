@@ -713,7 +713,7 @@ export default function HeroList() {
   return (
     // === Main App Container ===
     <div
-      className={`p-ui-sm bg-canvas text-ink h-screen overflow-hidden flex flex-col transition-shadow duration-300
+      className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-screen overflow-hidden flex flex-col transition-shadow duration-300
     ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
     >
       {/* === Search Input (invisible, global key listener) === */}
@@ -756,7 +756,7 @@ export default function HeroList() {
       >
         <div
           ref={containerRef}
-          className="relative min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+          className="relative col-start-1 row-start-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pb-16"
         >
           {searchQuery && containerRect && (
             <div
@@ -804,6 +804,11 @@ export default function HeroList() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Share the hero column's grid cell so cards scroll behind the glass. */}
+        <footer className="ui-footer col-start-1 row-start-1 self-end">
+          <ReportIssueButton />
+        </footer>
 
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
         <Sidebar
@@ -857,7 +862,6 @@ export default function HeroList() {
           {statusMessage.text}
         </div>
       )}
-      <ReportIssueButton />
     </div>
   );
 }

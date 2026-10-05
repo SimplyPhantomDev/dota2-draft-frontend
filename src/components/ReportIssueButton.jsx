@@ -6,6 +6,7 @@ const modalStyles = {
         position: "fixed",
         inset: 0,
         zIndex: 100,
+        pointerEvents: "auto",
         background: "rgba(0,0,0,0.65)",
         display: "grid",
         placeItems: "center",
@@ -219,28 +220,13 @@ export default function ReportIssueButton() {
 
     return (
         <>
-            {/* Bottom-center button */}
-            <div
-                style={{
-                    position: "fixed",
-                    left: "50%",
-                    bottom: 14,
-                    transform: "translateX(-50%)",
-                    zIndex: 50
-                }}
+            <button
+                type="button"
+                className="ui-footer-link"
+                onClick={() => setOpen(true)}
             >
-                <button
-                    onClick={() => setOpen(true)}
-                    style={{
-                        padding: "6px 10px",
-                        borderRadius: 10,
-                        fontSize: 16,
-                        opacity: 0.9
-                    }}
-                >
-                    Report an issue
-                </button>
-            </div>
+                Report an issue
+            </button>
 
             {/* Overlay */}
             {open && (

@@ -47,15 +47,14 @@
 }
 
 @layer components {
+
   /* Shared panel appearance; components choose their own padding. */
   .ui-panel {
     @apply rounded-panel border border-line bg-surface shadow-panel;
   }
 
   .ui-button {
-    @apply inline-flex items-center justify-center gap-ui-xs
-      rounded-control border border-line bg-surface-raised
-      px-ui-sm py-ui-xs text-sm font-semibold text-ink;
+    @apply inline-flex items-center justify-center gap-ui-xs rounded-control border border-line bg-surface-raised px-ui-sm py-ui-xs text-sm font-semibold text-ink;
     min-height: 2.25rem;
     transition: background-color 150ms, border-color 150ms, color 150ms;
   }
@@ -88,5 +87,49 @@
 
   .ui-button-danger:hover:not(:disabled) {
     @apply bg-danger/20;
+  }
+
+  .ui-footer {
+    @apply relative flex shrink-0 items-center justify-center px-ui-sm py-ui-xs;
+
+    /* Empty areas let clicks and scrolling reach the cards. */
+    pointer-events: none;
+  }
+
+  /* Fade the blur itself, without adding a dark background. */
+  .ui-footer::before {
+    content: "";
+    position: absolute;
+    inset: -0.75rem 0 0;
+    z-index: 0;
+    pointer-events: none;
+    background: transparent;
+
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
+    mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
+  }
+
+  .ui-footer-link {
+    @apply relative inline-flex items-center justify-center border-0 bg-transparent px-ui-md py-ui-xs text-sm font-normal text-ink-muted cursor-pointer;
+
+    z-index: 1;
+    min-height: 2.25rem;
+    pointer-events: auto;
+    text-shadow: 0 1px 4px rgb(0 0 0 / 0.85);
+    transition: color 150ms;
+  }
+
+  .ui-footer-link:hover,
+  .ui-footer-link:focus-visible {
+    @apply text-ink;
+  }
+
+  .ui-footer-link:focus-visible {
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
   }
 }
