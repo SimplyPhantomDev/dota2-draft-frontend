@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import HoverTooltip from "./HoverTooltip";
+import HeroPoolBreakdown from "./HeroPoolBreakdown";
 
 function RecommendationRow({
     hero,
@@ -318,10 +319,10 @@ function Sidebar({
 
                                                             <span
                                                                 className={`shrink-0 font-mono tabular-nums ${score > 0
-                                                                        ? 'text-green-400'
-                                                                        : score < 0
-                                                                            ? 'text-danger'
-                                                                            : 'text-ink-muted'
+                                                                    ? 'text-green-400'
+                                                                    : score < 0
+                                                                        ? 'text-danger'
+                                                                        : 'text-ink-muted'
                                                                     }`}
                                                             >
                                                                 {score > 0 ? '+' : ''}{score.toFixed(2)}
@@ -350,10 +351,17 @@ function Sidebar({
                                                         From Your Hero Pool
                                                     </div>
                                                     <button
+                                                        type="button"
+                                                        aria-label="Open full hero pool breakdown"
+                                                        aria-haspopup="dialog"
                                                         className="p-1 hover:opacity-80"
-                                                        onClick={() => setShowPoolBreakdown((prev) => !prev)}
+                                                        onClick={() => setShowPoolBreakdown(prev => !prev)}
                                                     >
-                                                        <img src={questionMarkIcon} alt="info" className="w-4 h-4 filter invert" />
+                                                        <img
+                                                            src={questionMarkIcon}
+                                                            alt="info"
+                                                            className="w-4 h-4 filter invert"
+                                                        />
                                                     </button>
                                                 </div>
                                                 {poolSuggestions.map((hero) => (
@@ -457,28 +465,10 @@ function Sidebar({
                                     </HoverTooltip>
                                 )}
                                 {showPoolBreakdown && (
-                                    <div className="absolute top-4 right-[360px] bg-gray-900 border border-purple-500 rounded-lg p-4 shadow-lg w-[300px] max-h-[80vh] overflow-y-auto z-50">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h2 className="text-purple-400 text-sm font-semibold uppercase">Full Hero Pool Breakdown</h2>
-                                            <button onClick={() => setShowPoolBreakdown(false)} className="text-white hover:text-red-400 text-lg font-bold">
-                                                ×
-                                            </button>
-                                        </div>
-                                        {fullPoolSynergies.map((hero) => (
-                                            <div key={`breakdown-${hero.HeroId}`} className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center">
-                                                    <img src={hero.icon_url} alt={hero.name} className="w-14 h-8 mr-2" />
-                                                    <span className="text-white text-sm truncate max-w-[140px]">{hero.name}</span>
-                                                </div>
-                                                <span
-                                                    className={`text-sm font-mono ${parseFloat(hero.totalScore) >= 0 ? "text-green-400" : "text-red-400"
-                                                        }`}
-                                                >
-                                                    {hero.totalScore}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <HeroPoolBreakdown
+                                        heroes={fullPoolSynergies}
+                                        onClose={() => setShowPoolBreakdown(false)}
+                                    />
                                 )}
                             </>
                         )}
