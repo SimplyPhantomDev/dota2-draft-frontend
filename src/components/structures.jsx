@@ -85,14 +85,17 @@ export function TeamDropZone({
   return (
     <div
       ref={dropRef}
-      className={`flex gap-2 p-1 rounded border transition-all duration-200
+      className={`grid w-full min-w-0 grid-cols-5 gap-ui-xs p-ui-xs rounded-control border transition-all duration-200
         ${isOver ? "bg-yellow-500/20" : ""}
         ${isAlly ? "border-green-700" : "border-red-700"}
       `}
     >
       {/* Render in 5 hero slots for picks for each team */}
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="relative w-[106px] h-[60px] bg-gray-700 rounded overflow-hidden flex items-center justify-center">
+        <div
+          key={i}
+          className="relative min-w-0 aspect-video bg-surface-raised rounded-control overflow-hidden flex items-center justify-center"
+        >
           {heroes2[i] && (
             <div
               className="relative group w-full h-full cursor-pointer"
@@ -101,7 +104,7 @@ export function TeamDropZone({
               <img
                 src={heroes2[i].icon_url}
                 alt={heroes2[i].name}
-                className="object-contain w-full h-full"
+                className="object-cover w-full h-full"
               />
               <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-75 flex items-center justify-center transition-opacity duration-200">
                 <span className="text-red-400 font-bold text-sm">REMOVE</span>
