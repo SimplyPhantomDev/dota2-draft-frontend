@@ -111,8 +111,13 @@ export function TeamDropZone({
                 alt={heroes2[i].name}
                 className="object-cover w-full h-full"
               />
-              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-75 flex items-center justify-center transition-opacity duration-200">
-                <span className="text-red-400 font-bold text-sm">REMOVE</span>
+              <div className="absolute inset-0 z-20 pointer-events-none bg-black/75 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                <span
+                  className="text-danger font-bold text-sm"
+                  style={{ textShadow: "0 1px 3px rgb(0 0 0 / 0.85)" }}
+                >
+                  REMOVE
+                </span>
               </div>
             </div>
           )}
