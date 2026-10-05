@@ -435,27 +435,39 @@ function Sidebar({
                 </div>
             )}
             {/* === Suggestion Filters: Pool & Role === */}
-            <div className="flex flex-wrap justify-between mt-4 border-t border-gray-700 pt-2">
-                <p className="text-gray-300 text-sm mb-1">Suggestion filters:</p>
-                <div className="relative group">
-                    <button
-                        onClick={() => setFilterByHeroPool(prev => !prev)}
-                        disabled={heroPool.length < 3}
-                        className={`px-2 py-1 rounded text-xs font-bold transition duration-300 ${filterByHeroPool ? "bg-purple-700 text-white" : "bg-gray-700 text-gray-300"}
-                            ${heroPool.length < 3 ? "opacity-50 cursor-not-allowed" : "hover:bg-purple-600"}`}
-                    >
-                        {filterByHeroPool ? "Hero Pool: ON" : "Hero Pool: OFF"}
-                    </button>
-                    {heroPool.length < 3 && (
-                        <div
-                            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-gray-500 text-white text-[11px] px-3 py-2 rounded shadow-lg opacity-0 
-                                group-hover:opacity-100 transition-opacity duration-300 z-50">
-                            You need at least 3 heroes in your hero pool to activate this feature.
-                        </div>
-                    )}
+            <div className="mt-ui-md shrink-0 space-y-ui-sm border-t border-line pt-ui-sm">
+                <div className="flex flex-wrap items-start justify-between gap-ui-sm">
+                    <p className="py-ui-sm text-sm text-ink-muted">
+                        Suggestion filters
+                    </p>
+
+                    <div className="ml-auto flex flex-col items-end gap-ui-xs">
+                        <button
+                            type="button"
+                            onClick={() => setFilterByHeroPool(prev => !prev)}
+                            disabled={heroPool.length < 3}
+                            aria-pressed={filterByHeroPool}
+                            aria-describedby={heroPool.length < 3 ? "hero-pool-filter-help" : undefined}
+                            className="ui-button ui-button-accent text-xs"
+                        >
+                            {filterByHeroPool ? "Hero Pool: ON" : "Hero Pool: OFF"}
+                        </button>
+
+                        {heroPool.length < 3 && (
+                            <p
+                                id="hero-pool-filter-help"
+                                className="max-w-[7.5rem] text-right text-xs text-ink-muted"
+                            >
+                                Requires 3+ heroes.
+                            </p>
+                        )}
+                    </div>
                 </div>
-                <div className="flex mb-3 space-x-2">
+                <div className="grid grid-cols-2 gap-ui-sm">
                     <button
+                        type="button"
+                        aria-pressed={roleFilter === "Carry"}
+                        className="ui-button ui-button-accent w-full"
                         onClick={() => {
                             const newFilter = roleFilter === "Carry" ? null : "Carry";
                             setRoleFilter(newFilter);
@@ -466,15 +478,14 @@ function Sidebar({
                                 newFilter
                             );
                         }}
-                        className={`px-3 py-1 rounded text-sm font-semibold transition-colors duration-150 ${roleFilter === "Carry"
-                            ? "bg-green-600 text-white"
-                            : "bg-gray-600 text-gray-300"
-                            }`}
                     >
                         Carry
                     </button>
 
                     <button
+                        type="button"
+                        aria-pressed={roleFilter === "Support"}
+                        className="ui-button ui-button-accent w-full"
                         onClick={() => {
                             const newFilter = roleFilter === "Support" ? null : "Support";
                             setRoleFilter(newFilter);
@@ -485,20 +496,23 @@ function Sidebar({
                                 newFilter
                             );
                         }}
-                        className={`px-3 py-1 rounded text-xs font-semibold transition-colors duration-150 ${roleFilter === "Support"
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-600 text-gray-300"
-                            }`}
                     >
                         Support
                     </button>
                 </div>
             </div>
             {/* === App Footer Info === */}
-            <div className="text-white text-xs border-t border-gray-700 pt-2">
-                <p>Patch: {patch ?? "unknown"}</p>
-                <p>Last updated: {lastUpdated ?? "unknown"}</p>
-            </div>
+            <dl className="mt-ui-sm shrink-0 space-y-ui-xs border-t border-line pt-ui-sm text-xs">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
+                    <dt className="text-ink-muted">Patch</dt>
+                    <dd className="font-mono text-ink">{patch ?? "unknown"}</dd>
+                </div>
+
+                <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
+                    <dt className="text-ink-muted">Last updated</dt>
+                    <dd className="text-ink">{lastUpdated ?? "unknown"}</dd>
+                </div>
+            </dl>
         </div>
     );
 }
