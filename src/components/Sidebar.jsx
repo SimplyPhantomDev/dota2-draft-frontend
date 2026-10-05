@@ -96,6 +96,7 @@ function Sidebar({
     const sidebarScrollRef = useRef(null);
     const sidebarPanelRef = useRef(null);
     const poolPanelRef = useRef(null);
+    const winrateInfoButtonRef = useRef(null);
 
     const [tooltipPoint, setTooltipPoint] = useState({ x: 0, y: 0 });
     const [canFloatPool, setCanFloatPool] = useState(
@@ -144,6 +145,12 @@ function Sidebar({
             sidebarScrollRef.current.scrollTop = 0;
         }
     }, [showGuide]);
+
+    // Close the explanation when a completed draft is cleared or edited.
+    // Otherwise it could reopen automatically when the next draft is complete.
+    useEffect(() => {
+        if (!fullDraftStats) setShowWinrateInfo(false);
+    }, [fullDraftStats, setShowWinrateInfo]);
 
     return (
         <div
@@ -296,41 +303,91 @@ function Sidebar({
                                     </div>
                                 </div>
                                 {/* Outcome prediction */}
-                                <div className="mt-1 text-center relative group">
+                                <div
+                                    className="mt-ui-sm text-center"
+                                    onKeyDown={(event) => {
+                                        // Keep these controls out of the global hero-search handler.
+                                        event.stopPropagation();
+
+                                        if (event.key === "Escape" && showWinrateInfo) {
+                                            event.preventDefault();
+                                            setShowWinrateInfo(false);
+                                            winrateInfoButtonRef.current?.focus();
+                                        }
+                                    }}
+                                >
                                     {(() => {
-                                        const allyTotal = fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
-                                        const enemyTotal = fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0);
+                                        const allyTotal = fullDraftStats.ally.reduce(
+                                            (sum, h) => sum + parseFloat(h.totalScore), 0
+                                        );
+                                        const enemyTotal = fullDraftStats.enemy.reduce(
+                                            (sum, h) => sum + parseFloat(h.totalScore), 0
+                                        );
                                         const delta = allyTotal - enemyTotal;
                                         const allyWin = getWinProbability(delta);
-                                        const enemyWin = ((100 - allyWin)).toFixed(2);
+                                        const enemyWin = (100 - allyWin).toFixed(2);
 
                                         return (
-                                            <span className="text-lg font-bold">
+                                            <span className="inline-flex flex-wrap items-center justify-center gap-ui-sm text-lg font-bold">
                                                 <span className="text-green-400">{allyWin}%</span>
-                                                <span className="text-gray-400 mx-1">/</span>
-                                                <span className="text-red-400">{enemyWin}%</span>
+                                                <span className="text-ink-muted">/</span>
+                                                <span className="text-danger">{enemyWin}%</span>
 
                                                 <button
+                                                    ref={winrateInfoButtonRef}
+                                                    type="button"
                                                     onClick={() => setShowWinrateInfo(prev => !prev)}
-                                                    className="ml-2 text-xs bg-white bg-opacity-0 rounded-full w-4 h-4 inline-flex items-center justify-center hover:bg-gray-600"
-                                                    title="Winrate info"
+                                                    className="ui-button h-9 w-9 shrink-0 p-0"
+                                                    aria-label="About the win probability estimate"
+                                                    aria-expanded={showWinrateInfo}
+                                                    aria-controls={showWinrateInfo ? "winrate-info" : undefined}
+                                                    title="About the win probability estimate"
                                                 >
-                                                    <img src={infoButtonIcon} alt="WinrateInfo" className="filter invert" />
+                                                    <img
+                                                        src={infoButtonIcon}
+                                                        alt=""
+                                                        className="h-4 w-4 invert"
+                                                    />
                                                 </button>
                                             </span>
                                         );
                                     })()}
+
                                     {showWinrateInfo && (
-                                        <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-[260px] bg-gray-900 text-white text-xs p-3 rounded shadow-lg z-10">
-                                            <p>
-                                                NOTE! Winrate calculations are made purely based on the synergy scores of each hero.
-                                                Win probability will never be above 80% for this reason. Cooperation and coordination
-                                                can turn the tide even against the heaviest of outdrafts in Dota.
+                                        <section
+                                            id="winrate-info"
+                                            aria-labelledby="winrate-info-title"
+                                            className="mt-ui-sm rounded-control border border-line bg-surface-raised p-ui-md text-left"
+                                        >
+                                            <div className="flex items-center justify-between gap-ui-sm">
+                                                <h3
+                                                    id="winrate-info-title"
+                                                    className="text-sm font-semibold text-ink"
+                                                >
+                                                    About this estimate
+                                                </h3>
+
+                                                <button
+                                                    type="button"
+                                                    aria-label="Close win probability explanation"
+                                                    className="ui-button h-9 w-9 shrink-0 p-0 text-lg"
+                                                    onClick={() => {
+                                                        setShowWinrateInfo(false);
+                                                        winrateInfoButtonRef.current?.focus();
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+
+                                            <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
+                                                These percentages use hero synergy and matchup scores only.
+                                                The favoured team's estimate is capped at 80%.
+                                                Player skill, teamwork and execution can still change the outcome.
                                             </p>
-                                        </div>
+                                        </section>
                                     )}
                                 </div>
-
                                 {hoveredHero && (
                                     <HoverTooltip initialPoint={tooltipPoint} anchorRef={sidebarPanelRef}>
                                         <h3 className="mb-ui-sm break-words font-semibold text-ink">
