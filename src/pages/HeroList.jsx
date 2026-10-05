@@ -682,9 +682,10 @@ export default function HeroList() {
         className={`flex-1 min-w-0 border-2 rounded-lg p-ui-md space-y-ui-sm 2xl:p-ui-lg ${border} ${bg}`}
       >
         <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
+        {/* Let each attribute panel choose how many readable cards fit across its width. */}
         <motion.div
           layout="position"
-          className="flex flex-wrap gap-2 transition-all duration-300 ease-in-out">
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,5.5rem),1fr))] gap-ui-sm transition-all duration-300 ease-in-out">
           {heroes[attr]?.map((hero) => {
             const isPicked =
               selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
