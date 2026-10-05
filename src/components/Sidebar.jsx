@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import HoverTooltip from "./HoverTooltip";
 import HeroPoolBreakdown from "./HeroPoolBreakdown";
 
+const FLOATING_POOL_QUERY =
+    "(min-width: 1800px) and (min-height: 720px)";
+
 function RecommendationRow({
     hero,
     fromPool = false,
@@ -92,8 +95,48 @@ function Sidebar({
 }) {
     const sidebarScrollRef = useRef(null);
     const sidebarPanelRef = useRef(null);
+    const poolPanelRef = useRef(null);
 
     const [tooltipPoint, setTooltipPoint] = useState({ x: 0, y: 0 });
+    const [canFloatPool, setCanFloatPool] = useState(
+        () => window.matchMedia(FLOATING_POOL_QUERY).matches
+    );
+
+    const poolPanelOpen =
+        showPoolBreakdown &&
+        filterByHeroPool &&
+        hasPicks &&
+        selectedHeroes.ally.length < 5;
+
+    const floatingPoolOpen = poolPanelOpen && canFloatPool;
+
+    // Switch layouts when the window crosses the floating-panel breakpoint.
+    useEffect(() => {
+        const media = window.matchMedia(FLOATING_POOL_QUERY);
+        const updateLayout = () => setCanFloatPool(media.matches);
+
+        updateLayout();
+        media.addEventListener("change", updateLayout);
+
+        return () => media.removeEventListener("change", updateLayout);
+    }, []);
+
+    // Clear the open flag when pool recommendations are no longer applicable.
+    // Otherwise an old panel could reopen when starting another draft.
+    useEffect(() => {
+        if (
+            showPoolBreakdown &&
+            (!filterByHeroPool || !hasPicks || selectedHeroes.ally.length >= 5)
+        ) {
+            setShowPoolBreakdown(false);
+        }
+    }, [
+        showPoolBreakdown,
+        filterByHeroPool,
+        hasPicks,
+        selectedHeroes.ally.length,
+        setShowPoolBreakdown
+    ]);
 
     // The guide sits above recommendations; bring it into view whenever it opens.
     useEffect(() => {
@@ -348,14 +391,25 @@ function Sidebar({
                                             <>
                                                 <div className="flex items-center justify-between px-2 py-1">
                                                     <div className="text-[10px] uppercase text-purple-400 px-2 py-1 tracking-wide font-semibold">
-                                                        From Your Hero Pool
+                                                        {floatingPoolOpen
+                                                            ? "Outside Your Hero Pool"
+                                                            : "From Your Hero Pool"}
                                                     </div>
+
                                                     <button
                                                         type="button"
-                                                        aria-label="Open full hero pool breakdown"
+                                                        aria-label={
+                                                            poolPanelOpen
+                                                                ? "Close full hero pool breakdown"
+                                                                : "Open full hero pool breakdown"
+                                                        }
                                                         aria-haspopup="dialog"
+                                                        aria-expanded={poolPanelOpen}
                                                         className="p-1 hover:opacity-80"
-                                                        onClick={() => setShowPoolBreakdown(prev => !prev)}
+                                                        onClick={() => {
+                                                            setHoveredSuggestedHero(null);
+                                                            setShowPoolBreakdown(prev => !prev);
+                                                        }}
                                                     >
                                                         <img
                                                             src={questionMarkIcon}
@@ -364,22 +418,30 @@ function Sidebar({
                                                         />
                                                     </button>
                                                 </div>
-                                                {poolSuggestions.map((hero) => (
-                                                    <RecommendationRow
-                                                        key={`pool-${hero.HeroId}`}
-                                                        hero={hero}
-                                                        fromPool
-                                                        onMouseEnter={(event) => {
-                                                            setTooltipPoint({ x: event.clientX, y: event.clientY });
-                                                            setHoveredSuggestedHero(hero);
-                                                        }}
-                                                        onMouseLeave={() => setHoveredSuggestedHero(null)}
-                                                    />
-                                                ))}
 
-                                                <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
-                                                    Other Strong Picks
-                                                </div>
+                                                {!floatingPoolOpen && (
+                                                    <>
+                                                        {poolSuggestions.map((hero) => (
+                                                            <RecommendationRow
+                                                                key={`pool-${hero.HeroId}`}
+                                                                hero={hero}
+                                                                fromPool
+                                                                onMouseEnter={(event) => {
+                                                                    setTooltipPoint({
+                                                                        x: event.clientX,
+                                                                        y: event.clientY
+                                                                    });
+                                                                    setHoveredSuggestedHero(hero);
+                                                                }}
+                                                                onMouseLeave={() => setHoveredSuggestedHero(null)}
+                                                            />
+                                                        ))}
+
+                                                        <div className="text-[10px] uppercase text-gray-400 px-2 py-1 mt-2 tracking-wide font-semibold">
+                                                            Other Strong Picks
+                                                        </div>
+                                                    </>
+                                                )}
                                             </>
                                         )}
                                         {globalSuggestions.map((hero) => (
@@ -406,7 +468,7 @@ function Sidebar({
                                 {hoveredSuggestedHero && (
                                     <HoverTooltip
                                         initialPoint={tooltipPoint}
-                                        anchorRef={sidebarPanelRef}
+                                        anchorRef={floatingPoolOpen ? poolPanelRef : sidebarPanelRef}
                                     >
                                         <h3 className="text-white font-bold mb-2">{hoveredSuggestedHero.name} Breakdown</h3>
 
@@ -464,10 +526,13 @@ function Sidebar({
                                         )}
                                     </HoverTooltip>
                                 )}
-                                {showPoolBreakdown && (
+                                {poolPanelOpen && (
                                     <HeroPoolBreakdown
                                         heroes={fullPoolSynergies}
                                         onClose={() => setShowPoolBreakdown(false)}
+                                        floating={canFloatPool}
+                                        anchorRef={sidebarPanelRef}
+                                        panelRef={poolPanelRef}
                                     />
                                 )}
                             </>
