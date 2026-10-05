@@ -677,7 +677,10 @@ export default function HeroList() {
     const { border, bg, text, label } = colorMap[attr];
 
     return (
-      <div key={attr} className={`flex-1 border-2 rounded-lg p-4 space-y-2 ${border} ${bg}`}>
+      <div
+        key={attr}
+        className={`flex-1 min-w-0 border-2 rounded-lg p-ui-md space-y-ui-sm 2xl:p-ui-lg ${border} ${bg}`}
+      >
         <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
         <motion.div
           layout="position"
@@ -748,10 +751,12 @@ export default function HeroList() {
       />
 
       {/* Main Hero Grid Area */}
-      <div className="flex flex-1 overflow-hidden">
+      <div
+        className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_clamp(17rem,22vw,22rem)] gap-ui-md overflow-hidden"
+      >
         <div
           ref={containerRef}
-          className="flex flex-col flex-1 pr-ui-md overflow-y-auto gap-ui-lg relative"
+          className="relative min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
         >
           {searchQuery && containerRect && (
             <div

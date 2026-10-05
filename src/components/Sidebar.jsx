@@ -35,8 +35,8 @@ function Sidebar({
     lastUpdated
 }) {
     return (
-        <div className="ui-panel relative min-w-[260px] max-w-[350px] flex-[1] flex flex-col p-ui-lg">
-            <div className="flex-1 overflow-y-auto space-y-ui-sm">
+        <div className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg">
+            <div className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm">
                 {suggestedHeroes.length === 0 && hasPicks === false ? (
                     <p className="text-ink-muted text-sm italic">
                         Pick a hero to see recommendations.
