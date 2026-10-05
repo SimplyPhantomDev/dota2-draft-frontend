@@ -80,9 +80,6 @@ export default function HeroList() {
   // Currently hovered hero (for synergy breakdown display)
   const [hoveredHero, setHoveredHero] = useState(null);
 
-  // Tracking logic for user's mouse position
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
   // Show/hide specific information about how winrate prediction is calculated
   const [showWinrateInfo, setShowWinrateInfo] = useState(false);
 
@@ -373,24 +370,6 @@ export default function HeroList() {
       setSelectedTeam("ally");
     }
   }, [selectedHeroes]);
-
-  // Track user's mouse movement to determine when the user is hovering a hero
-  // in the full draft stats to make the synergy breakdown show correctly
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      const boxWidth = 300;
-      const boxHeight = 400;
-      const margin = 10;
-
-      const x = Math.min(e.clientX + margin, window.innerWidth - boxWidth - margin);
-      const y = Math.min(e.clientY + margin, window.innerHeight - boxHeight - margin);
-
-      setMousePosition({ x, y });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   //==============================================
   //========= Synergy Suggestion Engine ==========
@@ -836,7 +815,6 @@ export default function HeroList() {
           showGuide={showGuide}
           setShowGuide={setShowGuide}
           updateSynergySuggestions={updateSynergySuggestions}
-          mousePosition={mousePosition}
           showWinrateInfo={showWinrateInfo}
           setShowWinrateInfo={setShowWinrateInfo}
           getWinProbability={getWinProbability}

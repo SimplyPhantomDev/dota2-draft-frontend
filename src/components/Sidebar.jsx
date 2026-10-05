@@ -1,5 +1,5 @@
-// Share the same compact layout between pool and global recommendations.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import HoverTooltip from "./HoverTooltip";
 
 function RecommendationRow({
     hero,
@@ -80,7 +80,6 @@ function Sidebar({
     showGuide,
     setShowGuide,
     updateSynergySuggestions,
-    mousePosition,
     showWinrateInfo,
     setShowWinrateInfo,
     getWinProbability,
@@ -91,6 +90,8 @@ function Sidebar({
     lastUpdated
 }) {
     const sidebarScrollRef = useRef(null);
+
+    const [tooltipPoint, setTooltipPoint] = useState({ x: 0, y: 0 });
 
     // The guide sits above recommendations; bring it into view whenever it opens.
     useEffect(() => {
@@ -184,7 +185,10 @@ function Sidebar({
                                                             src={ally.icon_url}
                                                             alt={ally.name}
                                                             className="block aspect-video w-12 rounded-control object-cover"
-                                                            onMouseEnter={() => setHoveredHero({ ...ally, team: 'ally' })}
+                                                            onMouseEnter={(event) => {
+                                                                setTooltipPoint({ x: event.clientX, y: event.clientY });
+                                                                setHoveredHero({ ...ally, team: 'ally' });
+                                                            }}
                                                             onMouseLeave={() => setHoveredHero(null)}
                                                         />
                                                     </td>
@@ -215,7 +219,10 @@ function Sidebar({
                                                             src={enemy.icon_url}
                                                             alt={enemy.name}
                                                             className="ml-auto block aspect-video w-12 rounded-control object-cover"
-                                                            onMouseEnter={() => setHoveredHero({ ...enemy, team: 'enemy' })}
+                                                            onMouseEnter={(event) => {
+                                                                setTooltipPoint({ x: event.clientX, y: event.clientY });
+                                                                setHoveredHero({ ...enemy, team: 'enemy' });
+                                                            }}
                                                             onMouseLeave={() => setHoveredHero(null)}
                                                         />
                                                     </td>
@@ -277,17 +284,11 @@ function Sidebar({
                                 </div>
 
                                 {hoveredHero && (
-                                    <div
-                                        className="fixed bg-gray-900 border border-gray-600 rounded p-4 text-sm shadow-lg z-50 w-[300px] max-h-[400px] overflow-y-auto pointer-events-none"
-                                        style={{
-                                            top: `${mousePosition.y + 10}px`,
-                                            left: `${mousePosition.x + 10}px`,
-                                        }}
-                                    >
-                                        <h3 className="text-white font-bold mb-2">
+                                    <HoverTooltip initialPoint={tooltipPoint}>
+                                        <h3 className="mb-ui-sm break-words font-semibold text-ink">
                                             Synergy breakdown: {hoveredHero.name}
                                         </h3>
-                                        <ul className="text-gray-300 space-y-1">
+                                        <ul className="space-y-ui-xs text-ink-muted">
                                             {(hoveredHero.team === 'ally'
                                                 ? [...selectedHeroes.ally, ...selectedHeroes.enemy]
                                                 : [...selectedHeroes.enemy, ...selectedHeroes.ally]
@@ -303,19 +304,21 @@ function Sidebar({
                                                         : (entry?.vsMap?.get(String(other.HeroId)) ?? 0);
 
                                                     return (
-                                                        <li key={other.HeroId} className="flex justify-between">
-                                                            <span>{other.name}</span>
-                                                            <span
-                                                                className={`font-mono ${score > 0 ? 'text-green-400' : score < 0 ? 'text-red-400' : 'text-gray-400'
-                                                                    }`}
-                                                            >
-                                                                {score > 0 ? '+' : ''}{score.toFixed(2)}
-                                                            </span>
+                                                        <li
+                                                            key={other.HeroId}
+                                                            className="flex items-start justify-between gap-ui-sm"
+                                                        >
+                                                            <span className={`shrink-0 font-mono tabular-nums ${score > 0
+                                                                    ? 'text-green-400'
+                                                                    : score < 0
+                                                                        ? 'text-danger'
+                                                                        : 'text-ink-muted'
+                                                                }`}>{other.name}</span>
                                                         </li>
                                                     );
                                                 })}
                                         </ul>
-                                    </div>
+                                    </HoverTooltip>
                                 )}
                             </>
                         ) : (
