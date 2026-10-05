@@ -312,12 +312,20 @@ function Sidebar({
                                                             key={other.HeroId}
                                                             className="flex items-start justify-between gap-ui-sm"
                                                         >
-                                                            <span className={`shrink-0 font-mono tabular-nums ${score > 0
-                                                                ? 'text-green-400'
-                                                                : score < 0
-                                                                    ? 'text-danger'
-                                                                    : 'text-ink-muted'
-                                                                }`}>{other.name}</span>
+                                                            <span className="min-w-0 break-words">
+                                                                {other.name}
+                                                            </span>
+
+                                                            <span
+                                                                className={`shrink-0 font-mono tabular-nums ${score > 0
+                                                                        ? 'text-green-400'
+                                                                        : score < 0
+                                                                            ? 'text-danger'
+                                                                            : 'text-ink-muted'
+                                                                    }`}
+                                                            >
+                                                                {score > 0 ? '+' : ''}{score.toFixed(2)}
+                                                            </span>
                                                         </li>
                                                     );
                                                 })}
