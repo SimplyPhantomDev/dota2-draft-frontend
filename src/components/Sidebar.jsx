@@ -1,4 +1,6 @@
 // Share the same compact layout between pool and global recommendations.
+import { useEffect, useRef } from "react";
+
 function RecommendationRow({
     hero,
     fromPool = false,
@@ -88,9 +90,21 @@ function Sidebar({
     patch,
     lastUpdated
 }) {
+    const sidebarScrollRef = useRef(null);
+
+    // The guide sits above recommendations; bring it into view whenever it opens.
+    useEffect(() => {
+        if (showGuide && sidebarScrollRef.current) {
+            sidebarScrollRef.current.scrollTop = 0;
+        }
+    }, [showGuide]);
+
     return (
         <div className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg">
-            <div className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm">
+            <div
+                ref={sidebarScrollRef}
+                className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"
+            >
                 {suggestedHeroes.length === 0 && hasPicks === false ? (
                     <p className="text-ink-muted text-sm italic">
                         Pick a hero to see recommendations.
@@ -408,32 +422,46 @@ function Sidebar({
                         )}
                     </>
                 )}
-            </div>
-            {/* === User Guide Box === */}
-            {showGuide && (
-                <div className="relative bg-gray-700 text-white text-sm rounded-lg p-3 mt-2 shadow-lg guide-flash">
-                    <button
-                        onClick={() => setShowGuide(false)}
-                        className="absolute top-1 right-2 text-gray-300 hover:text-white text-lg font-bold"
+                {/* === User Guide Box === */}
+                {showGuide && (
+                    <section
+                        aria-labelledby="drafting-guide-title"
+                        className="rounded-control border border-line bg-surface-raised text-sm guide-flash"
                     >
-                        ×
-                    </button>
-                    <p className="text-gray-300">
-                        <strong>Guide:</strong><br />
-                        Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
-                        ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
-                        Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br />
-                        Typing at any time starts a search function that is very familiar to people from Dota 2. Use the hero pool toggle button below to set your personalized
-                        hero pool and the tool will still suggest globally great hero choices but also three best choices from your hero pool. Clicking on the info button near
-                        the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. Hovering over hero suggestions shows more details
-                        as to where the number comes from, including any draft trait bonuses (Disabler / Pusher / Initiator) added when your draft is missing key tools early.
-                        Trait bonuses are only guidance for recommendations and are NOT included in the final full draft analysis once both teams are filled. <br /><br />
-                        If you encounter any bugs or problems, you can file a bug report using the button at the bottom of the screen. Do not abuse this functionality, as the
-                        button loses its purpose and I will stop receiving and reading the bug reports. Good luck in your games! <br />
-                        <i>- Phantom (the developer)</i>
-                    </p>
-                </div>
-            )}
+                        <div className="sticky top-0 z-10 flex items-center justify-between gap-ui-sm rounded-t-control border-b border-line bg-surface-raised px-ui-md py-ui-xs">
+                            <h2 id="drafting-guide-title" className="font-semibold text-ink">
+                                Guide
+                            </h2>
+
+                            <button
+                                type="button"
+                                aria-label="Close guide"
+                                onClick={() => setShowGuide(false)}
+                                className="ui-button h-9 w-9 shrink-0 p-0 text-lg"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p className="p-ui-md leading-relaxed text-ink-muted">
+                            Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
+                            ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
+                            Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br />
+
+                            Typing at any time starts a search function that is very familiar to people from Dota 2. Use the hero pool toggle button below to set your personalized
+                            hero pool and the tool will still suggest globally great hero choices but also three best choices from your hero pool. Clicking on the info button near
+                            the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. Hovering over hero suggestions shows more details
+                            as to where the number comes from, including any draft trait bonuses (Disabler / Pusher / Initiator) added when your draft is missing key tools early.
+                            Trait bonuses are only guidance for recommendations and are NOT included in the final full draft analysis once both teams are filled. <br /><br />
+
+                            If you encounter any bugs or problems, you can file a bug report using the button at the bottom of the screen. Do not abuse this functionality, as the
+                            button loses its purpose and I will stop receiving and reading the bug reports. Good luck in your games! <br />
+                            <i>- Phantom (the developer)</i>
+                        </p>
+                    </section>
+                )}
+            </div>
+
             {/* === Suggestion Filters: Pool & Role === */}
             <div className="mt-ui-md shrink-0 space-y-ui-sm border-t border-line pt-ui-sm">
                 <div className="flex flex-wrap items-start justify-between gap-ui-sm">
