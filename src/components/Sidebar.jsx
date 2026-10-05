@@ -105,6 +105,44 @@ function Sidebar({
                 ref={sidebarScrollRef}
                 className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"
             >
+                {/* === User Guide Box === */}
+                {showGuide && (
+                    <section
+                        aria-labelledby="drafting-guide-title"
+                        className="rounded-control border border-line bg-surface-raised text-sm guide-flash"
+                    >
+                        <div className="sticky top-0 z-10 flex items-center justify-between gap-ui-sm rounded-t-control border-b border-line bg-surface-raised px-ui-md py-ui-xs">
+                            <h2 id="drafting-guide-title" className="font-semibold text-ink">
+                                Guide
+                            </h2>
+
+                            <button
+                                type="button"
+                                aria-label="Close guide"
+                                onClick={() => setShowGuide(false)}
+                                className="ui-button h-9 w-9 shrink-0 p-0 text-lg"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <p className="p-ui-md leading-relaxed text-ink-muted">
+                            Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
+                            ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
+                            Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br />
+
+                            Typing at any time starts a search function that is very familiar to people from Dota 2. Use the hero pool toggle button above to set your personalized
+                            hero pool and the tool will still suggest globally great hero choices but also three best choices from your hero pool as long as the filter in turned on. Clicking on the info button near
+                            the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. Hovering over hero suggestions shows more details
+                            as to where the number comes from, including any draft trait bonuses (Disabler / Pusher / Initiator) added when your draft is missing key tools early.
+                            Trait bonuses are only guidance for recommendations and are NOT included in the final full draft analysis once both teams are filled. <br /><br />
+
+                            If you encounter any bugs or problems, you can file a bug report using the button at the bottom of the screen. Do not abuse this functionality, as the
+                            button loses its purpose and I will stop receiving and reading the bug reports. Good luck in your games! <br />
+                            <i>- Phantom (the developer)</i>
+                        </p>
+                    </section>
+                )}
                 {suggestedHeroes.length === 0 && hasPicks === false ? (
                     <p className="text-ink-muted text-sm italic">
                         Pick a hero to see recommendations.
@@ -421,44 +459,6 @@ function Sidebar({
                             </>
                         )}
                     </>
-                )}
-                {/* === User Guide Box === */}
-                {showGuide && (
-                    <section
-                        aria-labelledby="drafting-guide-title"
-                        className="rounded-control border border-line bg-surface-raised text-sm guide-flash"
-                    >
-                        <div className="sticky top-0 z-10 flex items-center justify-between gap-ui-sm rounded-t-control border-b border-line bg-surface-raised px-ui-md py-ui-xs">
-                            <h2 id="drafting-guide-title" className="font-semibold text-ink">
-                                Guide
-                            </h2>
-
-                            <button
-                                type="button"
-                                aria-label="Close guide"
-                                onClick={() => setShowGuide(false)}
-                                className="ui-button h-9 w-9 shrink-0 p-0 text-lg"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <p className="p-ui-md leading-relaxed text-ink-muted">
-                            Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
-                            ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
-                            Hero matchup data will be updated using STRATZ API once a week to maintain the integrity of the app. <br /><br />
-
-                            Typing at any time starts a search function that is very familiar to people from Dota 2. Use the hero pool toggle button below to set your personalized
-                            hero pool and the tool will still suggest globally great hero choices but also three best choices from your hero pool. Clicking on the info button near
-                            the title of your own hero pool suggestions shows your entire hero pool broken down into synergy scores. Hovering over hero suggestions shows more details
-                            as to where the number comes from, including any draft trait bonuses (Disabler / Pusher / Initiator) added when your draft is missing key tools early.
-                            Trait bonuses are only guidance for recommendations and are NOT included in the final full draft analysis once both teams are filled. <br /><br />
-
-                            If you encounter any bugs or problems, you can file a bug report using the button at the bottom of the screen. Do not abuse this functionality, as the
-                            button loses its purpose and I will stop receiving and reading the bug reports. Good luck in your games! <br />
-                            <i>- Phantom (the developer)</i>
-                        </p>
-                    </section>
                 )}
             </div>
 
