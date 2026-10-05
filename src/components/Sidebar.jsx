@@ -328,28 +328,36 @@ function Sidebar({
                                         const enemyWin = (100 - allyWin).toFixed(2);
 
                                         return (
-                                            <span className="inline-flex flex-wrap items-center justify-center gap-ui-sm text-lg font-bold">
-                                                <span className="text-green-400">{allyWin}%</span>
-                                                <span className="text-ink-muted">/</span>
-                                                <span className="text-danger">{enemyWin}%</span>
+                                            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-ui-sm text-lg font-bold">
+                                                <span className="justify-self-end whitespace-nowrap text-green-400 tabular-nums">
+                                                    {allyWin}%
+                                                </span>
 
-                                                <button
-                                                    ref={winrateInfoButtonRef}
-                                                    type="button"
-                                                    onClick={() => setShowWinrateInfo(prev => !prev)}
-                                                    className="ui-button h-9 w-9 shrink-0 p-0"
-                                                    aria-label="About the win probability estimate"
-                                                    aria-expanded={showWinrateInfo}
-                                                    aria-controls={showWinrateInfo ? "winrate-info" : undefined}
-                                                    title="About the win probability estimate"
-                                                >
-                                                    <img
-                                                        src={infoButtonIcon}
-                                                        alt=""
-                                                        className="h-4 w-4 invert"
-                                                    />
-                                                </button>
-                                            </span>
+                                                <span className="text-ink-muted">/</span>
+
+                                                <div className="flex min-w-0 items-center gap-ui-sm">
+                                                    <span className="whitespace-nowrap text-danger tabular-nums">
+                                                        {enemyWin}%
+                                                    </span>
+
+                                                    <button
+                                                        ref={winrateInfoButtonRef}
+                                                        type="button"
+                                                        onClick={() => setShowWinrateInfo(prev => !prev)}
+                                                        className="ui-button h-9 w-9 shrink-0 p-0"
+                                                        aria-label="About the win probability estimate"
+                                                        aria-expanded={showWinrateInfo}
+                                                        aria-controls={showWinrateInfo ? "winrate-info" : undefined}
+                                                        title="About the win probability estimate"
+                                                    >
+                                                        <img
+                                                            src={infoButtonIcon}
+                                                            alt=""
+                                                            className="h-4 w-4 invert"
+                                                        />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         );
                                     })()}
 
