@@ -90,6 +90,7 @@ function Sidebar({
     lastUpdated
 }) {
     const sidebarScrollRef = useRef(null);
+    const sidebarPanelRef = useRef(null);
 
     const [tooltipPoint, setTooltipPoint] = useState({ x: 0, y: 0 });
 
@@ -101,7 +102,10 @@ function Sidebar({
     }, [showGuide]);
 
     return (
-        <div className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg">
+        <div
+            ref={sidebarPanelRef}
+            className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg"
+        >
             <div
                 ref={sidebarScrollRef}
                 className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"
@@ -284,7 +288,7 @@ function Sidebar({
                                 </div>
 
                                 {hoveredHero && (
-                                    <HoverTooltip initialPoint={tooltipPoint}>
+                                    <HoverTooltip initialPoint={tooltipPoint} anchorRef={sidebarPanelRef}>
                                         <h3 className="mb-ui-sm break-words font-semibold text-ink">
                                             Synergy breakdown: {hoveredHero.name}
                                         </h3>
@@ -309,10 +313,10 @@ function Sidebar({
                                                             className="flex items-start justify-between gap-ui-sm"
                                                         >
                                                             <span className={`shrink-0 font-mono tabular-nums ${score > 0
-                                                                    ? 'text-green-400'
-                                                                    : score < 0
-                                                                        ? 'text-danger'
-                                                                        : 'text-ink-muted'
+                                                                ? 'text-green-400'
+                                                                : score < 0
+                                                                    ? 'text-danger'
+                                                                    : 'text-ink-muted'
                                                                 }`}>{other.name}</span>
                                                         </li>
                                                     );
@@ -349,7 +353,10 @@ function Sidebar({
                                                         key={`pool-${hero.HeroId}`}
                                                         hero={hero}
                                                         fromPool
-                                                        onMouseEnter={() => setHoveredSuggestedHero(hero)}
+                                                        onMouseEnter={(event) => {
+                                                            setTooltipPoint({ x: event.clientX, y: event.clientY });
+                                                            setHoveredSuggestedHero(hero);
+                                                        }}
                                                         onMouseLeave={() => setHoveredSuggestedHero(null)}
                                                     />
                                                 ))}
@@ -363,7 +370,10 @@ function Sidebar({
                                             <RecommendationRow
                                                 key={`global-${hero.HeroId}`}
                                                 hero={hero}
-                                                onMouseEnter={() => setHoveredSuggestedHero(hero)}
+                                                onMouseEnter={(event) => {
+                                                    setTooltipPoint({ x: event.clientX, y: event.clientY });
+                                                    setHoveredSuggestedHero(hero);
+                                                }}
                                                 onMouseLeave={() => setHoveredSuggestedHero(null)}
                                             />
                                         ))}
@@ -378,7 +388,10 @@ function Sidebar({
                                     </div>
                                 )}
                                 {hoveredSuggestedHero && (
-                                    <div className="absolute right-4 bottom-36 bg-gray-900 border border-gray-600 rounded opacity-90 p-6 text-sm shadow-lg z-30 w-[320px] max-h-[400px] overflow-y-auto pointer-events-none">
+                                    <HoverTooltip
+                                        initialPoint={tooltipPoint}
+                                        anchorRef={sidebarPanelRef}
+                                    >
                                         <h3 className="text-white font-bold mb-2">{hoveredSuggestedHero.name} Breakdown</h3>
 
                                         <div className="mb-2">
@@ -433,7 +446,7 @@ function Sidebar({
                                                 ))}
                                             </div>
                                         )}
-                                    </div>
+                                    </HoverTooltip>
                                 )}
                                 {showPoolBreakdown && (
                                     <div className="absolute top-4 right-[360px] bg-gray-900 border border-purple-500 rounded-lg p-4 shadow-lg w-[300px] max-h-[80vh] overflow-y-auto z-50">

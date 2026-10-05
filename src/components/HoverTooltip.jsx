@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
-export default function HoverTooltip({ initialPoint, children }) {
+export default function HoverTooltip({ initialPoint, anchorRef = null, children }) {
     const tooltipRef = useRef(null);
 
     // Measure before paint. Mouse movement only changes this tooltip's position;
@@ -15,13 +15,20 @@ export default function HoverTooltip({ initialPoint, children }) {
             const { width, height } = tooltip.getBoundingClientRect();
             const viewportWidth = document.documentElement.clientWidth;
             const viewportHeight = window.innerHeight;
-            let left = pointer.x + margin;
+            const anchor = anchorRef?.current?.getBoundingClientRect();
+            let left = anchor
+                ? anchor.left - width - margin
+                : pointer.x + margin;
             let top = pointer.y + margin;
 
-            // Flip to the other side of the pointer when there is not enough room.
-            if (left + width > viewportWidth - margin) {
+            // Anchored breakdowns stay beside the sidebar, clear of its filters.
+            // Other tooltips keep their usual cursor-following placement.
+            if (anchor) {
+                if (left < margin) left = anchor.right + margin;
+            } else if (left + width > viewportWidth - margin) {
                 left = pointer.x - width - margin;
             }
+
             if (top + height > viewportHeight - margin) {
                 top = pointer.y - height - margin;
             }
@@ -54,7 +61,7 @@ export default function HoverTooltip({ initialPoint, children }) {
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("resize", positionTooltip);
         };
-    }, [initialPoint]);
+    }, [initialPoint, anchorRef]);
 
     // Render outside the sidebar so its scroll area cannot clip the tooltip.
     return createPortal(
