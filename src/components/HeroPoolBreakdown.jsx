@@ -1,18 +1,64 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
-export default function HeroPoolBreakdown({ heroes, onClose }) {
-    const dialogRef = useRef(null);
+export default function HeroPoolBreakdown({
+    heroes,
+    onClose,
+    floating = false,
+    anchorRef,
+    panelRef
+}) {
+    const localRef = useRef(null);
+    const dialogRef = panelRef ?? localRef;
 
-    // showModal places the dialog above the app and manages modal focus.
-    // Cleanup also closes it if its parent removes it.
-    useEffect(() => {
+    // Wide windows use a modeless panel; smaller windows retain modal focus.
+    // Cleanup closes the old mode before reopening after a window resize.
+    useLayoutEffect(() => {
         const dialog = dialogRef.current;
-        dialog.showModal();
+
+        dialog.style.left = "";
+        dialog.style.top = "";
+        dialog.style.maxHeight = "";
+
+        const positionPanel = () => {
+            const anchor = anchorRef?.current;
+            if (!anchor) return;
+
+            const bounds = anchor.getBoundingClientRect();
+            const width = dialog.getBoundingClientRect().width;
+            const margin = 12;
+            const top = Math.max(margin, bounds.top);
+
+            dialog.style.left =
+                `${Math.max(margin, bounds.left - width - margin)}px`;
+            dialog.style.top = `${top}px`;
+            dialog.style.maxHeight =
+                `${Math.max(0, window.innerHeight - top - margin)}px`;
+        };
+
+        let observer;
+
+        if (floating) {
+            dialog.show();
+            positionPanel();
+
+            window.addEventListener("resize", positionPanel);
+
+            if (anchorRef?.current) {
+                observer = new ResizeObserver(positionPanel);
+                observer.observe(anchorRef.current);
+            }
+        } else {
+            dialog.showModal();
+        }
 
         return () => {
+            window.removeEventListener("resize", positionPanel);
+            observer?.disconnect();
+
             if (dialog.open) dialog.close();
         };
-    }, []);
+    }, [floating, anchorRef, dialogRef]);
 
     // Close before unmounting so focus returns to the opening button.
     const closeDialog = () => {
@@ -21,7 +67,7 @@ export default function HeroPoolBreakdown({ heroes, onClose }) {
     };
 
     const handleBackdropClick = (event) => {
-        if (event.target !== event.currentTarget) return;
+        if (floating || event.target !== event.currentTarget) return;
 
         const bounds = event.currentTarget.getBoundingClientRect();
 
@@ -35,19 +81,29 @@ export default function HeroPoolBreakdown({ heroes, onClose }) {
         }
     };
 
-    return (
+    return createPortal(
         <dialog
             ref={dialogRef}
+            aria-modal={!floating}
             aria-labelledby="hero-pool-breakdown-title"
-            className="m-auto w-[28rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink shadow-panel backdrop:bg-black/60 open:flex open:flex-col"
+            className={`max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink shadow-panel open:flex open:flex-col ${floating
+                ? "fixed z-[70] m-0 w-[21rem]"
+                : "m-auto w-[28rem] backdrop:bg-black/60"
+                }`}
             onCancel={(event) => {
                 event.preventDefault();
                 closeDialog();
             }}
             onClick={handleBackdropClick}
             onKeyDown={(event) => {
-                // Prevent typing here from triggering the global hero search.
+                // Prevent keys inside the panel from triggering the global hero search.
                 event.stopPropagation();
+
+                // Modeless dialogs need an explicit Escape handler.
+                if (floating && event.key === "Escape") {
+                    event.preventDefault();
+                    closeDialog();
+                }
             }}
         >
             <header className="flex shrink-0 items-center justify-between gap-ui-sm border-b border-line p-ui-md">
@@ -102,13 +158,12 @@ export default function HeroPoolBreakdown({ heroes, onClose }) {
                                     </span>
 
                                     <span
-                                        className={`shrink-0 font-mono text-sm tabular-nums ${
-                                            score > 0
-                                                ? "text-green-400"
-                                                : score < 0
-                                                    ? "text-danger"
-                                                    : "text-ink-muted"
-                                        }`}
+                                        className={`shrink-0 font-mono text-sm tabular-nums ${score > 0
+                                            ? "text-green-400"
+                                            : score < 0
+                                                ? "text-danger"
+                                                : "text-ink-muted"
+                                            }`}
                                     >
                                         {hero.totalScore}
                                     </span>
@@ -118,6 +173,7 @@ export default function HeroPoolBreakdown({ heroes, onClose }) {
                     </ul>
                 )}
             </div>
-        </dialog>
+        </dialog>,
+        document.body
     );
 }
