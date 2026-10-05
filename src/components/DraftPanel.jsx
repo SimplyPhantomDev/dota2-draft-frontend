@@ -116,7 +116,7 @@ function DraftPanel({
     return (
         <div
             ref={panelRef}
-            className="ui-panel mb-ui-sm px-ui-lg py-ui-sm"
+            className="ui-panel shrink-0 mb-ui-sm px-ui-lg py-ui-sm"
         >
             {/* hidden measurement node so we get actions width reliably */}
             <div
@@ -193,7 +193,7 @@ function DraftPanel({
                 </div>
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
-            <div className="mt-2 grid grid-cols-[1fr_auto_1fr] grid-rows-[18px,auto] gap-x-4">
+            <div className="mt-ui-sm grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[18px_auto] gap-x-ui-sm">
                 {/* Left: grid toggle spans both rows */}
                 <div className="row-span-2 self-center justify-self-start">
                     <button
@@ -227,11 +227,11 @@ function DraftPanel({
                 </div>
 
                 {/* Bottom middle: ban slots */}
-                <div className="col-start-2 row-start-2 flex justify-center gap-2 mt-1 justify-self-center">
+                <div className="col-start-2 row-start-2 mt-ui-xs grid w-full min-w-0 max-w-[80rem] grid-cols-8 gap-ui-xs justify-self-center 2xl:grid-cols-[repeat(16,minmax(0,1fr))]">
                     {[...Array(16)].map((_, i) => (
                         <div
                             key={i}
-                            className="w-[71px] h-[40px] bg-gray-900 border border-gray-700 rounded flex items-center justify-center overflow-hidden"
+                            className="min-w-0 aspect-video bg-surface-raised border border-line rounded-control flex items-center justify-center overflow-hidden"
                         >
                             {bannedHeroes[i] && (
                                 <div
@@ -241,7 +241,7 @@ function DraftPanel({
                                     <img
                                         src={bannedHeroes[i].icon_url}
                                         alt={bannedHeroes[i].name}
-                                        className="object-contain w-full h-full filter grayscale"
+                                        className="object-cover w-full h-full filter grayscale"
                                     />
                                     <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
                                         <span className="text-red-400 font-bold text-[10px]">REMOVE</span>
