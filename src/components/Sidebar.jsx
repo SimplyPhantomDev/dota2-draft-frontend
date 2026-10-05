@@ -99,66 +99,95 @@ function Sidebar({
                     <>
                         {fullDraftStats ? (
                             <>
-                                {/* Header Row */}
-                                <div className="flex items-center justify-between text-xs font-bold text-gray-300 border-b border-gray-600 mb-1">
-                                    <span className="w-10 text-left">Ally</span>
-                                    <span className="w-10 text-right">Score</span>
-                                    <div className="border-1 border-gray-500 h-6 mx-1" />
-                                    <span className="w-10 text-left">Score</span>
-                                    <span className="w-10 text-right">Enemy</span>
-                                </div>
+                                {/* One table keeps headers and all five hero rows aligned. */}
+                                <table className="w-full border-separate border-spacing-x-0 border-spacing-y-ui-xs text-sm">
+                                    <caption className="sr-only">Full draft hero scores</caption>
 
-                                {/* 5 rows for each hero */}
-                                {Array.from({ length: 5 }).map((_, i) => {
-                                    const ally = fullDraftStats.ally[i];
-                                    const enemy = fullDraftStats.enemy[i];
-                                    return (
-                                        <div key={i} className="flex items-center justify-between bg-gray-700 rounded px-2 py-1">
-                                            <img
-                                                src={ally.icon_url}
-                                                alt={ally.name}
-                                                className="w-10 h-10 object-contain"
-                                                onMouseEnter={() => setHoveredHero({ ...ally, team: 'ally' })}
-                                                onMouseLeave={() => setHoveredHero(null)}
-                                            />
-                                            <span
-                                                className={`text-sm font-mono w-10 text-right ${ally.totalScore > 0 ? 'text-green-400' :
-                                                    ally.totalScore < 0 ? 'text-red-400' :
-                                                        'text-gray-400'
-                                                    }`}
-                                            >
-                                                {ally.totalScore > 0 ? '+' : ''}{ally.totalScore}
-                                            </span>
-                                            <div className="border-1 border-gray-600 h-6 mx-1" />
-                                            <span
-                                                className={`text-sm font-mono w-10 text-left ${enemy.totalScore > 0 ? 'text-red-400' :
-                                                    enemy.totalScore < 0 ? 'text-green-400' :
-                                                        'text-gray-400'
-                                                    }`}
-                                            >
-                                                {enemy.totalScore > 0 ? '+' : ''}{enemy.totalScore}
-                                            </span>
-                                            <img
-                                                src={enemy.icon_url}
-                                                alt={enemy.name}
-                                                className="w-10 h-10 object-contain"
-                                                onMouseEnter={() => setHoveredHero({ ...enemy, team: 'enemy' })}
-                                                onMouseLeave={() => setHoveredHero(null)}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                                {/* Totals */}
-                                <div className="mt-2 flex items-center justify-center gap-2 text-lg font-bold">
-                                    <span className="text-green-400">
-                                        {fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
-                                    </span>
-                                    <span className="text-gray-400 text-sm">vs</span>
-                                    <span className="text-red-400">
-                                        {fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
-                                    </span>
-                                </div>
+                                    <thead className="text-xs font-semibold text-ink-muted">
+                                        <tr>
+                                            <th scope="col" className="border-b border-line px-ui-xs pb-ui-sm text-left">
+                                                Ally
+                                            </th>
+                                            <th scope="col" aria-label="Ally score" className="border-b border-line px-ui-xs pb-ui-sm text-right">
+                                                Score
+                                            </th>
+                                            <th scope="col" aria-label="Enemy score" className="border-b border-l border-line px-ui-xs pb-ui-sm text-left">
+                                                Score
+                                            </th>
+                                            <th scope="col" className="border-b border-line px-ui-xs pb-ui-sm text-right">
+                                                Enemy
+                                            </th>
+                                        </tr>
+                                    </thead>
 
+                                    <tbody>
+                                        {Array.from({ length: 5 }).map((_, i) => {
+                                            const ally = fullDraftStats.ally[i];
+                                            const enemy = fullDraftStats.enemy[i];
+
+                                            return (
+                                                <tr key={i}>
+                                                    <td className="rounded-l-control bg-surface-raised px-ui-xs py-ui-xs align-middle">
+                                                        <img
+                                                            src={ally.icon_url}
+                                                            alt={ally.name}
+                                                            className="block aspect-video w-12 rounded-control object-cover"
+                                                            onMouseEnter={() => setHoveredHero({ ...ally, team: 'ally' })}
+                                                            onMouseLeave={() => setHoveredHero(null)}
+                                                        />
+                                                    </td>
+
+                                                    <td
+                                                        className={`bg-surface-raised px-ui-xs py-ui-xs text-right align-middle font-mono tabular-nums whitespace-nowrap ${ally.totalScore > 0
+                                                            ? 'text-green-400'
+                                                            : ally.totalScore < 0
+                                                                ? 'text-danger'
+                                                                : 'text-ink-muted'}`}
+                                                    >
+                                                        {ally.totalScore > 0 ? '+' : ''}{ally.totalScore}
+                                                    </td>
+
+                                                    {/* Enemy colours are reversed: positive enemy scores favour the opposing team. */}
+                                                    <td
+                                                        className={`border-l border-line bg-surface-raised px-ui-xs py-ui-xs text-left align-middle font-mono tabular-nums whitespace-nowrap ${enemy.totalScore > 0
+                                                            ? 'text-danger'
+                                                            : enemy.totalScore < 0
+                                                                ? 'text-green-400'
+                                                                : 'text-ink-muted'}`}
+                                                    >
+                                                        {enemy.totalScore > 0 ? '+' : ''}{enemy.totalScore}
+                                                    </td>
+
+                                                    <td className="rounded-r-control bg-surface-raised px-ui-xs py-ui-xs align-middle">
+                                                        <img
+                                                            src={enemy.icon_url}
+                                                            alt={enemy.name}
+                                                            className="ml-auto block aspect-video w-12 rounded-control object-cover"
+                                                            onMouseEnter={() => setHoveredHero({ ...enemy, team: 'enemy' })}
+                                                            onMouseLeave={() => setHoveredHero(null)}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+
+                                <div className="grid grid-cols-2 gap-ui-md border-t border-line pt-ui-sm">
+                                    <div className="min-w-0 text-center">
+                                        <p className="text-xs text-ink-muted">Ally total</p>
+                                        <p className="font-mono text-lg font-semibold tabular-nums text-green-400">
+                                            {fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
+                                        </p>
+                                    </div>
+
+                                    <div className="min-w-0 text-center">
+                                        <p className="text-xs text-ink-muted">Enemy total</p>
+                                        <p className="font-mono text-lg font-semibold tabular-nums text-danger">
+                                            {fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
+                                        </p>
+                                    </div>
+                                </div>
                                 {/* Outcome prediction */}
                                 <div className="mt-1 text-center relative group">
                                     {(() => {
