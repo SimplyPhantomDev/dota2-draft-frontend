@@ -32,34 +32,32 @@ function DraftPanel({
     // when true -> action buttons move down to the "Bans row"
     const [dockActionsBelow, setDockActionsBelow] = useState(false);
 
-    const ActionButtons = ({ size = "large" }) => {
-        const btnClass =
-            size === "large"
-                ? "w-[71px] h-[60px] text-m"
-                : "w-[71px] h-[60px] text-m";
+    const ActionButtons = () => {
+        const buttonSize = "w-[71px] h-[60px] text-xs";
 
         return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-ui-sm">
                 <button
+                    type="button"
                     onClick={() => setEditHeroPoolMode((prev) => !prev)}
-                    className={`${btnClass} px-1 font-bold rounded transition-colors duration-150 ${editHeroPoolMode
-                        ? "bg-purple-600 text-white animate-pulse"
-                        : "bg-purple-300 text-black hover:bg-gray-300"
-                        }`}
+                    aria-pressed={editHeroPoolMode}
+                    className={`ui-button ui-button-accent px-ui-xs ${buttonSize}`}
                 >
                     {editHeroPoolMode ? "EDITING" : "EDIT POOL"}
                 </button>
 
                 <button
+                    type="button"
                     onClick={handleClearBans}
-                    className={`${btnClass} bg-gray-200 hover:bg-gray-300 text-black font-bold rounded`}
+                    className={`ui-button px-ui-xs ${buttonSize}`}
                 >
                     CLEAR BANS
                 </button>
 
                 <button
+                    type="button"
                     onClick={handleClear}
-                    className={`${btnClass} bg-red-400 hover:bg-gray-300 text-black font-bold rounded`}
+                    className={`ui-button ui-button-danger px-ui-xs ${buttonSize}`}
                 >
                     CLEAR ALL
                 </button>
@@ -123,9 +121,11 @@ function DraftPanel({
             {/* hidden measurement node so we get actions width reliably */}
             <div
                 ref={actionsMeasureRef}
+                aria-hidden="true"
+                inert
                 className="absolute -left-[9999px] -top-[9999px] opacity-0 pointer-events-none"
             >
-                <ActionButtons size="large" />
+                <ActionButtons />
             </div>
 
             {/* ===================== ROW 1 ===================== */}
@@ -189,7 +189,7 @@ function DraftPanel({
 
                 {/* Right: actions if not docked */}
                 <div className="justify-self-end">
-                    {!dockActionsBelow && <ActionButtons size="large" />}
+                    {!dockActionsBelow && <ActionButtons />}
                 </div>
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
@@ -223,7 +223,7 @@ function DraftPanel({
 
                 {/* Right: docked action buttons span both rows (ONLY when needed) */}
                 <div className="col-start-3 row-span-2 self-center justify-self-end">
-                    {dockActionsBelow && <ActionButtons size="large" />}
+                    {dockActionsBelow && <ActionButtons />}
                 </div>
 
                 {/* Bottom middle: ban slots */}

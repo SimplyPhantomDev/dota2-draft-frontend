@@ -51,4 +51,42 @@
   .ui-panel {
     @apply rounded-panel border border-line bg-surface shadow-panel;
   }
+
+  .ui-button {
+    @apply inline-flex items-center justify-center gap-ui-xs
+      rounded-control border border-line bg-surface-raised
+      px-ui-sm py-ui-xs text-sm font-semibold text-ink;
+    min-height: 2.25rem;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+
+  .ui-button:hover:not(:disabled) {
+    @apply bg-surface-hover;
+  }
+
+  .ui-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .ui-button-accent {
+    @apply border-accent/50 bg-accent/10 text-accent;
+  }
+
+  .ui-button-accent:hover:not(:disabled) {
+    @apply bg-accent/20;
+  }
+
+  .ui-button-accent[aria-pressed="true"],
+  .ui-button-accent[aria-pressed="true"]:hover:not(:disabled) {
+    @apply border-accent bg-accent text-canvas;
+  }
+
+  .ui-button-danger {
+    @apply border-danger/50 bg-danger/10 text-danger;
+  }
+
+  .ui-button-danger:hover:not(:disabled) {
+    @apply bg-danger/20;
+  }
 }
