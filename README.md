@@ -217,6 +217,7 @@ Check report validation with empty fields. Mock `submitIssueReport` for request 
 7. Hover over recommendations to inspect their score breakdowns.
 8. Fill both teams to display the full-draft comparison.
 
+Press **F2** while the application is focused to switch the click-pick destination. It also works while hero search is focused. Manual team switching is disabled when either team is full; the selector automatically chooses the team with space. Modal dialogs and other editable fields keep their keyboard input.
 Click a drafted hero to remove it. **CLEAR BANS** removes bans, while **CLEAR ALL** resets the current draft and bans without deleting your saved hero pool.
 
 The interface is designed for desktop mouse and keyboard use.

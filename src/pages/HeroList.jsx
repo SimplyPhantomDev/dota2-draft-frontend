@@ -15,6 +15,7 @@ import { DraggableHero } from '../components/structures';
 import ReportIssueButton from '../components/ReportIssueButton';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
+const TEAM_SWITCH_KEY = "F2";
 
 export default function HeroList() {
 
@@ -172,6 +173,15 @@ export default function HeroList() {
   // True if either team has selected at least one hero
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
+  // The button and focused shortcut share the same availability rule.
+  const canSwitchTeam =
+    selectedHeroes.ally.length < 5 && selectedHeroes.enemy.length < 5;
+
+  const handleTeamSwitch = useCallback(() => {
+    if (!canSwitchTeam) return;
+    setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
+  }, [canSwitchTeam]);
+
   // The new estimator needs a complete draft and usable baseline/matchup data.
   // A null result tells the sidebar to use the existing score-based estimate.
   const draftWinProbability = useMemo(() => calculateDraftWinProbability({
@@ -313,43 +323,57 @@ export default function HeroList() {
   //========= Keyboard & Search Logic ============
   //==============================================
 
-  // Handle typing and backspace logic for search bar focus and clearing
+  // Handle focused shortcuts before ordinary typing can activate hero search.
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (document.querySelector("dialog[open]")) return;
+      if (e.defaultPrevented || e.isComposing || !document.hasFocus()
+        || document.visibilityState === "hidden") return;
+
+      // Modal dialogs own keyboard input. Floating pool panels remain interactive.
+      if (document.querySelector('dialog[open]:not([aria-modal="false"])')) return;
 
       const el = document.activeElement;
       const tag = el?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select" || el?.isContentEditable) {
-        if (el === searchInputRef.current) {
-          // continue
-        } else {
-          return;
-        }
+      const editing = tag === "input" || tag === "textarea"
+        || tag === "select" || el?.isContentEditable;
+
+      // Search can stay focused during drafting; other fields own their keystrokes.
+      if (editing && el !== searchInputRef.current) return;
+
+      if (e.code === TEAM_SWITCH_KEY
+        && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+        e.preventDefault();
+        if (!e.repeat) handleTeamSwitch();
+        return;
       }
+
+      // Navigation and modified shortcuts must not move focus into hero search.
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key.length !== 1 && e.key !== "Backspace") return;
+
+      // Preserve keyboard activation of buttons and links with Space.
+      if (e.key === " " && el?.closest('button, a[href], [role="button"]')) return;
 
       if (document.activeElement !== searchInputRef.current) {
         searchInputRef.current?.focus();
       }
 
-      if (e.key.length === 1 || e.key === "Backspace") {
-        const now = Date.now();
+      const now = Date.now();
 
-        if (e.key === "Backspace") {
-          const timeSinceInteraction = now - lastInteractionRef.current;
-          if (bypassTimerRef.current || timeSinceInteraction > 2000) {
-            setSearchQuery("");
-          }
+      if (e.key === "Backspace") {
+        const timeSinceInteraction = now - lastInteractionRef.current;
+        if (bypassTimerRef.current || timeSinceInteraction > 2000) {
+          setSearchQuery("");
         }
-
-        lastInteractionRef.current = now;
-        bypassTimerRef.current = false;
       }
+
+      lastInteractionRef.current = now;
+      bypassTimerRef.current = false;
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [handleTeamSwitch]);
 
   //==============================================
   //========== UI Behavior & Layout ==============
@@ -740,7 +764,9 @@ export default function HeroList() {
       <DraftPanel
         selectedHeroes={selectedHeroes}
         selectedTeam={selectedTeam}
-        setSelectedTeam={setSelectedTeam}
+        handleTeamSwitch={handleTeamSwitch}
+        canSwitchTeam={canSwitchTeam}
+        teamSwitchKey={TEAM_SWITCH_KEY}
         handleDrop={handleDrop}
         handleHeroDeselect={handleHeroDeselect}
         enemyRolePredictions={enemyRolePredictions}

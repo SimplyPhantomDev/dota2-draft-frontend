@@ -3,7 +3,9 @@ import { TeamDropZone } from "./structures";
 function DraftPanel({
     selectedHeroes,
     selectedTeam,
-    setSelectedTeam,
+    handleTeamSwitch,
+    canSwitchTeam,
+    teamSwitchKey,
     handleDrop,
     handleHeroDeselect,
     enemyRolePredictions,
@@ -92,14 +94,16 @@ function DraftPanel({
                     />
 
                     <button
-                        onClick={() => setSelectedTeam((prev) => (prev === "ally" ? "enemy" : "ally"))}
-                        disabled={selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5}
-                        className={`whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition 
-              ${selectedTeam === "ally"
+                        onClick={handleTeamSwitch}
+                        disabled={!canSwitchTeam}
+                        title={`Switch pick team (${teamSwitchKey})`}
+                        aria-keyshortcuts={teamSwitchKey}
+                        className={`whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition
+                            ${selectedTeam === "ally"
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-red-600 hover:bg-red-700"
                             }
-              ${selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5
+                            ${!canSwitchTeam
                                 ? "bg-gray-500 cursor-not-allowed opacity-50"
                                 : ""
                             }`}
