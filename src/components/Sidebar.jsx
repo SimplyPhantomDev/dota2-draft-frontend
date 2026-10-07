@@ -327,12 +327,12 @@ function Sidebar({
                                         const delta = allyTotal - enemyTotal;
 
                                         // Round the ally percentage once, then derive its complement.
-                                        // Integer hundredths keep the displayed total exactly 100.00%.
+                                        // Integer hundredths keep the displayed total exactly 100%.
                                         const allyHundredths = draftWinProbability
                                             ? Math.round(draftWinProbability.ally * 10000)
                                             : Math.round(getWinProbability(delta) * 100);
-                                        const allyWin = (allyHundredths / 100).toFixed(2);
-                                        const enemyWin = ((10000 - allyHundredths) / 100).toFixed(2);
+                                        const allyWin = allyHundredths / 100;
+                                        const enemyWin = (10000 - allyHundredths) / 100;
 
                                         return (
                                             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-ui-sm text-lg font-bold">

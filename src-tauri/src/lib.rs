@@ -1,3 +1,6 @@
+#[cfg(desktop)]
+mod window_shortcut;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -11,6 +14,13 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // A shortcut conflict must not prevent the application opening.
+            #[cfg(desktop)]
+            if let Err(error) = window_shortcut::install(app) {
+                log::warn!("Window shortcut unavailable: {error}");
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())
