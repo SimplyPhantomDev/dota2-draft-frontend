@@ -44,3 +44,29 @@ pub fn load(app: &tauri::AppHandle) -> Result<WindowShortcutSettings, Box<dyn Er
 
     Ok(settings)
 }
+
+pub fn save(
+    app: &tauri::AppHandle,
+    settings: &WindowShortcutSettings,
+) -> Result<(), Box<dyn Error>> {
+    let directory = app.path().app_data_dir()?;
+    fs::create_dir_all(&directory)?;
+
+    let path = directory.join("window-shortcut.json");
+    let temporary = directory.join(format!(
+        "window-shortcut.{}.tmp",
+        std::process::id()
+    ));
+    let contents = serde_json::to_string_pretty(settings)?;
+
+    // Write a complete replacement before touching the existing preferences.
+    let result = fs::write(&temporary, contents)
+        .and_then(|_| fs::rename(&temporary, &path));
+
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+
+    result?;
+    Ok(())
+}
