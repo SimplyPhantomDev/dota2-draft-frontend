@@ -1,5 +1,7 @@
 #[cfg(desktop)]
 mod window_shortcut;
+#[cfg(desktop)]
+mod window_shortcut_settings;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

@@ -2,17 +2,21 @@
     write rust code.
 */
 
+use crate::window_shortcut_settings;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
-
-const DEFAULT_SHORTCUT: &str = "Control+Shift+F8";
 
 pub fn install(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.handle()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())?;
 
+    let settings = window_shortcut_settings::load(app.handle())?;
+    if !settings.enabled {
+        return Ok(());
+    }
+
     app.global_shortcut()
-        .on_shortcut(DEFAULT_SHORTCUT, |app, _shortcut, event| {
+        .on_shortcut(settings.shortcut.as_str(), |app, _shortcut, event| {
             // Toggle on release so one key gesture produces one action,
             // and the held shortcut does not type into the newly focused app.
             if event.state != ShortcutState::Released {
