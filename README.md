@@ -46,7 +46,11 @@ Once both teams contain five heroes, the application calculates individual hero 
 
 The composition bonuses used during recommendations are excluded from this final comparison.
 
-The displayed win percentage is a heuristic transformation of the difference between team scores, bounded between 20% and 80%. It indicates relative draft strength rather than a measured probability of winning. Player skill, execution, item choices, and coordination are outside the calculation.
+When all ten selected heroes have valid seven-day win rate baselines and complete matchup data, the displayed percentages use a baseline-adjusted heuristic. Each hero's baseline is adjusted by the equally weighted averages of its ally synergy and opponent matchup scores. The hero estimates are averaged within each team, then the ally estimate is averaged with the enemy's implied loss estimate. The displayed percentages sum to 100%.
+
+If the required data is unavailable, the application uses the existing transformation of the team-score difference, bounded between 20% and 80%.
+
+Both calculations are heuristics that have not been validated against match results. Player skill, execution, item choices, and coordination are outside the calculation.
 
 ### Enemy role estimates
 

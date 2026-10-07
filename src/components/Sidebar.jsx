@@ -87,6 +87,7 @@ function Sidebar({
     showWinrateInfo,
     setShowWinrateInfo,
     getWinProbability,
+    draftWinProbability = null,
     hasPicks,
     bannedHeroes,
     infoButtonIcon,
@@ -324,8 +325,14 @@ function Sidebar({
                                             (sum, h) => sum + parseFloat(h.totalScore), 0
                                         );
                                         const delta = allyTotal - enemyTotal;
-                                        const allyWin = getWinProbability(delta);
-                                        const enemyWin = (100 - allyWin).toFixed(2);
+
+                                        // Round the ally percentage once, then derive its complement.
+                                        // Integer hundredths keep the displayed total exactly 100.00%.
+                                        const allyHundredths = draftWinProbability
+                                            ? Math.round(draftWinProbability.ally * 10000)
+                                            : Math.round(getWinProbability(delta) * 100);
+                                        const allyWin = (allyHundredths / 100).toFixed(2);
+                                        const enemyWin = ((10000 - allyHundredths) / 100).toFixed(2);
 
                                         return (
                                             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-ui-sm text-lg font-bold">
@@ -389,9 +396,25 @@ function Sidebar({
                                             </div>
 
                                             <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
-                                                These percentages use hero synergy and matchup scores only.
-                                                The favoured team's estimate is capped at 80%.
-                                                Player skill, teamwork and execution can still change the outcome.
+                                                {draftWinProbability ? (
+                                                    <>
+                                                        These percentages combine recent hero win rates with
+                                                        averaged ally synergy and opponent matchup adjustments.
+                                                        The two team estimates are reconciled to total 100%.
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        Complete data for the win rate based estimate is unavailable.
+                                                        These percentages use synergy and matchup scores only,
+                                                        with the favoured team's estimate capped at 80%.
+                                                    </>
+                                                )}
+                                            </p>
+
+                                            <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
+                                                Both calculations are heuristics and have not been validated
+                                                against match results. Player skill, teamwork and execution
+                                                are outside the calculation.
                                             </p>
                                         </section>
                                     )}

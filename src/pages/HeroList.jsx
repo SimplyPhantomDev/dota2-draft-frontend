@@ -1,8 +1,9 @@
 import '../App.css';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { groupAndSortHeroes } from '../utils/groupHeroes';
 import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from '../utils/synergy';
 import { predictEnemyRoles } from '../utils/predictRoles';
+import { calculateDraftWinProbability } from '../utils/draftWinProbability';
 import infoButtonIcon from '../assets/info_button.png';
 import layoutDefaultIcon from '../assets/layout_default.svg';
 import layoutRowIcon from '../assets/layout_row.svg';
@@ -170,6 +171,14 @@ export default function HeroList() {
 
   // True if either team has selected at least one hero
   const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
+
+  // The new estimator needs a complete draft and usable baseline/matchup data.
+  // A null result tells the sidebar to use the existing score-based estimate.
+  const draftWinProbability = useMemo(() => calculateDraftWinProbability({
+    allyHeroIds: selectedHeroes.ally.map(hero => hero.HeroId),
+    enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),
+    matchupIndex,
+  }), [selectedHeroes, matchupIndex]);
 
   //==============================================
   //=========== Data Initialization ==============
@@ -839,6 +848,7 @@ export default function HeroList() {
           updateSynergySuggestions={updateSynergySuggestions}
           showWinrateInfo={showWinrateInfo}
           setShowWinrateInfo={setShowWinrateInfo}
+          draftWinProbability={draftWinProbability}
           getWinProbability={getWinProbability}
           hasPicks={hasPicks}
           bannedHeroes={bannedHeroes}
