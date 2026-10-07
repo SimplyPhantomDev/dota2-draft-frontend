@@ -72,7 +72,7 @@ export default function SettingsButton() {
 
     // Serialize pause/resume requests so a slow close cannot undo a newer open.
     const pauseShortcut = useCallback(paused => {
-        const request = pauseQueueRef.current.catch(() => {}).then(() =>
+        const request = pauseQueueRef.current.catch(() => { }).then(() =>
             invoke("set_window_shortcut_paused", { paused })
         );
         pauseQueueRef.current = request;
@@ -155,6 +155,19 @@ export default function SettingsButton() {
         }
     }
 
+    // Shared closing logic. The caller owns the busy guard so a pending
+    // save can also use this helper to close the dialog.
+    async function finishClose() {
+        if (desktop) await pauseShortcut(false);
+
+        sessionRef.current += 1;
+        captureRef.current = false;
+        setCapturing(false);
+        unlistenRef.current?.();
+        unlistenRef.current = null;
+        setOpen(false);
+    }
+
     async function closeDialog() {
         if (busyRef.current) return;
         busyRef.current = true;
@@ -163,12 +176,10 @@ export default function SettingsButton() {
         setCapturing(false);
 
         try {
-            if (desktop) await pauseShortcut(false);
+            await finishClose();
 
-            sessionRef.current += 1;
-            unlistenRef.current?.();
-            unlistenRef.current = null;
-            setOpen(false);
+            // Discard all unsaved edits and restore the saved snapshot.
+            if (saved) setDraft(saved.settings);
         } catch (err) {
             setError(
                 "Could not resume the shortcut. Try closing again. " + String(err)
@@ -219,7 +230,20 @@ export default function SettingsButton() {
             setDraft(result.settings);
             setError(result.error || "");
             setMessage("Settings saved.");
+
+            // Keep native warnings visible, even when the settings were saved.
+            if (result.error) return;
+
+            try {
+                await finishClose();
+            } catch (err) {
+                setError(
+                    "Settings were saved, but the dialog could not close. "
+                    + "Try closing again. " + String(err)
+                );
+            }
         } catch (err) {
+            // Failed saves leave the dialog and edited values available.
             setError(String(err));
         } finally {
             busyRef.current = false;
@@ -376,7 +400,7 @@ export default function SettingsButton() {
                                 <button type="submit"
                                     className="ui-button ui-button-accent"
                                     disabled={!canEdit || !changed || capturing}>
-                                    {operation === "saving" ? "Saving..." : "Save"}
+                                    {operation === "saving" ? "Saving..." : "Save and close"}
                                 </button>
                             )}
 
