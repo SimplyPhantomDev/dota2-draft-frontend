@@ -88,6 +88,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-http",
  "tauri-plugin-log",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

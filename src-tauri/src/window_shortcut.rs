@@ -5,6 +5,8 @@
 use crate::window_shortcut_settings;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+#[cfg(windows)]
+use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 
 pub fn install(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.handle()
@@ -36,11 +38,24 @@ fn toggle_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         return Ok(());
     };
 
-    if window.is_focused()? {
+    #[cfg(windows)]
+    let is_foreground = {
+        let hwnd = window.hwnd()?.0;
+
+        // Read the actual foreground window because Tauri's tracked
+        // focus state can be incorrect before the first focus change.
+        // SAFETY: This only reads and compares handles; neither is dereferenced.
+        unsafe { GetForegroundWindow() == hwnd }
+    };
+
+    #[cfg(not(windows))]
+    let is_foreground = window.is_focused()?;
+
+    if is_foreground {
         window.minimize()?;
     } else {
-        // Only restore a minimized window. Restoring an already maximized
-        // window could otherwise change its current window state.
+        // Only restore a minimized window, preserving maximized state
+        // when the app is already visible in the background.
         if window.is_minimized()? {
             window.unminimize()?;
         }
