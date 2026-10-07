@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import HoverTooltip from "./HoverTooltip";
 import HeroPoolBreakdown from "./HeroPoolBreakdown";
+import SettingsButton from "./SettingsButton";
 
 const FLOATING_POOL_QUERY =
     "(min-width: 1800px) and (min-height: 720px)";
@@ -697,17 +698,25 @@ function Sidebar({
                 </div>
             </div>
             {/* === App Footer Info === */}
-            <dl className="mt-ui-sm shrink-0 space-y-ui-xs border-t border-line pt-ui-sm text-xs">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
-                    <dt className="text-ink-muted">Patch</dt>
-                    <dd className="font-mono text-ink">{patch ?? "unknown"}</dd>
-                </div>
+            <div className="mt-ui-sm flex shrink-0 items-center gap-ui-sm border-t border-line pt-ui-sm">
+                <dl className="min-w-0 flex-1 space-y-ui-xs text-xs">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
+                        <dt className="text-ink-muted">Patch</dt>
+                        <dd className="font-mono text-ink">
+                            {patch ?? "unknown"}
+                        </dd>
+                    </div>
 
-                <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
-                    <dt className="text-ink-muted">Last updated</dt>
-                    <dd className="text-ink">{lastUpdated ?? "unknown"}</dd>
-                </div>
-            </dl>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
+                        <dt className="text-ink-muted">Last updated</dt>
+                        <dd className="text-ink">
+                            {lastUpdated ?? "unknown"}
+                        </dd>
+                    </div>
+                </dl>
+
+                <SettingsButton />
+            </div>
         </div>
     );
 }

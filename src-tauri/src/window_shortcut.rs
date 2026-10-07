@@ -8,7 +8,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Mutex,
 };
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 #[cfg(windows)]
 use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
@@ -58,7 +58,7 @@ fn register_shortcut(
     let ignore_release = AtomicBool::new(false);
 
     app.global_shortcut()
-        .on_shortcut(shortcut, move |app, _shortcut, event| {
+        .on_shortcut(shortcut, move |app, shortcut, event| {
             let runtime = app.state::<WindowShortcutRuntime>();
 
             if event.state == ShortcutState::Pressed {
@@ -69,6 +69,19 @@ fn register_shortcut(
                         || runtime.active_id.load(Ordering::Acquire) != id,
                     Ordering::Release,
                 );
+
+                // Windows may consume a registered shortcut before the
+                // webview receives keydown. Forward it during capture.
+                if runtime.paused.load(Ordering::Acquire)
+                    && runtime.active_id.load(Ordering::Acquire) == id
+                {
+                    let _ = app.emit_to(
+                        "main",
+                        "window-shortcut-captured",
+                        (*shortcut).into_string(),
+                    );
+                }
+
                 return;
             }
 

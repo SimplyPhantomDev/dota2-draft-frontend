@@ -316,7 +316,7 @@ export default function HeroList() {
   // Handle typing and backspace logic for search bar focus and clearing
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (window.__ISSUE_MODAL_OPEN__) return;
+      if (document.querySelector("dialog[open]")) return;
 
       const el = document.activeElement;
       const tag = el?.tagName?.toLowerCase();
