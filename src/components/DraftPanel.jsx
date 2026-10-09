@@ -98,7 +98,7 @@ function DraftPanel({
                         disabled={!canSwitchTeam}
                         title={`Switch pick team (${teamSwitchKey})`}
                         aria-keyshortcuts={teamSwitchKey}
-                        className={`whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition
+                        className={`inline-grid place-items-center whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition
                             ${selectedTeam === "ally"
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-red-600 hover:bg-red-700"
@@ -108,7 +108,16 @@ function DraftPanel({
                                 : ""
                             }`}
                     >
-                        Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                        {/* Reserve the longer label's width; center both labels in the same cell. */}
+                        <span
+                            aria-hidden="true"
+                            className="invisible col-start-1 row-start-1"
+                        >
+                            Picking for: Enemy Team
+                        </span>
+                        <span className="col-start-1 row-start-1">
+                            Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                        </span>
                     </button>
 
                     <TeamDropZone
