@@ -1,4 +1,5 @@
 import { TeamDropZone } from "./structures";
+import { OverviewIcon, GridLayoutIcon, RowLayoutIcon } from "./DraftIcons";
 
 function DraftPanel({
     selectedHeroes,
@@ -6,6 +7,8 @@ function DraftPanel({
     handleTeamSwitch,
     canSwitchTeam,
     teamSwitchKey,
+    openDraftOverview,
+    draftOverviewKey,
     handleDrop,
     handleHeroDeselect,
     enemyRolePredictions,
@@ -22,8 +25,6 @@ function DraftPanel({
     handleBanRemove,
     gridMode,
     setGridMode,
-    layoutDefaultIcon,
-    layoutRowIcon,
 }) {
     const ActionButtons = () => {
         const buttonSize = "w-[71px] h-[60px] text-xs";
@@ -62,23 +63,41 @@ function DraftPanel({
         <div className="ui-panel shrink-0 mb-ui-sm px-ui-lg py-ui-sm">
             {/* ===================== ROW 1 ===================== */}
             <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-ui-sm 2xl:gap-ui-lg">
-                {/* Left: Title + Guide */}
-                <div className="relative flex items-center">
+                {/* Left: title + view controls */}
+                <div className="relative flex items-center gap-ui-xs">
                     <h1 className="font-display whitespace-nowrap text-2xl font-bold tracking-widest text-ink mr-ui-sm">
                         D2 DT
                     </h1>
 
                     <button
+                        type="button"
                         onClick={() => {
                             setShowGuide((prev) => !prev);
                             setButtonPulse(true);
                             setTimeout(() => setButtonPulse(false), 500);
                         }}
-                        className={`w-[30px] h-[30px] bg-white bg-opacity-0 text-black font-bold rounded transition-transform duration-200 ${buttonPulse ? "animate-pulse" : ""
-                            }`}
-                        title="Info"
+                        aria-label="Toggle drafting guide"
+                        title="Drafting guide"
+                        className={`ui-button h-9 w-9 shrink-0 p-0 ${buttonPulse ? "animate-pulse" : ""}`}
                     >
-                        <img src={infoButtonIcon} alt="Info" className="filter invert" />
+                        <img
+                            src={infoButtonIcon}
+                            alt=""
+                            className="h-5 w-5 invert"
+                        />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={openDraftOverview}
+                        aria-label="Open draft overview"
+                        aria-haspopup="dialog"
+                        aria-controls="draft-overview-dialog"
+                        aria-keyshortcuts={draftOverviewKey}
+                        title={`Draft overview (${draftOverviewKey})`}
+                        className="ui-button h-9 w-9 shrink-0 p-0"
+                    >
+                        <OverviewIcon />
                     </button>
                 </div>
 
@@ -136,26 +155,41 @@ function DraftPanel({
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
             <div className="mt-ui-sm grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[18px_auto] gap-x-ui-sm">
-                {/* Left: grid toggle spans both rows */}
+                {/* Left: layout selector spans both rows */}
                 <div className="row-span-2 self-center justify-self-start">
-                    <button
-                        onClick={() => setGridMode((prev) => (prev === "default" ? "row" : "default"))}
-                        className="relative w-28 h-12 bg-gray-900 rounded-lg transition-colors duration-300 ease-in-out flex items-center justify-between"
-                        title="Toggle Grid Layout"
+                    <div
+                        role="group"
+                        aria-label="Hero grid layout"
+                        className="inline-flex items-center gap-ui-xs rounded-control border border-line bg-surface p-ui-xs"
                     >
-                        <div
-                            className={`absolute w-12 h-12 bg-gray-600 rounded-lg shadow-md transform transition-transform duration-300 ease-in-out z-10 ${gridMode === "row" ? "translate-x-16" : "translate-x-0"
+                        <button
+                            type="button"
+                            onClick={() => setGridMode("default")}
+                            aria-label="Use 2-by-2 hero layout"
+                            aria-pressed={gridMode === "default"}
+                            title="2 × 2 hero layout"
+                            className={`ui-button h-9 w-9 p-0 ${gridMode === "default"
+                                ? "ui-button-accent"
+                                : "text-ink-muted"
                                 }`}
-                        />
-                        <div className="flex justify-between items-center w-full z-20">
-                            <img
-                                src={layoutDefaultIcon}
-                                alt="Grid Layout"
-                                className="w-12 h-12"
-                            />
-                            <img src={layoutRowIcon} alt="Row Layout" className="w-12 h-12" />
-                        </div>
-                    </button>
+                        >
+                            <GridLayoutIcon />
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setGridMode("row")}
+                            aria-label="Use four-column hero layout"
+                            aria-pressed={gridMode === "row"}
+                            title="Four-column hero layout"
+                            className={`ui-button h-9 w-9 p-0 ${gridMode === "row"
+                                ? "ui-button-accent"
+                                : "text-ink-muted"
+                                }`}
+                        >
+                            <RowLayoutIcon />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Top middle: THIN "Bans:" row */}

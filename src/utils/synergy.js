@@ -29,8 +29,10 @@ export const calculateSynergyPicks = ({
   const allyKeys = allyHeroIds.map(String);
   const enemyKeys = enemyHeroIds.map(String);
 
-  // ----- FULL DRAFT MODE -----
-  if (fullDraft && allyHeroIds.length === 5 && enemyHeroIds.length === 5) {
+  // ----- PICKED-HERO ANALYSIS -----
+  // Explicit analysis requests also accept incomplete teams. The main sidebar
+  // still requests this mode only after both teams contain five heroes.
+  if (fullDraft) {
     const teamStats = { ally: [], enemy: [] };
 
     const allyTeamKeys = allyHeroIds.map(String);

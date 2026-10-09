@@ -15,6 +15,7 @@ This repository contains the application interface, drafting logic, and desktop 
 - **Role filters:** narrow suggestions to Carry or Support heroes.
 - **Composition adjustments:** prioritise useful traits when your team lacks initiation, disables, or pushing ability.
 - **Score breakdowns:** inspect how allied synergy, enemy matchups, and composition bonuses contribute to recommendations.
+- **Draft overview:** open a modal at any draft stage to compare each picked hero's ally synergy, enemy matchup and total scores, without a win-probability estimate.
 - **Full-draft analysis:** compare individual hero scores, team totals, and estimated draft advantage once all ten heroes have been selected.
 - **Enemy role estimates:** suggest positions using predefined hero-role priorities.
 - **Hero search:** find heroes by name or configured aliases.
@@ -217,8 +218,13 @@ Check report validation with empty fields. Mock `submitIssueReport` for request 
 7. Hover over recommendations to inspect their score breakdowns.
 8. Fill both teams to display the full-draft comparison.
 
-Press **F2** while the application is focused to switch the click-pick destination. It also works while hero search is focused. Manual team switching is disabled when either team is full; the selector automatically chooses the team with space. Modal dialogs and other editable fields keep their keyboard input.
-Click a drafted hero to remove it. **CLEAR BANS** removes bans, while **CLEAR ALL** resets the current draft and bans without deleting your saved hero pool.
+Press **F2** while the application is focused to switch the click-pick destination. It also works while hero search is focused.
+Press **F3** or click the **eye icon** to open the current draft scores. Press **F3**, **Escape**, or the close button to dismiss the overview. F3 is a focused shortcut and respects other modal dialogs and editable fields.
+Scores include current picks only and exclude recommendation composition bonuses.
+Manual team switching is disabled when either team is full; the selector automatically chooses the team with space.
+Modal dialogs and other editable fields keep their keyboard input.
+Click a drafted hero to remove it.
+**CLEAR BANS** removes bans, while **CLEAR ALL** resets the current draft and bans without deleting your saved hero pool.
 
 The interface is designed for desktop mouse and keyboard use.
 

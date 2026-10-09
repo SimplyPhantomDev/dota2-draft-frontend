@@ -5,17 +5,17 @@ import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergy
 import { predictEnemyRoles } from '../utils/predictRoles';
 import { calculateDraftWinProbability } from '../utils/draftWinProbability';
 import infoButtonIcon from '../assets/info_button.png';
-import layoutDefaultIcon from '../assets/layout_default.svg';
-import layoutRowIcon from '../assets/layout_row.svg';
 import questionMarkIcon from '../assets/question_mark.svg';
 import { motion, AnimatePresence } from 'framer-motion';
 import DraftPanel from '../components/DraftPanel';
+import DraftOverview from '../components/DraftOverview';
 import Sidebar from '../components/Sidebar';
 import { DraggableHero } from '../components/structures';
 import ReportIssueButton from '../components/ReportIssueButton';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
 const TEAM_SWITCH_KEY = "F2";
+const DRAFT_OVERVIEW_KEY = "F3";
 
 export default function HeroList() {
 
@@ -72,6 +72,9 @@ export default function HeroList() {
 
   // Whether to show the breakdown of the user's entire hero pool's synergies
   const [showPoolBreakdown, setShowPoolBreakdown] = useState(false);
+
+  // Picked-hero analysis is available before either team is complete.
+  const [showDraftOverview, setShowDraftOverview] = useState(false);
 
   // Button pulse effect (used for visual alerts)
   const [buttonPulse, setButtonPulse] = useState(false);
@@ -181,6 +184,14 @@ export default function HeroList() {
     if (!canSwitchTeam) return;
     setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
   }, [canSwitchTeam]);
+
+  const openDraftOverview = useCallback(() => {
+    setShowDraftOverview(true);
+  }, []);
+
+  const closeDraftOverview = useCallback(() => {
+    setShowDraftOverview(false);
+  }, []);
 
   // The new estimator needs a complete draft and usable baseline/matchup data.
   // A null result tells the sidebar to use the existing score-based estimate.
@@ -347,6 +358,13 @@ export default function HeroList() {
         return;
       }
 
+      if (e.code === DRAFT_OVERVIEW_KEY
+        && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+        e.preventDefault();
+        if (!e.repeat) openDraftOverview();
+        return;
+      }
+
       // Navigation and modified shortcuts must not move focus into hero search.
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (e.key.length !== 1 && e.key !== "Backspace") return;
@@ -373,7 +391,7 @@ export default function HeroList() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleTeamSwitch]);
+  }, [handleTeamSwitch, openDraftOverview]);
 
   //==============================================
   //========== UI Behavior & Layout ==============
@@ -767,6 +785,8 @@ export default function HeroList() {
         handleTeamSwitch={handleTeamSwitch}
         canSwitchTeam={canSwitchTeam}
         teamSwitchKey={TEAM_SWITCH_KEY}
+        openDraftOverview={openDraftOverview}
+        draftOverviewKey={DRAFT_OVERVIEW_KEY}
         handleDrop={handleDrop}
         handleHeroDeselect={handleHeroDeselect}
         enemyRolePredictions={enemyRolePredictions}
@@ -783,9 +803,17 @@ export default function HeroList() {
         handleBanRemove={handleBanRemove}
         gridMode={gridMode}
         setGridMode={setGridMode}
-        layoutDefaultIcon={layoutDefaultIcon}
-        layoutRowIcon={layoutRowIcon}
       />
+
+      {showDraftOverview && (
+        <DraftOverview
+          selectedHeroes={selectedHeroes}
+          matchupIndex={matchupIndex}
+          heroes={heroes}
+          onClose={closeDraftOverview}
+          shortcutKey={DRAFT_OVERVIEW_KEY}
+        />
+      )}
 
       {/* Main Hero Grid Area */}
       <div
