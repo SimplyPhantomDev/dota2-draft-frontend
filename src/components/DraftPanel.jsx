@@ -155,41 +155,53 @@ function DraftPanel({
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
             <div className="mt-ui-sm grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[18px_auto] gap-x-ui-sm">
-                {/* Left: layout selector spans both rows */}
+                {/* Left: one layout switch spans both rows */}
                 <div className="row-span-2 self-center justify-self-start">
-                    <div
-                        role="group"
-                        aria-label="Hero grid layout"
-                        className="inline-flex items-center gap-ui-xs rounded-control border border-line bg-surface p-ui-xs"
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-label="Four-column hero layout"
+                        aria-checked={gridMode === "row"}
+                        onClick={() => setGridMode((prev) =>
+                            prev === "default" ? "row" : "default"
+                        )}
+                        title={gridMode === "row"
+                            ? "Four-column layout — switch to 2 × 2"
+                            : "2 × 2 layout — switch to four columns"
+                        }
+                        className="relative h-11 w-24 shrink-0 cursor-pointer rounded-full border border-line bg-surface-raised p-ui-xs transition-colors duration-150 hover:border-accent/50 motion-reduce:transition-none"
                     >
-                        <button
-                            type="button"
-                            onClick={() => setGridMode("default")}
-                            aria-label="Use 2-by-2 hero layout"
-                            aria-pressed={gridMode === "default"}
-                            title="2 × 2 hero layout"
-                            className={`ui-button h-9 w-9 p-0 ${gridMode === "default"
-                                ? "ui-button-accent"
-                                : "text-ink-muted"
-                                }`}
+                        <span
+                            aria-hidden="true"
+                            className="relative grid h-full grid-cols-2"
                         >
-                            <GridLayoutIcon />
-                        </button>
+                            {/* Half-width travel keeps the highlight aligned with either icon. */}
+                            <span
+                                className={`absolute inset-y-0 left-0 w-1/2 rounded-full border border-accent/50 bg-accent/20 transition-transform duration-200 motion-reduce:transition-none ${gridMode === "row"
+                                    ? "translate-x-full"
+                                    : "translate-x-0"
+                                    }`}
+                            />
 
-                        <button
-                            type="button"
-                            onClick={() => setGridMode("row")}
-                            aria-label="Use four-column hero layout"
-                            aria-pressed={gridMode === "row"}
-                            title="Four-column hero layout"
-                            className={`ui-button h-9 w-9 p-0 ${gridMode === "row"
-                                ? "ui-button-accent"
-                                : "text-ink-muted"
-                                }`}
-                        >
-                            <RowLayoutIcon />
-                        </button>
-                    </div>
+                            <span
+                                className={`relative z-10 flex items-center justify-center ${gridMode === "default"
+                                    ? "text-accent"
+                                    : "text-ink-muted"
+                                    }`}
+                            >
+                                <GridLayoutIcon />
+                            </span>
+
+                            <span
+                                className={`relative z-10 flex items-center justify-center ${gridMode === "row"
+                                    ? "text-accent"
+                                    : "text-ink-muted"
+                                    }`}
+                            >
+                                <RowLayoutIcon />
+                            </span>
+                        </span>
+                    </button>
                 </div>
 
                 {/* Top middle: THIN "Bans:" row */}
