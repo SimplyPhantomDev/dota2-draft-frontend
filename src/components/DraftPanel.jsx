@@ -69,8 +69,9 @@ function DraftPanel({
             <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-ui-sm 2xl:gap-ui-lg">
                 {/* Left: title + view controls */}
                 <div className="relative flex items-center gap-ui-xs">
-                    <h1 className="font-display whitespace-nowrap text-2xl font-bold tracking-widest text-ink mr-ui-sm">
-                        D2 DT
+                    <h1 className="mr-ui-sm shrink-0 whitespace-nowrap text-center
+                            font-display text-2xl font-bold leading-none tracking-widest text-ink 2xl:leading-8">
+                        D2<span className="block 2xl:inline"> DT</span>
                     </h1>
 
                     <button
@@ -135,7 +136,7 @@ function DraftPanel({
                         disabled={!canSwitchTeam}
                         title={`Switch pick team (${teamSwitchKey})`}
                         aria-keyshortcuts={teamSwitchKey}
-                        className={`inline-grid place-items-center whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition
+                        className={`inline-grid place-items-center whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold text-center leading-tight 2xl:leading-5 transition
                             ${selectedTeam === "ally"
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-red-600 hover:bg-red-700"
@@ -145,15 +146,21 @@ function DraftPanel({
                                 : ""
                             }`}
                     >
-                        {/* Reserve the longer label's width; center both labels in the same cell. */}
+                        {/* Match the responsive wrapping in both labels to keep
+                        the button's size stable when switching teams. */}
                         <span
                             aria-hidden="true"
                             className="invisible col-start-1 row-start-1"
                         >
-                            Picking for: Enemy Team
+                            <span className="block 2xl:inline">Picking for:</span>{" "}
+                            <span className="block 2xl:inline">Enemy Team</span>
                         </span>
+
                         <span className="col-start-1 row-start-1">
-                            Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                            <span className="block 2xl:inline">Picking for:</span>{" "}
+                            <span className="block 2xl:inline">
+                                {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                            </span>
                         </span>
                     </button>
 
