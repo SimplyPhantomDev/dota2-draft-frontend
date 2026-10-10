@@ -1,5 +1,16 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+// Fixed panels use viewport coordinates; leave a small reachable margin.
+function clampInspectorPosition(position, panel) {
+    const { width, height } = panel.getBoundingClientRect();
+    const margin = 8;
+
+    return {
+        x: Math.max(margin, Math.min(position.x, window.innerWidth - width - margin)),
+        y: Math.max(margin, Math.min(position.y, window.innerHeight - height - margin)),
+    };
+}
 
 function Score({ value, enemy }) {
     if (value == null) return <span className="text-ink-muted">—</span>;
@@ -57,9 +68,87 @@ export default function HeroInspector({
     onPick,
     onClose,
     shortcutKey,
+    initialPosition = null,
+    onPositionChange,
 }) {
     const panelRef = useRef(null);
     const closeButtonRef = useRef(null);
+    const [position, setPosition] = useState(initialPosition);
+    const positionRef = useRef(initialPosition);
+    const dragRef = useRef(null);
+
+    // Keep a moved panel reachable after resizing or changes to its dimensions.
+    // The ref supplies the latest position without replacing these listeners.
+    useLayoutEffect(() => {
+        const panel = panelRef.current;
+        const keepVisible = () => {
+            if (!positionRef.current) return;
+
+            const next = clampInspectorPosition(positionRef.current, panel);
+            if (positionRef.current.x === next.x && positionRef.current.y === next.y) return;
+
+            positionRef.current = next;
+            setPosition(next);
+            onPositionChange?.(next);
+        };
+
+        keepVisible();
+        window.addEventListener("resize", keepVisible);
+        const observer = new ResizeObserver(keepVisible);
+        observer.observe(panel);
+
+        return () => {
+            window.removeEventListener("resize", keepVisible);
+            observer.disconnect();
+        };
+    }, [onPositionChange]);
+
+    const handleDragStart = (event) => {
+        if (!event.isPrimary || event.button !== 0) return;
+        if (event.target.closest("button, a, input, select, textarea")) return;
+
+        const panel = panelRef.current;
+        const bounds = panel.getBoundingClientRect();
+
+        dragRef.current = {
+            pointerId: event.pointerId,
+            offsetX: event.clientX - bounds.left,
+            offsetY: event.clientY - bounds.top,
+        };
+
+        // Anchor to the current visual position so the first movement cannot jump.
+        const next = clampInspectorPosition({ x: bounds.left, y: bounds.top }, panel);
+        positionRef.current = next;
+        setPosition(next);
+        event.currentTarget.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    };
+
+    const handleDragMove = (event) => {
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+
+        const next = clampInspectorPosition({
+            x: event.clientX - drag.offsetX,
+            y: event.clientY - drag.offsetY,
+        }, panelRef.current);
+
+        positionRef.current = next;
+        setPosition(next);
+    };
+
+    const handleDragEnd = (event) => {
+        if (dragRef.current?.pointerId !== event.pointerId) return;
+        dragRef.current = null;
+
+        // Save in the parent once per drag so moving the panel does not rerender
+        // the entire hero grid for every pointer movement.
+        onPositionChange?.(positionRef.current);
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+    };
     const enemy = selectedTeam === "enemy";
     const teamLabel = enemy ? "enemies" : "allies";
 
@@ -86,9 +175,24 @@ export default function HeroInspector({
             aria-modal="false"
             aria-labelledby="hero-inspector-title"
             aria-describedby="hero-inspector-help"
-            className="fixed bottom-ui-lg right-ui-lg z-[60] flex max-h-[calc(100dvh-2rem)] w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-panel border border-line bg-surface text-ink shadow-panel lg:right-[calc(clamp(17rem,22vw,22rem)+1.5rem)]"
+            className="fixed bottom-ui-lg right-ui-lg z-[60] flex h-[32rem] max-h-[calc(100dvh-2rem)] w-80 max-w-[calc(100vw-2rem)] 
+                flex-col overflow-hidden rounded-panel border border-line bg-surface text-ink shadow-panel lg:right-[calc(clamp(17rem,22vw,22rem)+1.5rem)]"
+            style={position ? {
+                left: position.x,
+                top: position.y,
+                right: "auto",
+                bottom: "auto",
+            } : undefined}
         >
-            <header className="flex shrink-0 items-center gap-ui-sm border-b border-line p-ui-md">
+            <header
+                onPointerDown={handleDragStart}
+                onPointerMove={handleDragMove}
+                onPointerUp={handleDragEnd}
+                onPointerCancel={handleDragEnd}
+                onLostPointerCapture={handleDragEnd}
+                title="Drag the header to move the inspector"
+                className="flex shrink-0 touch-none select-none items-center gap-ui-sm border-b border-line p-ui-md cursor-grab active:cursor-grabbing"
+            >
                 <button
                     ref={closeButtonRef}
                     type="button"
@@ -187,7 +291,8 @@ export default function HeroInspector({
                 )}
 
                 <p id="hero-inspector-help" className="text-xs text-ink-muted">
-                    Left-click to inspect. Drag to pick. Right-click to ban.
+                    Left-click heroes to inspect. Drag heroes into teams to pick.
+                    Right-click heroes to ban. Drag this window's header to move it.
                     Positive scores favour the inspected hero.
                     Press <kbd className="font-mono text-ink">{shortcutKey}</kbd> to close.
                 </p>

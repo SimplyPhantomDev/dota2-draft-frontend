@@ -81,6 +81,9 @@ export default function HeroList() {
 
   const [showHeroInspector, setShowHeroInspector] = useState(false);
 
+  // Retain the floating panel's location while it is closed during this session.
+  const [inspectorPosition, setInspectorPosition] = useState(null);
+
   // Only hero-grid clicks change this candidate; drop actions never replace it.
   const [inspectedHero, setInspectedHero] = useState(null);
 
@@ -871,6 +874,8 @@ export default function HeroList() {
           onPick={handleDrop}
           onClose={closeHeroInspector}
           shortcutKey={HERO_INSPECTOR_KEY}
+          initialPosition={inspectorPosition}
+          onPositionChange={setInspectorPosition}
         />
       )}
 
