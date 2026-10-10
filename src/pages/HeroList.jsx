@@ -2,6 +2,8 @@ import '../App.css';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { groupAndSortHeroes } from '../utils/groupHeroes';
 import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from '../utils/synergy';
+import HeroInspector from '../components/HeroInspector';
+import { calculateHeroInspection } from '../utils/heroInspection';
 import { predictEnemyRoles } from '../utils/predictRoles';
 import { calculateDraftWinProbability } from '../utils/draftWinProbability';
 import infoButtonIcon from '../assets/info_button.png';
@@ -16,6 +18,7 @@ import ReportIssueButton from '../components/ReportIssueButton';
 const TOOLTIP_KEY = "guideTooltipSeen";
 const TEAM_SWITCH_KEY = "F2";
 const DRAFT_OVERVIEW_KEY = "F3";
+const HERO_INSPECTOR_KEY = "F4";
 
 export default function HeroList() {
 
@@ -75,6 +78,11 @@ export default function HeroList() {
 
   // Picked-hero analysis is available before either team is complete.
   const [showDraftOverview, setShowDraftOverview] = useState(false);
+
+  const [showHeroInspector, setShowHeroInspector] = useState(false);
+
+  // Only hero-grid clicks change this candidate; drop actions never replace it.
+  const [inspectedHero, setInspectedHero] = useState(null);
 
   // Button pulse effect (used for visual alerts)
   const [buttonPulse, setButtonPulse] = useState(false);
@@ -192,6 +200,31 @@ export default function HeroList() {
   const closeDraftOverview = useCallback(() => {
     setShowDraftOverview(false);
   }, []);
+
+  const toggleHeroInspector = useCallback(() => {
+    // Pool editing and inspection assign different meanings to a hero click.
+    setEditHeroPoolMode(false);
+    setShowPoolBreakdown(false);
+    setShowHeroInspector(open => !open);
+  }, []);
+
+  const closeHeroInspector = useCallback(() => {
+    setShowHeroInspector(false);
+  }, []);
+
+  const togglePoolEdit = useCallback(() => {
+    setShowHeroInspector(false);
+    setEditHeroPoolMode(editing => !editing);
+  }, []);
+
+  // Recalculate from the live draft while keeping the candidate independent.
+  const heroInspection = useMemo(() => calculateHeroInspection({
+    hero: inspectedHero,
+    selectedTeam,
+    selectedHeroes,
+    bannedHeroes,
+    matchupIndex,
+  }), [inspectedHero, selectedTeam, selectedHeroes, bannedHeroes, matchupIndex]);
 
   // The new estimator needs a complete draft and usable baseline/matchup data.
   // A null result tells the sidebar to use the existing score-based estimate.
@@ -365,6 +398,13 @@ export default function HeroList() {
         return;
       }
 
+      if (e.code === HERO_INSPECTOR_KEY
+        && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+        e.preventDefault();
+        if (!e.repeat) toggleHeroInspector();
+        return;
+      }
+
       // Navigation and modified shortcuts must not move focus into hero search.
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (e.key.length !== 1 && e.key !== "Backspace") return;
@@ -391,7 +431,7 @@ export default function HeroList() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleTeamSwitch, openDraftOverview]);
+  }, [handleTeamSwitch, openDraftOverview, toggleHeroInspector]);
 
   //==============================================
   //========== UI Behavior & Layout ==============
@@ -611,6 +651,12 @@ export default function HeroList() {
     }
 
 
+    // Inspection changes only the candidate. Actual picks still use handleDrop.
+    if (showHeroInspector) {
+      setInspectedHero(hero);
+      return;
+    }
+
     // === Draft Pick Logic ===
     handleDrop(hero, selectedTeam);
   };
@@ -787,6 +833,9 @@ export default function HeroList() {
         teamSwitchKey={TEAM_SWITCH_KEY}
         openDraftOverview={openDraftOverview}
         draftOverviewKey={DRAFT_OVERVIEW_KEY}
+        showHeroInspector={showHeroInspector}
+        toggleHeroInspector={toggleHeroInspector}
+        heroInspectorKey={HERO_INSPECTOR_KEY}
         handleDrop={handleDrop}
         handleHeroDeselect={handleHeroDeselect}
         enemyRolePredictions={enemyRolePredictions}
@@ -796,7 +845,7 @@ export default function HeroList() {
         buttonPulse={buttonPulse}
         setButtonPulse={setButtonPulse}
         editHeroPoolMode={editHeroPoolMode}
-        setEditHeroPoolMode={setEditHeroPoolMode}
+        onTogglePoolEdit={togglePoolEdit}
         handleClear={handleClear}
         handleClearBans={handleClearBans}
         bannedHeroes={bannedHeroes}
@@ -812,6 +861,16 @@ export default function HeroList() {
           heroes={heroes}
           onClose={closeDraftOverview}
           shortcutKey={DRAFT_OVERVIEW_KEY}
+        />
+      )}
+
+      {showHeroInspector && (
+        <HeroInspector
+          inspection={heroInspection}
+          selectedTeam={selectedTeam}
+          onPick={handleDrop}
+          onClose={closeHeroInspector}
+          shortcutKey={HERO_INSPECTOR_KEY}
         />
       )}
 

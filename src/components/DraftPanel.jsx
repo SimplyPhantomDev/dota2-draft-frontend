@@ -1,5 +1,5 @@
 import { TeamDropZone } from "./structures";
-import { OverviewIcon, GridLayoutIcon, RowLayoutIcon } from "./DraftIcons";
+import { OverviewIcon, InspectionIcon, GridLayoutIcon, RowLayoutIcon } from "./DraftIcons";
 
 function DraftPanel({
     selectedHeroes,
@@ -9,6 +9,9 @@ function DraftPanel({
     teamSwitchKey,
     openDraftOverview,
     draftOverviewKey,
+    showHeroInspector,
+    toggleHeroInspector,
+    heroInspectorKey,
     handleDrop,
     handleHeroDeselect,
     enemyRolePredictions,
@@ -18,7 +21,7 @@ function DraftPanel({
     buttonPulse,
     setButtonPulse,
     editHeroPoolMode,
-    setEditHeroPoolMode,
+    onTogglePoolEdit,
     handleClear,
     handleClearBans,
     bannedHeroes,
@@ -33,7 +36,7 @@ function DraftPanel({
             <div className="flex items-center gap-ui-sm">
                 <button
                     type="button"
-                    onClick={() => setEditHeroPoolMode((prev) => !prev)}
+                    onClick={onTogglePoolEdit}
                     aria-pressed={editHeroPoolMode}
                     className={`ui-button ui-button-accent px-ui-xs ${buttonSize}`}
                 >
@@ -98,6 +101,19 @@ function DraftPanel({
                         className="ui-button h-9 w-9 shrink-0 p-0"
                     >
                         <OverviewIcon />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={toggleHeroInspector}
+                        aria-label="Hero inspector"
+                        aria-pressed={showHeroInspector}
+                        aria-haspopup="dialog"
+                        aria-controls="hero-inspector"
+                        aria-keyshortcuts={heroInspectorKey}
+                        title={`${showHeroInspector ? "Close" : "Open"} hero inspector (${heroInspectorKey})`}
+                        className="ui-button ui-button-accent h-9 w-9 shrink-0 p-0"
+                    >
+                        <InspectionIcon />
                     </button>
                 </div>
 
