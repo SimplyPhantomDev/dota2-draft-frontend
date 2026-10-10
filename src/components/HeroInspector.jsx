@@ -1,9 +1,12 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePresence, useReducedMotion } from "framer-motion";
 
 // Fixed panels use viewport coordinates; leave a small reachable margin.
 function clampInspectorPosition(position, panel) {
-    const { width, height } = panel.getBoundingClientRect();
+    // Layout dimensions stay accurate while an animation scales the panel.
+    const width = panel.offsetWidth;
+    const height = panel.offsetHeight;
     const margin = 8;
 
     return {
@@ -70,12 +73,17 @@ export default function HeroInspector({
     shortcutKey,
     initialPosition = null,
     onPositionChange,
+    triggerRef,
 }) {
     const panelRef = useRef(null);
     const closeButtonRef = useRef(null);
     const [position, setPosition] = useState(initialPosition);
     const positionRef = useRef(initialPosition);
     const dragRef = useRef(null);
+    const animationFrameRef = useRef(null);
+    const animatingRef = useRef(false);
+    const [isPresent, safeToRemove] = usePresence();
+    const reduceMotion = useReducedMotion();
 
     // Keep a moved panel reachable after resizing or changes to its dimensions.
     // The ref supplies the latest position without replacing these listeners.
@@ -103,8 +111,80 @@ export default function HeroInspector({
         };
     }, [onPositionChange]);
 
+    // AnimatePresence retains this portal during closing. Measure the real
+    // button on every toggle so a moved inspector still returns to that button.
+    useLayoutEffect(() => {
+        const panel = panelRef.current;
+        const bounds = panel.getBoundingClientRect();
+        const button = triggerRef.current?.getBoundingClientRect();
+        const expanded = { transform: "none", opacity: 1 };
+        let collapsed = { transform: "none", opacity: 0 };
+
+        if (!reduceMotion && button?.width > 0 && button.height > 0) {
+            const left = positionRef.current?.x ?? bounds.left;
+            const top = positionRef.current?.y ?? bounds.top;
+
+            const x = button.left + button.width / 2 -
+                (left + bounds.width / 2);
+            const y = button.top + button.height / 2 -
+                (top + bounds.height / 2);
+
+            const scale = Math.min(
+                1,
+                button.width / bounds.width,
+                button.height / bounds.height
+            );
+
+            collapsed = {
+                transform: `translate(${x}px, ${y}px) scale(${scale})`,
+                opacity: 0,
+            };
+        }
+
+        const from = animationFrameRef.current ??
+            (isPresent ? collapsed : expanded);
+
+        const animation = panel.animate(
+            [from, isPresent ? expanded : collapsed],
+            {
+                duration: reduceMotion ? 0 : isPresent ? 220 : 180,
+                easing: isPresent
+                    ? "cubic-bezier(0.16, 1, 0.3, 1)"
+                    : "cubic-bezier(0.4, 0, 1, 1)",
+                fill: "both",
+            }
+        );
+
+        animatingRef.current = true;
+
+        animation.onfinish = () => {
+            animatingRef.current = false;
+
+            if (isPresent) {
+                // Clear the transform after opening so dragging measures normally.
+                animation.cancel();
+            } else {
+                safeToRemove?.();
+            }
+        };
+
+        return () => {
+            // Rapid toggles continue from the current frame instead of jumping.
+            const current = getComputedStyle(panel);
+
+            animationFrameRef.current = {
+                transform: current.transform,
+                opacity: current.opacity,
+            };
+
+            animation.onfinish = null;
+            animation.cancel();
+        };
+    }, [isPresent, reduceMotion, safeToRemove, triggerRef]);
+
     const handleDragStart = (event) => {
-        if (!event.isPrimary || event.button !== 0) return;
+        if (!isPresent || animatingRef.current ||
+            !event.isPrimary || event.button !== 0) return;
         if (event.target.closest("button, a, input, select, textarea")) return;
 
         const panel = panelRef.current;
@@ -152,19 +232,27 @@ export default function HeroInspector({
     const enemy = selectedTeam === "enemy";
     const teamLabel = enemy ? "enemies" : "allies";
 
-    // Focus the new tool once, without trapping focus. Restore the previous
-    // control on close only if the user is still working inside the inspector.
+    // Focus the tool without trapping focus. Restore the previous control
+    // only if focus is still inside when the inspector closes.
     useLayoutEffect(() => {
+        if (!isPresent) return;
+
         const previousFocus = document.activeElement;
         const panel = panelRef.current;
+
+        panel.inert = false;
         closeButtonRef.current?.focus({ preventScroll: true });
 
         return () => {
-            if (panel?.contains(document.activeElement) && previousFocus?.isConnected) {
+            if (panel?.contains(document.activeElement) &&
+                previousFocus?.isConnected) {
                 previousFocus.focus({ preventScroll: true });
             }
+
+            // The closing animation stays visible but cannot receive inputs.
+            panel.inert = true;
         };
-    }, []);
+    }, [isPresent]);
 
     // A modeless portal keeps the draft interactive and avoids parent clipping.
     return createPortal(
@@ -175,14 +263,20 @@ export default function HeroInspector({
             aria-modal="false"
             aria-labelledby="hero-inspector-title"
             aria-describedby="hero-inspector-help"
-            className="fixed bottom-ui-lg right-ui-lg z-[60] flex h-[32rem] max-h-[calc(100dvh-2rem)] w-80 max-w-[calc(100vw-2rem)] 
-                flex-col overflow-hidden rounded-panel border border-line bg-surface text-ink shadow-panel lg:right-[calc(clamp(17rem,22vw,22rem)+1.5rem)]"
-            style={position ? {
-                left: position.x,
-                top: position.y,
-                right: "auto",
-                bottom: "auto",
-            } : undefined}
+            className="fixed bottom-ui-lg right-ui-lg z-[60] flex h-[32rem]
+                max-h-[calc(100dvh-2rem)] w-80 max-w-[calc(100vw-2rem)] 
+                flex-col overflow-hidden rounded-panel border border-line
+                bg-surface text-ink shadow-panel lg:right-[calc(clamp(17rem,22vw,22rem)+1.5rem)]"
+            style={{
+                ...(position ? {
+                    left: position.x,
+                    top: position.y,
+                    right: "auto",
+                    bottom: "auto",
+                } : {}),
+                transformOrigin: "center center",
+                pointerEvents: isPresent ? "auto" : "none",
+            }}
         >
             <header
                 onPointerDown={handleDragStart}

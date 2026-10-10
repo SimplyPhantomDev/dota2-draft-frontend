@@ -12,6 +12,7 @@ function DraftPanel({
     showHeroInspector,
     toggleHeroInspector,
     heroInspectorKey,
+    inspectorButtonRef,
     handleDrop,
     handleHeroDeselect,
     enemyRolePredictions,
@@ -103,6 +104,7 @@ function DraftPanel({
                         <OverviewIcon />
                     </button>
                     <button
+                        ref={inspectorButtonRef}
                         type="button"
                         onClick={toggleHeroInspector}
                         aria-label="Hero inspector"

@@ -164,6 +164,9 @@ export default function HeroList() {
   // Ref to the container where all the hero cards are rendered
   const containerRef = useRef(null);
 
+  // The floating inspector animates to and from this toolbar button.
+  const inspectorButtonRef = useRef(null);
+
   // Ref to the search input for automatic focus on keyboard input
   const searchInputRef = useRef(null);
 
@@ -839,6 +842,7 @@ export default function HeroList() {
         showHeroInspector={showHeroInspector}
         toggleHeroInspector={toggleHeroInspector}
         heroInspectorKey={HERO_INSPECTOR_KEY}
+        inspectorButtonRef={inspectorButtonRef}
         handleDrop={handleDrop}
         handleHeroDeselect={handleHeroDeselect}
         enemyRolePredictions={enemyRolePredictions}
@@ -867,17 +871,21 @@ export default function HeroList() {
         />
       )}
 
-      {showHeroInspector && (
-        <HeroInspector
-          inspection={heroInspection}
-          selectedTeam={selectedTeam}
-          onPick={handleDrop}
-          onClose={closeHeroInspector}
-          shortcutKey={HERO_INSPECTOR_KEY}
-          initialPosition={inspectorPosition}
-          onPositionChange={setInspectorPosition}
-        />
-      )}
+      <AnimatePresence>
+        {showHeroInspector && (
+          <HeroInspector
+            key="hero-inspector"
+            inspection={heroInspection}
+            selectedTeam={selectedTeam}
+            onPick={handleDrop}
+            onClose={closeHeroInspector}
+            shortcutKey={HERO_INSPECTOR_KEY}
+            initialPosition={inspectorPosition}
+            onPositionChange={setInspectorPosition}
+            triggerRef={inspectorButtonRef}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Main Hero Grid Area */}
       <div
