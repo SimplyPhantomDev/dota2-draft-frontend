@@ -61,6 +61,11 @@ function RecommendationRow({
 }
 
 function Sidebar({
+    active = true,
+    isPractice = false,
+    onStartTutorial = null,
+    tutorialLoading = false,
+    tutorialError = "",
     suggestedHeroes,
     poolSuggestions,
     globalSuggestions,
@@ -183,7 +188,29 @@ function Sidebar({
                                 ×
                             </button>
                         </div>
+                        {onStartTutorial && (
+                            <div className="space-y-ui-sm border-b border-line p-ui-md">
+                                <p className="text-ink-muted">
+                                    Practise with fixed example data. Your current draft and saved hero
+                                    pool will be kept.
+                                </p>
 
+                                <button
+                                    type="button"
+                                    className="ui-button ui-button-accent"
+                                    onClick={onStartTutorial}
+                                    disabled={tutorialLoading}
+                                >
+                                    {tutorialLoading ? "Opening tutorial..." : "Start tutorial"}
+                                </button>
+
+                                {tutorialError && (
+                                    <p role="alert" className="text-danger">
+                                        {tutorialError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         <p className="p-ui-md leading-relaxed text-ink-muted">
                             Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                             ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
@@ -420,7 +447,7 @@ function Sidebar({
                                         </section>
                                     )}
                                 </div>
-                                {hoveredHero && (
+                                {active && hoveredHero && (
                                     <HoverTooltip initialPoint={tooltipPoint} anchorRef={sidebarPanelRef}>
                                         <h3 className="mb-ui-sm break-words font-semibold text-ink">
                                             Synergy breakdown: {hoveredHero.name}
@@ -554,7 +581,7 @@ function Sidebar({
                                         )}
                                     </div>
                                 )}
-                                {hoveredSuggestedHero && (
+                                {active && hoveredSuggestedHero && (
                                     <HoverTooltip
                                         initialPoint={tooltipPoint}
                                         anchorRef={floatingPoolOpen ? poolPanelRef : sidebarPanelRef}
@@ -615,7 +642,7 @@ function Sidebar({
                                         )}
                                     </HoverTooltip>
                                 )}
-                                {poolPanelOpen && (
+                                {active && poolPanelOpen && (
                                     <HeroPoolBreakdown
                                         heroes={fullPoolSynergies}
                                         onClose={() => setShowPoolBreakdown(false)}
@@ -715,7 +742,7 @@ function Sidebar({
                     </div>
                 </dl>
 
-                <SettingsButton />
+                {!isPractice && <SettingsButton />}
             </div>
         </div>
     );

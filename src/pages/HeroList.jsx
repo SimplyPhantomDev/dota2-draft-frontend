@@ -21,7 +21,16 @@ const TEAM_SWITCH_KEY = "F2";
 const DRAFT_OVERVIEW_KEY = "F3";
 const HERO_INSPECTOR_KEY = "F4";
 
-export default function HeroList() {
+export default function HeroList({
+  practiceDataset = null,
+  active = true,
+  onStartTutorial = null,
+  tutorialLoading = false,
+  tutorialError = "",
+}) {
+  const isPractice = practiceDataset !== null;
+  const datasetManifest =
+    practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
 
   //==============================================
   //============= Drafting State =================
@@ -37,7 +46,9 @@ export default function HeroList() {
   const [bannedHeroes, setBannedHeroes] = useState([]);
 
   // Modernized static matchup data (synergy/counter values between heroes)
-  const [matchupIndex, setMatchupIndex] = useState({});
+  const [matchupIndex, setMatchupIndex] = useState(
+    () => practiceDataset?.matchupIndex ?? {}
+  );
 
   // The team currently being drafted
   const [selectedTeam, setSelectedTeam] = useState("ally");
@@ -46,7 +57,9 @@ export default function HeroList() {
   const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
 
   // All hero data grouped by attribute (STR, AGI, INT, UNI)
-  const [heroes, setHeroes] = useState({});
+  const [heroes, setHeroes] = useState(
+    () => practiceDataset?.heroes ?? {}
+  );
 
   // Suggestions calculated based on current draft and filters
   const [suggestedHeroes, setSuggestedHeroes] = useState([]);
@@ -116,6 +129,10 @@ export default function HeroList() {
   // User specific hero pool (stored in localStorage and editable by user)
   // Recover safely from invalid saved data or unavailable browser storage.
   const [heroPool, setHeroPool] = useState(() => {
+
+    // Practice owns a temporary pool and never reads the user's saved pool.
+    if (isPractice) return [];
+
     try {
       const saved = localStorage.getItem("heroPool");
       if (!saved) return [];
@@ -137,7 +154,7 @@ export default function HeroList() {
   const [fullPoolSynergies, setFullPoolSynergies] = useState([]);
 
   // Whether to show suggestions based on the user's hero pool or not
-  const [filterByHeroPool, setFilterByHeroPool] = useState(true);
+  const [filterByHeroPool, setFilterByHeroPool] = useState(!isPractice);
 
   // Whether "Hero Pool Manipulation" mode is active (click to add/remove heroes)
   const [editHeroPoolMode, setEditHeroPoolMode] = useState(false);
@@ -247,6 +264,7 @@ export default function HeroList() {
 
   // Load and group hero data from local JSON on mount
   useEffect(() => {
+    if (isPractice) return;
     const heroesUrl = window.__HEROES_URL__ || "/heroes.json";
     console.log("[heroes] heroesUrl:", heroesUrl);
 
@@ -259,10 +277,11 @@ export default function HeroList() {
         setHeroes(grouped);
       })
       .catch((err) => console.error("Failed to load static hero data:", err));
-  }, []);
+  }, [isPractice]);
 
   // Load synergy matrix from local JSON on mount
   useEffect(() => {
+    if (isPractice) return;
     const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
     fetch(datasetUrl)
       .then((res) => {
@@ -272,7 +291,7 @@ export default function HeroList() {
         setMatchupIndex(indexMatrix(data));
       })
       .catch((err) => console.error("[synergy] Failed to load synergy data", err));
-  }, []);
+  }, [isPractice]);
 
   // Load hero-specific position data from local JSON on mount
   useEffect(() => {
@@ -318,12 +337,13 @@ export default function HeroList() {
 
   // Save pool edits when storage is available; failed saves will not break drafting.
   useEffect(() => {
+    if (isPractice) return;
     try {
       localStorage.setItem("heroPool", JSON.stringify(heroPool));
     } catch (error) {
       console.warn("Could not save the hero pool:", error);
     }
-  }, [heroPool]);
+  }, [heroPool, isPractice]);
 
   // Automatically disable filter if hero pool is too small
   useEffect(() => {
@@ -338,6 +358,8 @@ export default function HeroList() {
 
   // Handle focused shortcuts before ordinary typing can activate hero search.
   useEffect(() => {
+    // The hidden real draft must not react to keys entered during practice.
+    if (!active) return;
     const handleKeyDown = (e) => {
       if (e.defaultPrevented || e.isComposing || !document.hasFocus()
         || document.visibilityState === "hidden") return;
@@ -400,35 +422,40 @@ export default function HeroList() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleTeamSwitch, openDraftOverview, toggleHeroInspector]);
+  }, [active, handleTeamSwitch, openDraftOverview, toggleHeroInspector]);
 
   //==============================================
   //========== UI Behavior & Layout ==============
   //==============================================
 
-  // Automatically hide tooltip for guide after 5 seconds
+  // Automatically hide tooltip for guide after 5 seconds.
   useEffect(() => {
-    if (!showToolTip) return;
+    if (isPractice || !active || !showToolTip) return;
+
     const timeout = setTimeout(() => {
       setShowToolTip(false);
       try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch { }
     }, 5000);
-    return () => clearTimeout(timeout);
-  }, [showToolTip]);
 
-  // Track if the user has already seen the tooltip for guide
+    return () => clearTimeout(timeout);
+  }, [showToolTip, isPractice, active]);
+
+  // Practice must not read or change the user's guide preference.
   useEffect(() => {
+    if (isPractice) return;
+
     try {
       const seen = localStorage.getItem(TOOLTIP_KEY) === "1";
       if (!seen) setShowToolTip(true);
     } catch {
-      // if storage is blocked, fail open (will show tooltip once this session)
-      setShowToolTip(true)
+      setShowToolTip(true);
     }
-  }, []);
+  }, [isPractice]);
 
-  // Track container's screen dimensions for positioning of search element
+  // Re-measure on return from practice; hidden containers have no size.
   useEffect(() => {
+    if (!active) return;
+
     const updateRect = () => {
       if (containerRef.current) {
         setContainerRect(containerRef.current.getBoundingClientRect());
@@ -437,8 +464,9 @@ export default function HeroList() {
 
     updateRect();
     window.addEventListener("resize", updateRect);
+
     return () => window.removeEventListener("resize", updateRect);
-  }, []);
+  }, [active]);
 
   // Track both team sizes to automatically change team selection is need be
   useEffect(() => {
@@ -781,7 +809,7 @@ export default function HeroList() {
   return (
     // === Main App Container ===
     <div
-      className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-screen overflow-hidden flex flex-col transition-shadow duration-300
+      className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-full overflow-hidden flex flex-col transition-shadow duration-300
     ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
     >
       {/* === Search Input (invisible, global key listener) === */}
@@ -824,7 +852,8 @@ export default function HeroList() {
         setGridMode={setGridMode}
       />
 
-      {showDraftOverview && (
+      {/* Portals live outside the hidden workspace; suspend them explicitly. */}
+      {active && showDraftOverview && (
         <DraftOverview
           selectedHeroes={selectedHeroes}
           matchupIndex={matchupIndex}
@@ -834,7 +863,7 @@ export default function HeroList() {
         />
       )}
 
-      <AnimatePresence>
+      {active && <AnimatePresence>
         {showHeroInspector && (
           <HeroInspector
             key="hero-inspector"
@@ -848,7 +877,7 @@ export default function HeroList() {
             triggerRef={inspectorButtonRef}
           />
         )}
-      </AnimatePresence>
+      </AnimatePresence>}
 
       {/* Main Hero Grid Area */}
       <div
@@ -907,11 +936,16 @@ export default function HeroList() {
 
         {/* Share the hero column's grid cell so cards scroll behind the glass. */}
         <footer className="ui-footer col-start-1 row-start-1 self-end">
-          <ReportIssueButton />
+          {!isPractice && <ReportIssueButton />}
         </footer>
 
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
         <Sidebar
+          active={active}
+          isPractice={isPractice}
+          onStartTutorial={onStartTutorial}
+          tutorialLoading={tutorialLoading}
+          tutorialError={tutorialError}
           suggestedHeroes={suggestedHeroes}
           poolSuggestions={poolSuggestions}
           globalSuggestions={globalSuggestions}
@@ -943,10 +977,10 @@ export default function HeroList() {
           bannedHeroes={bannedHeroes}
           infoButtonIcon={infoButtonIcon}
           questionMarkIcon={questionMarkIcon}
-          patch={window.__LOCAL_DATASET_MANIFEST__?.patch}
+          patch={datasetManifest?.patch}
           lastUpdated={
-            window.__LOCAL_DATASET_MANIFEST__?.generatedAt
-              ? new Date(window.__LOCAL_DATASET_MANIFEST__.generatedAt).toLocaleDateString()
+            datasetManifest?.generatedAt
+              ? new Date(datasetManifest.generatedAt).toLocaleDateString()
               : null
           }
         />
