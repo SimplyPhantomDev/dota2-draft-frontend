@@ -30,6 +30,7 @@ export function DraggableHero({
 
   return (
     <motion.button
+      data-hero-id={hero.HeroId}
       layout="position"
       transition={{ layout: { duration: 0.4, ease: "easeInOut" } }}
       ref={drag}

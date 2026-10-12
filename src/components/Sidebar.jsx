@@ -98,7 +98,8 @@ function Sidebar({
     bannedHeroes,
     infoButtonIcon,
     patch,
-    lastUpdated
+    lastUpdated,
+    requestTutorialAction = null,
 }) {
     const sidebarScrollRef = useRef(null);
     const sidebarPanelRef = useRef(null);
@@ -162,6 +163,7 @@ function Sidebar({
     return (
         <div
             ref={sidebarPanelRef}
+            data-tutorial-target="recommendations"
             className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg"
         >
             <div
@@ -378,7 +380,14 @@ function Sidebar({
                                                     <button
                                                         ref={winrateInfoButtonRef}
                                                         type="button"
-                                                        onClick={() => setShowWinrateInfo(prev => !prev)}
+                                                        onClick={() => {
+                                                            if (
+                                                                requestTutorialAction &&
+                                                                !requestTutorialAction({ type: "analysis" })
+                                                            ) return;
+
+                                                            setShowWinrateInfo(prev => !prev);
+                                                        }}
                                                         className="ui-button h-9 w-9 shrink-0 p-0"
                                                         aria-label="About the win probability estimate"
                                                         aria-expanded={showWinrateInfo}
@@ -523,6 +532,10 @@ function Sidebar({
                                                         aria-expanded={poolPanelOpen}
                                                         className="p-1 hover:opacity-80"
                                                         onClick={() => {
+                                                            if (
+                                                                requestTutorialAction &&
+                                                                !requestTutorialAction({ type: "pool-breakdown" })
+                                                            ) return;
                                                             setHoveredSuggestedHero(null);
                                                             setShowPoolBreakdown(prev => !prev);
                                                         }}
@@ -667,7 +680,14 @@ function Sidebar({
                     <div className="ml-auto flex flex-col items-end gap-ui-xs">
                         <button
                             type="button"
-                            onClick={() => setFilterByHeroPool(prev => !prev)}
+                            onClick={() => {
+                                if (
+                                    requestTutorialAction &&
+                                    !requestTutorialAction({ type: "filter" })
+                                ) return;
+
+                                setFilterByHeroPool(prev => !prev);
+                            }}
                             disabled={heroPool.length < 3}
                             aria-pressed={filterByHeroPool}
                             aria-describedby={heroPool.length < 3 ? "hero-pool-filter-help" : undefined}
@@ -692,6 +712,10 @@ function Sidebar({
                         aria-pressed={roleFilter === "Carry"}
                         className="ui-button ui-button-accent w-full"
                         onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "filter" })
+                            ) return;
                             const newFilter = roleFilter === "Carry" ? null : "Carry";
                             setRoleFilter(newFilter);
                             updateSynergySuggestions(
@@ -710,6 +734,10 @@ function Sidebar({
                         aria-pressed={roleFilter === "Support"}
                         className="ui-button ui-button-accent w-full"
                         onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "filter" })
+                            ) return;
                             const newFilter = roleFilter === "Support" ? null : "Support";
                             setRoleFilter(newFilter);
                             updateSynergySuggestions(

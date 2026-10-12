@@ -23,6 +23,8 @@ const HERO_INSPECTOR_KEY = "F4";
 
 export default function HeroList({
   practiceDataset = null,
+  tutorial = null,
+  practiceSeed = null,
   active = true,
   onStartTutorial = null,
   tutorialLoading = false,
@@ -31,6 +33,9 @@ export default function HeroList({
   const isPractice = practiceDataset !== null;
   const datasetManifest =
     practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
+  const beforeTutorialAction = tutorial?.beforeAction;
+  const reportTutorialDraft = tutorial?.onDraftChange;
+  const tutorialTargetHeroId = tutorial?.targetHeroId;
 
   //==============================================
   //============= Drafting State =================
@@ -212,34 +217,68 @@ export default function HeroList({
   const canSwitchTeam =
     selectedHeroes.ally.length < 5 && selectedHeroes.enemy.length < 5;
 
+  // Every draft input passes this gate before changing state during a lesson.
+  const requestTutorialAction = useCallback(
+    action => beforeTutorialAction?.(action) !== false,
+    [beforeTutorialAction]
+  );
+
+  // Observe committed state; callbacks inside state updaters would be unsafe.
+  useEffect(() => {
+    reportTutorialDraft?.(selectedHeroes);
+  }, [selectedHeroes, reportTutorialDraft]);
+
+  // Skipping prepares the draft that the following lesson expects.
+  useEffect(() => {
+    if (!practiceDataset || !practiceSeed) return;
+
+    const resolveHeroes = ids => ids
+      .map(id => practiceDataset.heroById.get(id))
+      .filter(Boolean);
+
+    setSelectedHeroes({
+      ally: resolveHeroes(practiceSeed.ally),
+      enemy: resolveHeroes(practiceSeed.enemy),
+    });
+    setBannedHeroes(resolveHeroes(practiceSeed.bans));
+    setSelectedTeam(practiceSeed.team);
+    setSearchQuery("");
+  }, [practiceDataset, practiceSeed]);
+
   const handleTeamSwitch = useCallback(() => {
+    if (!requestTutorialAction({ type: "team-switch" })) return;
     if (!canSwitchTeam) return;
+
     setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
-  }, [canSwitchTeam]);
+  }, [canSwitchTeam, requestTutorialAction]);
 
   const openDraftOverview = useCallback(() => {
+    if (!requestTutorialAction({ type: "overview" })) return;
     setShowDraftOverview(true);
-  }, []);
+  }, [requestTutorialAction]);
 
   const closeDraftOverview = useCallback(() => {
     setShowDraftOverview(false);
   }, []);
 
   const toggleHeroInspector = useCallback(() => {
-    // Pool editing and inspection assign different meanings to a hero click.
+    if (!requestTutorialAction({ type: "inspector" })) return;
+
     setEditHeroPoolMode(false);
     setShowPoolBreakdown(false);
     setShowHeroInspector(open => !open);
-  }, []);
+  }, [requestTutorialAction]);
 
   const closeHeroInspector = useCallback(() => {
     setShowHeroInspector(false);
   }, []);
 
   const togglePoolEdit = useCallback(() => {
+    if (!requestTutorialAction({ type: "pool-edit" })) return;
+
     setShowHeroInspector(false);
     setEditHeroPoolMode(editing => !editing);
-  }, []);
+  }, [requestTutorialAction]);
 
   // Recalculate from the live draft while keeping the candidate independent.
   const heroInspection = useMemo(() => calculateHeroInspection({
@@ -463,9 +502,17 @@ export default function HeroList({
     };
 
     updateRect();
+
+    // Docked narration can resize the grid without resizing the window.
+    const observer = new ResizeObserver(updateRect);
+    if (containerRef.current) observer.observe(containerRef.current);
+
     window.addEventListener("resize", updateRect);
 
-    return () => window.removeEventListener("resize", updateRect);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateRect);
+    };
   }, [active]);
 
   // Track both team sizes to automatically change team selection is need be
@@ -608,6 +655,7 @@ export default function HeroList({
    * Clears all bans and recalculates suggestions without any banned heroes
    */
   const handleClearBans = () => {
+    if (!requestTutorialAction({ type: "clear-bans" })) return;
     setBannedHeroes([]);
     updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
   };
@@ -620,6 +668,14 @@ export default function HeroList({
    * @param {*} hero The hero object being interacted with
    */
   const handleHeroClick = (hero) => {
+    if (!requestTutorialAction({
+      type: editHeroPoolMode
+        ? "pool-edit"
+        : showHeroInspector ? "inspect" : "pick",
+      heroId: hero.HeroId,
+      team: selectedTeam,
+      source: "click",
+    })) return;
     if (clickLockedHeroes.has(hero.HeroId)) return;
 
     bypassTimerRef.current = true;
@@ -655,16 +711,24 @@ export default function HeroList({
     }
 
     // === Draft Pick Logic ===
-    handleDrop(hero, selectedTeam);
+    handleDrop(hero, selectedTeam, "click");
   };
 
   /**
    * Handles dropping a hero card into a team (drag-and-drop).
    * @param {*} hero The hero object being dragged
    * @param {*} team The team the hero is being dragged to
-   * @returns 
+   * @param {*} source From which state of the app the drop is being done
    */
-  const handleDrop = (hero, team) => {
+  // The source distinguishes a normal click from a drag-and-drop tutorial action.
+  const handleDrop = (hero, team, source = "drop") => {
+    if (!requestTutorialAction({
+      type: "pick",
+      heroId: hero.HeroId,
+      team,
+      source,
+    })) return;
+
     if (clickLockedHeroes.has(hero.HeroId)) return;
     if (bannedHeroes.some(h => h.HeroId === hero.HeroId)) return;
 
@@ -677,9 +741,11 @@ export default function HeroList({
 
       return {
         ...prev,
-        [team]: [...prev[team], hero]
+        [team]: [...prev[team], hero],
       };
     });
+
+    if (beforeTutorialAction) setSearchQuery("");
   };
 
   /**
@@ -688,6 +754,8 @@ export default function HeroList({
    * @param {*} team The team the hero is being removed from
    */
   const handleHeroDeselect = (hero, team) => {
+
+    if (!requestTutorialAction({ type: "remove-pick" })) return;
 
     const newSelected = {
       ...selectedHeroes,
@@ -703,6 +771,8 @@ export default function HeroList({
    * Clears all picks, bans, suggestions and locked heroes (not hero pool)
    */
   const handleClear = () => {
+    if (!requestTutorialAction({ type: "clear-draft" })) return;
+
     setSelectedHeroes({ ally: [], enemy: [] });
     setSuggestedHeroes([]);
     setBannedHeroes([]);
@@ -714,6 +784,7 @@ export default function HeroList({
    * @param {*} hero The hero being removed from the bans
    */
   const handleBanRemove = (hero) => {
+    if (!requestTutorialAction({ type: "unban" })) return;
     const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
     setBannedHeroes(updatedBans);
   };
@@ -723,8 +794,9 @@ export default function HeroList({
    * @param {*} hero The hero object being banned
    */
   const handleHeroBan = (hero) => {
-    if (bannedHeroes.length >= 16) return;
-    if (clickLockedHeroes.has(hero.HeroId)) return;
+    if (!requestTutorialAction({ type: "ban" }) ||
+      bannedHeroes.length >= 16 ||
+      clickLockedHeroes.has(hero.HeroId)) return;
 
     lockHero(hero.HeroId);
 
@@ -751,6 +823,27 @@ export default function HeroList({
     const aliasMatch = hero.aliases?.some(alias => alias.toLowerCase().includes(query));
     return nameMatch || aliasMatch;
   };
+
+  // Bring the lesson hero into view when searching, even below the fold.
+  useEffect(() => {
+    if (!active || !tutorialTargetHeroId || !searchQuery.trim()) return;
+
+    const hero = practiceDataset?.heroById.get(tutorialTargetHeroId);
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!hero || !(
+      hero.name.toLowerCase().includes(query) ||
+      hero.aliases?.some(alias => alias.toLowerCase().includes(query))
+    )) return;
+
+    containerRef.current
+      ?.querySelector(`[data-hero-id="${tutorialTargetHeroId}"]`)
+      ?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: "auto",
+      });
+  }, [active, tutorialTargetHeroId, searchQuery, practiceDataset]);
 
   //==============================================
   //=============== Render Helpers ===============
@@ -850,6 +943,7 @@ export default function HeroList({
         handleBanRemove={handleBanRemove}
         gridMode={gridMode}
         setGridMode={setGridMode}
+        requestTutorialAction={requestTutorialAction}
       />
 
       {/* Portals live outside the hidden workspace; suspend them explicitly. */}
@@ -885,6 +979,7 @@ export default function HeroList({
       >
         <div
           ref={containerRef}
+          data-tutorial-target="hero-grid"
           className="relative col-start-1 row-start-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pb-16"
         >
           {searchQuery && containerRect && (
@@ -983,6 +1078,7 @@ export default function HeroList({
               ? new Date(datasetManifest.generatedAt).toLocaleDateString()
               : null
           }
+          requestTutorialAction={requestTutorialAction}
         />
       </div>{/* end hero+sidebar split */}
       {/* === Status Toast (Bottom left) === */}

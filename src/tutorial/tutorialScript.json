@@ -1,23 +1,95 @@
 {
-  "welcome": {
-    "title": "Welcome to D2DT",
-    "lines": [
-      {
-        "id": "welcome-greeting",
-        "text": "Welcome to Dota 2 Drafting Tool and thank you so much for downloading this application!"
-      },
-      {
-        "id": "welcome-purpose",
-        "text": "This tutorial is to help you find the ropes to get the maximum benefit out of this tool."
-      },
-      {
-        "id": "welcome-controls",
-        "text": "You can see below control buttons for going ahead a step, skipping a step, and for exiting the tutorial."
-      },
-      {
-        "id": "welcome-oracle-reference",
-        "text": "So if you feel like just finding the ropes yourself that's fine too. But, 'Don't say I never gave you anything.'"
-      }
+    "welcome": {
+        "title": "Welcome to D2DT",
+        "lines": [
+            {
+                "id": "welcome-greeting",
+                "text": "Welcome to Dota 2 Drafting Tool and thank you so much for downloading this application!"
+            },
+            {
+                "id": "welcome-purpose",
+                "text": "This tutorial is to help you find the ropes to get the maximum benefit out of this tool."
+            },
+            {
+                "id": "welcome-controls",
+                "text": "You can see below control buttons for going ahead a step, skipping a step, and for exiting the tutorial."
+            },
+            {
+                "id": "welcome-oracle-reference",
+                "text": "So if you feel like just finding the ropes yourself that's fine too. But, 'Don't say I never gave you anything.'"
+            }
+        ]
+    },
+    "firstPick": {
+        "title": "First pick",
+        "heroId": 50,
+        "successLineId": "first-pick-success",
+        "lines": [
+            {
+                "id": "first-pick-grid",
+                "highlight": "hero-grid",
+                "text": "You see that giant hero grid over there? Yeah, that is YOUR hero grid."
+            },
+            {
+                "id": "first-pick-team",
+                "highlight": "picking-side",
+                "text": "You go ahead and click a hero with your left mouse button and a hero gets picked to the team indicated up here."
+            },
+            {
+                "id": "first-pick-dismiss-highlight",
+                "highlight": "picking-side",
+                "releaseHighlightOnComplete": true,
+                "text": "Now... Ugh, go away you."
+            },
+            {
+                "id": "first-pick-dazzle",
+                "text": "Hmm... which one should we do... How about... Dazzle! Go ahead, click Dazzle with your left mouse button and see what happens!"
+            },
+            {
+                "id": "first-pick-search-intro",
+                "text": "Oh gosh... I got ahead of myself again. There's over 120 heroes here, how on earth do you expect to find a hero from all of these options?"
+            },
+            {
+                "id": "first-pick-search",
+                "highlight": "hero-grid",
+                "waitForPick": true,
+                "hint": "Type Dazzle, then left-click his portrait.",
+                "text": "But hey, I got just the thing for you. Go ahead and type out the name \"dazzle\" and see what happens."
+            },
+            {
+                "id": "first-pick-success",
+                "text": "He-Hey! That's the one! Good job! You're a natural."
+            },
+            {
+                "id": "first-pick-recommendations",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "Now, as you can see, a bunch of heroes are already raring to go into battle with good old Dazzle here."
+            },
+            {
+                "id": "first-pick-scores",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "The higher the number, the better that hero fits your current draft. This is your equivalent of Town Portal Scroll. You use this information to the best of your ability and good things will follow."
+            },
+            {
+                "id": "first-pick-promise",
+                "placement": "beside-sidebar",
+                "appearance": "fine-print",
+                "typingIntervalMs": 20,
+                "charactersPerTick": 4,
+                "text": "For future reference this is not a legally binding promise and this tool does not take any responsibility for the actual match outcomes."
+            }
+        ]
+    },
+    "interruptions": [
+        {
+            "id": "interrupt-impatient",
+            "text": "Hey! If you are that impatient you might as well just exit the whole thing."
+        },
+        {
+            "id": "interrupt-walk-first",
+            "text": "Hold on there pal, a toddler must walk before they can run."
+        }
     ]
-  }
 }

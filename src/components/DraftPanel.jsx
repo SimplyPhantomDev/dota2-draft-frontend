@@ -29,6 +29,7 @@ function DraftPanel({
     handleBanRemove,
     gridMode,
     setGridMode,
+    requestTutorialAction = null,
 }) {
     const ActionButtons = () => {
         const buttonSize = "w-[71px] h-[60px] text-xs";
@@ -77,6 +78,10 @@ function DraftPanel({
                     <button
                         type="button"
                         onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "guide" })
+                            ) return;
                             setShowGuide((prev) => !prev);
                             setButtonPulse(true);
                             setTimeout(() => setButtonPulse(false), 500);
@@ -132,6 +137,7 @@ function DraftPanel({
                     />
 
                     <button
+                        data-tutorial-target="picking-side"
                         onClick={handleTeamSwitch}
                         disabled={!canSwitchTeam}
                         title={`Switch pick team (${teamSwitchKey})`}
@@ -187,9 +193,14 @@ function DraftPanel({
                         role="switch"
                         aria-label="Four-column hero layout"
                         aria-checked={gridMode === "row"}
-                        onClick={() => setGridMode((prev) =>
-                            prev === "default" ? "row" : "default"
-                        )}
+                        onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "layout" })
+                            ) return;
+
+                            setGridMode(prev => prev === "default" ? "row" : "default");
+                        }}
                         title={gridMode === "row"
                             ? "Four-column layout — switch to 2 × 2"
                             : "2 × 2 layout — switch to four columns"
