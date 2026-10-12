@@ -1,12 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
+import tutorialScript from "./tutorialScript.json";
 
-const WELCOME_LINES = [
-  "Welcome to Dota 2 Drafting Tool and thank you so much for downloading this application!",
-  "This tutorial is to help you find the ropes to get the maximum benefit out of this tool.",
-  "You can see below control buttons for going ahead a step, skipping a step, and for exiting the tutorial.",
-  "So if you feel like just finding the ropes yourself that's fine too. But, 'Don't say I never gave you anything.'",
-];
+const WELCOME = tutorialScript.welcome;
+const WELCOME_LINES = WELCOME.lines;
 
 export default function TutorialWelcome({
   onNext,
@@ -21,7 +18,7 @@ export default function TutorialWelcome({
     visibleCount: 0,
   });
 
-  const text = WELCOME_LINES[dialogue.page];
+  const text = WELCOME_LINES[dialogue.page].text;
   const complete =
     Boolean(reduceMotion) || dialogue.visibleCount >= text.length;
 
@@ -107,7 +104,7 @@ export default function TutorialWelcome({
         </button>
 
         <h2 id="tutorial-welcome-title" className="text-lg font-semibold">
-          Welcome to D2DT
+          {WELCOME.title}
         </h2>
 
         <span className="ml-auto shrink-0 text-xs tabular-nums text-ink-muted">
@@ -147,13 +144,13 @@ export default function TutorialWelcome({
 
           <div className="grid min-h-[9rem] min-w-0 font-serif text-[clamp(1.25rem,2.5vw,1.875rem)] leading-relaxed">
             {/* Reserve the tallest page to keep the window steady throughout. */}
-            {WELCOME_LINES.map((line, index) => (
+            {WELCOME_LINES.map(line => (
               <p
-                key={index}
+                key={line.id}
                 aria-hidden="true"
                 className="invisible col-start-1 row-start-1"
               >
-                {line}
+                {line.text}
               </p>
             ))}
 

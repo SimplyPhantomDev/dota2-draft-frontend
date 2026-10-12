@@ -1,0 +1,23 @@
+{
+  "welcome": {
+    "title": "Welcome to D2DT",
+    "lines": [
+      {
+        "id": "welcome-greeting",
+        "text": "Welcome to Dota 2 Drafting Tool and thank you so much for downloading this application!"
+      },
+      {
+        "id": "welcome-purpose",
+        "text": "This tutorial is to help you find the ropes to get the maximum benefit out of this tool."
+      },
+      {
+        "id": "welcome-controls",
+        "text": "You can see below control buttons for going ahead a step, skipping a step, and for exiting the tutorial."
+      },
+      {
+        "id": "welcome-oracle-reference",
+        "text": "So if you feel like just finding the ropes yourself that's fine too. But, 'Don't say I never gave you anything.'"
+      }
+    ]
+  }
+}
