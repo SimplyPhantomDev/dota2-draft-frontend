@@ -50,7 +50,7 @@ export default function TutorialWelcome({
           visibleCount: Math.min(current.visibleCount + 2, text.length),
         };
       });
-    }, 30);
+    }, 50);
 
     return () => clearInterval(timer);
   }, [dialogue.page, text.length, complete]);
@@ -178,18 +178,22 @@ export default function TutorialWelcome({
             </p>
           </div>
         </div>
-
-        <p className="mt-ui-lg text-xs text-ink-muted">
-          Click in this window or press Next to continue.
-        </p>
       </div>
 
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-ui-sm border-t border-line p-ui-md">
-        <button type="button" className="ui-button" onClick={onExit}>
+      <footer className="grid shrink-0 grid-cols-2 items-center gap-ui-sm border-t border-line p-ui-md sm:grid-cols-3">
+        <button
+          type="button"
+          className="ui-button col-start-1 row-start-1 justify-self-start"
+          onClick={onExit}
+        >
           Exit tutorial
         </button>
 
-        <div className="flex gap-ui-sm">
+        <p className="col-span-2 col-start-1 row-start-2 text-center text-xs text-ink-muted sm:col-span-1 sm:col-start-2 sm:row-start-1">
+          Click in this window or press Next to continue.
+        </p>
+
+        <div className="col-start-2 row-start-1 flex justify-self-end gap-ui-sm sm:col-start-3">
           <button
             type="button"
             className="ui-button"
