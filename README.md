@@ -15,6 +15,8 @@ This repository contains the application interface, drafting logic, and desktop 
 - **Role filters:** narrow suggestions to Carry or Support heroes.
 - **Composition adjustments:** prioritise useful traits when your team lacks initiation, disables, or pushing ability.
 - **Score breakdowns:** inspect how allied synergy, enemy matchups, and composition bonuses contribute to recommendations.
+- **Draft overview:** open a modal at any draft stage to compare each picked hero's ally synergy, enemy matchup and total scores, without a win-probability estimate.
+- **Hero inspector:** evaluate a candidate against the current draft in a movable, scrollable panel, then confirm the pick when ready.
 - **Full-draft analysis:** compare individual hero scores, team totals, and estimated draft advantage once all ten heroes have been selected.
 - **Enemy role estimates:** suggest positions using predefined hero-role priorities.
 - **Hero search:** find heroes by name or configured aliases.
@@ -46,7 +48,11 @@ Once both teams contain five heroes, the application calculates individual hero 
 
 The composition bonuses used during recommendations are excluded from this final comparison.
 
-The displayed win percentage is a heuristic transformation of the difference between team scores, bounded between 20% and 80%. It indicates relative draft strength rather than a measured probability of winning. Player skill, execution, item choices, and coordination are outside the calculation.
+When all ten selected heroes have valid seven-day win rate baselines and complete matchup data, the displayed percentages use a baseline-adjusted heuristic. Each hero's baseline is adjusted by the equally weighted averages of its ally synergy and opponent matchup scores. The hero estimates are averaged within each team, then the ally estimate is averaged with the enemy's implied loss estimate. The displayed percentages sum to 100%.
+
+If the required data is unavailable, the application uses the existing transformation of the team-score difference, bounded between 20% and 80%.
+
+Both calculations are heuristics that have not been validated against match results. Player skill, execution, item choices, and coordination are outside the calculation.
 
 ### Enemy role estimates
 
@@ -67,7 +73,7 @@ The selected arrangement is retained as the window resizes. Hero cards adjust th
 
 The hero grid and sidebar recommendations scroll independently. Draft controls, suggestion filters, patch information, and the centered **Report an issue** footer link remain accessible while scrolling.
 
-Below 1536px viewport width, ban slots use two rows and the action buttons move beside them.
+Below 1536px viewport width, ban slots use two rows and the action buttons move beside them. The application title and pick-team label also stack onto two lines to leave more horizontal space for the draft slots. The team-switch button keeps the same width for either team.
 
 ### Full hero pool breakdown
 
@@ -198,7 +204,7 @@ Check both hero layouts at these suggested CSS viewport sizes:
 
 In [Chrome DevTools](https://developer.chrome.com/docs/devtools/device-mode), select **Desktop** as the device type when resizing the emulated viewport. This retains mouse input for dragging and right-click bans. Touch emulation changes the input events.
 
-Include partial and completed drafts, pool editing and filtering, score hovers, and the guide and report dialog. Resize with the pool breakdown open to check its floating-panel/modal transition.
+Include partial and completed drafts, pool editing and filtering, score hovers, and the guide and report dialog. Check F2/F3/F4 while drafting and while editing form fields. With the inspector open, select a candidate, add heroes by dragging, ban and remove heroes, and confirm that the candidate stays selected while its scores update. Check confirmation, scrolling, moving the inspector, and closing/reopening it through both F4 and the toolbar button. Resize each floating panel while it is open to check inspector positioning and the pool panel's floating/modal transition.
 
 Check report validation with empty fields. Mock `submitIssueReport` for request success and failure tests.
 
@@ -215,7 +221,49 @@ Check report validation with empty fields. Mock `submitIssueReport` for request 
 
 Click a drafted hero to remove it. **CLEAR BANS** removes bans, while **CLEAR ALL** resets the current draft and bans without deleting your saved hero pool.
 
-The interface is designed for desktop mouse and keyboard use.
+### Focused shortcuts
+
+| Key | Action |
+| --- | --- |
+| **F2** | Switch the team selected for click-picking and inspection. |
+| **F3** | Open or close the draft overview. |
+| **F4** | Open or close the hero inspector. |
+
+These shortcuts work while the application is focused, including when hero search is focused. Other editable fields and modal dialogs keep their keyboard input; the draft overview handles its own F3 and Escape shortcuts.
+
+Manual team switching is disabled when either team is full. The selector automatically chooses the team with space.
+
+### Draft overview
+
+Press **F3** or click the **eye icon** to compare each picked hero's ally synergy, enemy matchups, and total score at any draft stage. Scores include current picks only; composition bonuses and win-probability estimates are excluded.
+
+The overview opens as a modal with a scrollable body. Close it with **F3**, **Escape**, the close button, or a click outside the dialog to resume drafting.
+
+### Hero inspector
+
+Press **F4** or click the **magnifying-glass icon** to open the floating inspector. Left-click an available hero in the grid to evaluate it for the team currently selected for picking.
+
+The inspected hero changes only when you left-click another available hero in the grid. Changes to the draft update its breakdown immediately.
+
+While the inspector is open:
+
+| Action | Result |
+| --- | --- |
+| Left-click an available hero in the grid | Select that hero for inspection. |
+| Drag a hero into either team | Pick it for that team and update the current inspection. |
+| Right-click an available hero | Ban it and update the current inspection. |
+| Use the inspector's pick button | Pick the inspected hero for the selected team. |
+| Click a drafted hero | Remove it and update the current inspection. |
+
+The inspector shows individual teammate and opponent scores, their subtotals, and the combined total. Positive values favour the inspected hero, whether it is being evaluated for allies or enemies. Composition bonuses and win-probability estimates are excluded. Missing matchup data appears as a dash, and the total remains unavailable while required scores are missing.
+
+The pick button is disabled if the inspected hero is already picked, banned, or the selected team is full. Confirming a pick keeps the inspector open.
+
+Drag the header to move the window. Its score list scrolls while the header and pick controls remain visible. Its position and selected hero are retained across closing and reopening during the current session.
+
+Close the inspector with **F4**, its toolbar button, or its close button. It animates towards the toolbar button when closing and expands from it when opening; reduced-motion preferences disable that animation.
+
+Hero inspection and pool editing are mutually exclusive. Opening the inspector ends pool editing, and entering pool editing closes the inspector.
 
 ## Project structure
 
@@ -227,6 +275,9 @@ The interface is designed for desktop mouse and keyboard use.
 | `src/components/HeroPoolBreakdown.jsx` | Full pool scores and adaptive floating-panel/modal presentation. |
 | `src/components/HoverTooltip.jsx` | Hero score breakdown positioning within the viewport. |
 | `src/components/ReportIssueButton.jsx` | Report dialog, field validation, and submission state. |
+| `src/components/DraftOverview.jsx` | Modal score comparison for partial and complete drafts. |
+| `src/components/HeroInspector.jsx` | Movable candidate inspection panel, scrolling, and opening/closing animation. |
+| `src/utils/heroInspection.js` | Candidate matchup scores, totals, missing-data handling, and pick eligibility. |
 | `src/utils/synergy.js` | Recommendation scoring, personal-pool analysis, and the heuristic win-percentage calculation. |
 | `src/utils/predictRoles.js` | Enemy position assignment. |
 | `src/tauriDataset.js` | Local dataset initialisation, manifest checks, and downloaded data updates. |

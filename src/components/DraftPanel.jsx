@@ -1,9 +1,18 @@
 import { TeamDropZone } from "./structures";
+import { OverviewIcon, InspectionIcon, GridLayoutIcon, RowLayoutIcon } from "./DraftIcons";
 
 function DraftPanel({
     selectedHeroes,
     selectedTeam,
-    setSelectedTeam,
+    handleTeamSwitch,
+    canSwitchTeam,
+    teamSwitchKey,
+    openDraftOverview,
+    draftOverviewKey,
+    showHeroInspector,
+    toggleHeroInspector,
+    heroInspectorKey,
+    inspectorButtonRef,
     handleDrop,
     handleHeroDeselect,
     enemyRolePredictions,
@@ -13,15 +22,14 @@ function DraftPanel({
     buttonPulse,
     setButtonPulse,
     editHeroPoolMode,
-    setEditHeroPoolMode,
+    onTogglePoolEdit,
     handleClear,
     handleClearBans,
     bannedHeroes,
     handleBanRemove,
     gridMode,
     setGridMode,
-    layoutDefaultIcon,
-    layoutRowIcon,
+    requestTutorialAction = null,
 }) {
     const ActionButtons = () => {
         const buttonSize = "w-[71px] h-[60px] text-xs";
@@ -30,7 +38,7 @@ function DraftPanel({
             <div className="flex items-center gap-ui-sm">
                 <button
                     type="button"
-                    onClick={() => setEditHeroPoolMode((prev) => !prev)}
+                    onClick={onTogglePoolEdit}
                     aria-pressed={editHeroPoolMode}
                     className={`ui-button ui-button-accent px-ui-xs ${buttonSize}`}
                 >
@@ -60,23 +68,60 @@ function DraftPanel({
         <div className="ui-panel shrink-0 mb-ui-sm px-ui-lg py-ui-sm">
             {/* ===================== ROW 1 ===================== */}
             <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-ui-sm 2xl:gap-ui-lg">
-                {/* Left: Title + Guide */}
-                <div className="relative flex items-center">
-                    <h1 className="font-display whitespace-nowrap text-2xl font-bold tracking-widest text-ink mr-ui-sm">
-                        D2 DT
+                {/* Left: title + view controls */}
+                <div className="relative flex items-center gap-ui-xs">
+                    <h1 className="mr-ui-sm shrink-0 whitespace-nowrap text-center
+                            font-display text-2xl font-bold leading-none tracking-widest text-ink 2xl:leading-8">
+                        D2<span className="block 2xl:inline"> DT</span>
                     </h1>
 
                     <button
+                        type="button"
                         onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "guide" })
+                            ) return;
                             setShowGuide((prev) => !prev);
                             setButtonPulse(true);
                             setTimeout(() => setButtonPulse(false), 500);
                         }}
-                        className={`w-[30px] h-[30px] bg-white bg-opacity-0 text-black font-bold rounded transition-transform duration-200 ${buttonPulse ? "animate-pulse" : ""
-                            }`}
-                        title="Info"
+                        aria-label="Toggle drafting guide"
+                        title="Drafting guide"
+                        className={`ui-button h-9 w-9 shrink-0 p-0 ${buttonPulse ? "animate-pulse" : ""}`}
                     >
-                        <img src={infoButtonIcon} alt="Info" className="filter invert" />
+                        <img
+                            src={infoButtonIcon}
+                            alt=""
+                            className="h-5 w-5 invert"
+                        />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={openDraftOverview}
+                        aria-label="Open draft overview"
+                        aria-haspopup="dialog"
+                        aria-controls="draft-overview-dialog"
+                        aria-keyshortcuts={draftOverviewKey}
+                        title={`Draft overview (${draftOverviewKey})`}
+                        className="ui-button h-9 w-9 shrink-0 p-0"
+                    >
+                        <OverviewIcon />
+                    </button>
+                    <button
+                        ref={inspectorButtonRef}
+                        type="button"
+                        onClick={toggleHeroInspector}
+                        aria-label="Hero inspector"
+                        aria-pressed={showHeroInspector}
+                        aria-haspopup="dialog"
+                        aria-controls="hero-inspector"
+                        aria-keyshortcuts={heroInspectorKey}
+                        title={`${showHeroInspector ? "Close" : "Open"} hero inspector (${heroInspectorKey})`}
+                        className="ui-button ui-button-accent h-9 w-9 shrink-0 p-0"
+                    >
+                        <InspectionIcon />
                     </button>
                 </div>
 
@@ -92,19 +137,37 @@ function DraftPanel({
                     />
 
                     <button
-                        onClick={() => setSelectedTeam((prev) => (prev === "ally" ? "enemy" : "ally"))}
-                        disabled={selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5}
-                        className={`whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold transition 
-              ${selectedTeam === "ally"
+                        data-tutorial-target="picking-side"
+                        onClick={handleTeamSwitch}
+                        disabled={!canSwitchTeam}
+                        title={`Switch pick team (${teamSwitchKey})`}
+                        aria-keyshortcuts={teamSwitchKey}
+                        className={`inline-grid place-items-center whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold text-center leading-tight 2xl:leading-5 transition
+                            ${selectedTeam === "ally"
                                 ? "bg-green-600 hover:bg-green-700"
                                 : "bg-red-600 hover:bg-red-700"
                             }
-              ${selectedHeroes.ally.length === 5 || selectedHeroes.enemy.length === 5
+                            ${!canSwitchTeam
                                 ? "bg-gray-500 cursor-not-allowed opacity-50"
                                 : ""
                             }`}
                     >
-                        Picking for: {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                        {/* Match the responsive wrapping in both labels to keep
+                        the button's size stable when switching teams. */}
+                        <span
+                            aria-hidden="true"
+                            className="invisible col-start-1 row-start-1"
+                        >
+                            <span className="block 2xl:inline">Picking for:</span>{" "}
+                            <span className="block 2xl:inline">Enemy Team</span>
+                        </span>
+
+                        <span className="col-start-1 row-start-1">
+                            <span className="block 2xl:inline">Picking for:</span>{" "}
+                            <span className="block 2xl:inline">
+                                {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                            </span>
+                        </span>
                     </button>
 
                     <TeamDropZone
@@ -123,25 +186,57 @@ function DraftPanel({
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
             <div className="mt-ui-sm grid grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[18px_auto] gap-x-ui-sm">
-                {/* Left: grid toggle spans both rows */}
+                {/* Left: one layout switch spans both rows */}
                 <div className="row-span-2 self-center justify-self-start">
                     <button
-                        onClick={() => setGridMode((prev) => (prev === "default" ? "row" : "default"))}
-                        className="relative w-28 h-12 bg-gray-900 rounded-lg transition-colors duration-300 ease-in-out flex items-center justify-between"
-                        title="Toggle Grid Layout"
+                        type="button"
+                        role="switch"
+                        aria-label="Four-column hero layout"
+                        aria-checked={gridMode === "row"}
+                        onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "layout" })
+                            ) return;
+
+                            setGridMode(prev => prev === "default" ? "row" : "default");
+                        }}
+                        title={gridMode === "row"
+                            ? "Four-column layout — switch to 2 × 2"
+                            : "2 × 2 layout — switch to four columns"
+                        }
+                        className="relative h-11 w-24 shrink-0 cursor-pointer rounded-full border border-line bg-surface-raised p-ui-xs transition-colors duration-150 hover:border-accent/50 motion-reduce:transition-none"
                     >
-                        <div
-                            className={`absolute w-12 h-12 bg-gray-600 rounded-lg shadow-md transform transition-transform duration-300 ease-in-out z-10 ${gridMode === "row" ? "translate-x-16" : "translate-x-0"
-                                }`}
-                        />
-                        <div className="flex justify-between items-center w-full z-20">
-                            <img
-                                src={layoutDefaultIcon}
-                                alt="Grid Layout"
-                                className="w-12 h-12"
+                        <span
+                            aria-hidden="true"
+                            className="relative grid h-full grid-cols-2"
+                        >
+                            {/* Half-width travel keeps the highlight aligned with either icon. */}
+                            <span
+                                className={`absolute inset-y-0 left-0 w-1/2 rounded-full border border-accent/50 bg-accent/20 transition-transform duration-200 motion-reduce:transition-none ${gridMode === "row"
+                                    ? "translate-x-full"
+                                    : "translate-x-0"
+                                    }`}
                             />
-                            <img src={layoutRowIcon} alt="Row Layout" className="w-12 h-12" />
-                        </div>
+
+                            <span
+                                className={`relative z-10 flex items-center justify-center ${gridMode === "default"
+                                    ? "text-accent"
+                                    : "text-ink-muted"
+                                    }`}
+                            >
+                                <GridLayoutIcon />
+                            </span>
+
+                            <span
+                                className={`relative z-10 flex items-center justify-center ${gridMode === "row"
+                                    ? "text-accent"
+                                    : "text-ink-muted"
+                                    }`}
+                            >
+                                <RowLayoutIcon />
+                            </span>
+                        </span>
                     </button>
                 </div>
 

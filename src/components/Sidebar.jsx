@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import HoverTooltip from "./HoverTooltip";
 import HeroPoolBreakdown from "./HeroPoolBreakdown";
+import SettingsButton from "./SettingsButton";
 
 const FLOATING_POOL_QUERY =
     "(min-width: 1800px) and (min-height: 720px)";
@@ -60,6 +61,11 @@ function RecommendationRow({
 }
 
 function Sidebar({
+    active = true,
+    isPractice = false,
+    onStartTutorial = null,
+    tutorialLoading = false,
+    tutorialError = "",
     suggestedHeroes,
     poolSuggestions,
     globalSuggestions,
@@ -87,11 +93,13 @@ function Sidebar({
     showWinrateInfo,
     setShowWinrateInfo,
     getWinProbability,
+    draftWinProbability = null,
     hasPicks,
     bannedHeroes,
     infoButtonIcon,
     patch,
-    lastUpdated
+    lastUpdated,
+    requestTutorialAction = null,
 }) {
     const sidebarScrollRef = useRef(null);
     const sidebarPanelRef = useRef(null);
@@ -155,6 +163,7 @@ function Sidebar({
     return (
         <div
             ref={sidebarPanelRef}
+            data-tutorial-target="recommendations"
             className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg"
         >
             <div
@@ -181,7 +190,29 @@ function Sidebar({
                                 ×
                             </button>
                         </div>
+                        {onStartTutorial && (
+                            <div className="space-y-ui-sm border-b border-line p-ui-md">
+                                <p className="text-ink-muted">
+                                    Practise with fixed example data. Your current draft and saved hero
+                                    pool will be kept.
+                                </p>
 
+                                <button
+                                    type="button"
+                                    className="ui-button ui-button-accent"
+                                    onClick={onStartTutorial}
+                                    disabled={tutorialLoading}
+                                >
+                                    {tutorialLoading ? "Opening tutorial..." : "Start tutorial"}
+                                </button>
+
+                                {tutorialError && (
+                                    <p role="alert" className="text-danger">
+                                        {tutorialError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         <p className="p-ui-md leading-relaxed text-ink-muted">
                             Welcome to the ultimate Dota 2 drafting tool. Hero suggestions will show up as you pick. Select heroes either by clicking or dragging them,
                             ban them with right-click, and get real-time synergy data to heroes still remaining in the pool. Full draft analysis appears once both teams are filled.
@@ -324,8 +355,14 @@ function Sidebar({
                                             (sum, h) => sum + parseFloat(h.totalScore), 0
                                         );
                                         const delta = allyTotal - enemyTotal;
-                                        const allyWin = getWinProbability(delta);
-                                        const enemyWin = (100 - allyWin).toFixed(2);
+
+                                        // Round the ally percentage once, then derive its complement.
+                                        // Integer hundredths keep the displayed total exactly 100%.
+                                        const allyHundredths = draftWinProbability
+                                            ? Math.round(draftWinProbability.ally * 10000)
+                                            : Math.round(getWinProbability(delta) * 100);
+                                        const allyWin = allyHundredths / 100;
+                                        const enemyWin = (10000 - allyHundredths) / 100;
 
                                         return (
                                             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-ui-sm text-lg font-bold">
@@ -343,7 +380,14 @@ function Sidebar({
                                                     <button
                                                         ref={winrateInfoButtonRef}
                                                         type="button"
-                                                        onClick={() => setShowWinrateInfo(prev => !prev)}
+                                                        onClick={() => {
+                                                            if (
+                                                                requestTutorialAction &&
+                                                                !requestTutorialAction({ type: "analysis" })
+                                                            ) return;
+
+                                                            setShowWinrateInfo(prev => !prev);
+                                                        }}
                                                         className="ui-button h-9 w-9 shrink-0 p-0"
                                                         aria-label="About the win probability estimate"
                                                         aria-expanded={showWinrateInfo}
@@ -389,14 +433,30 @@ function Sidebar({
                                             </div>
 
                                             <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
-                                                These percentages use hero synergy and matchup scores only.
-                                                The favoured team's estimate is capped at 80%.
-                                                Player skill, teamwork and execution can still change the outcome.
+                                                {draftWinProbability ? (
+                                                    <>
+                                                        These percentages combine recent hero win rates with
+                                                        averaged ally synergy and opponent matchup adjustments.
+                                                        The two team estimates are reconciled to total 100%.
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        Complete data for the win rate based estimate is unavailable.
+                                                        These percentages use synergy and matchup scores only,
+                                                        with the favoured team's estimate capped at 80%.
+                                                    </>
+                                                )}
+                                            </p>
+
+                                            <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
+                                                Both calculations are heuristics and have not been validated
+                                                against match results. Player skill, teamwork and execution
+                                                are outside the calculation.
                                             </p>
                                         </section>
                                     )}
                                 </div>
-                                {hoveredHero && (
+                                {active && hoveredHero && (
                                     <HoverTooltip initialPoint={tooltipPoint} anchorRef={sidebarPanelRef}>
                                         <h3 className="mb-ui-sm break-words font-semibold text-ink">
                                             Synergy breakdown: {hoveredHero.name}
@@ -472,6 +532,10 @@ function Sidebar({
                                                         aria-expanded={poolPanelOpen}
                                                         className="p-1 hover:opacity-80"
                                                         onClick={() => {
+                                                            if (
+                                                                requestTutorialAction &&
+                                                                !requestTutorialAction({ type: "pool-breakdown" })
+                                                            ) return;
                                                             setHoveredSuggestedHero(null);
                                                             setShowPoolBreakdown(prev => !prev);
                                                         }}
@@ -530,7 +594,7 @@ function Sidebar({
                                         )}
                                     </div>
                                 )}
-                                {hoveredSuggestedHero && (
+                                {active && hoveredSuggestedHero && (
                                     <HoverTooltip
                                         initialPoint={tooltipPoint}
                                         anchorRef={floatingPoolOpen ? poolPanelRef : sidebarPanelRef}
@@ -591,7 +655,7 @@ function Sidebar({
                                         )}
                                     </HoverTooltip>
                                 )}
-                                {poolPanelOpen && (
+                                {active && poolPanelOpen && (
                                     <HeroPoolBreakdown
                                         heroes={fullPoolSynergies}
                                         onClose={() => setShowPoolBreakdown(false)}
@@ -616,7 +680,14 @@ function Sidebar({
                     <div className="ml-auto flex flex-col items-end gap-ui-xs">
                         <button
                             type="button"
-                            onClick={() => setFilterByHeroPool(prev => !prev)}
+                            onClick={() => {
+                                if (
+                                    requestTutorialAction &&
+                                    !requestTutorialAction({ type: "filter" })
+                                ) return;
+
+                                setFilterByHeroPool(prev => !prev);
+                            }}
                             disabled={heroPool.length < 3}
                             aria-pressed={filterByHeroPool}
                             aria-describedby={heroPool.length < 3 ? "hero-pool-filter-help" : undefined}
@@ -641,6 +712,10 @@ function Sidebar({
                         aria-pressed={roleFilter === "Carry"}
                         className="ui-button ui-button-accent w-full"
                         onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "filter" })
+                            ) return;
                             const newFilter = roleFilter === "Carry" ? null : "Carry";
                             setRoleFilter(newFilter);
                             updateSynergySuggestions(
@@ -659,6 +734,10 @@ function Sidebar({
                         aria-pressed={roleFilter === "Support"}
                         className="ui-button ui-button-accent w-full"
                         onClick={() => {
+                            if (
+                                requestTutorialAction &&
+                                !requestTutorialAction({ type: "filter" })
+                            ) return;
                             const newFilter = roleFilter === "Support" ? null : "Support";
                             setRoleFilter(newFilter);
                             updateSynergySuggestions(
@@ -674,17 +753,25 @@ function Sidebar({
                 </div>
             </div>
             {/* === App Footer Info === */}
-            <dl className="mt-ui-sm shrink-0 space-y-ui-xs border-t border-line pt-ui-sm text-xs">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
-                    <dt className="text-ink-muted">Patch</dt>
-                    <dd className="font-mono text-ink">{patch ?? "unknown"}</dd>
-                </div>
+            <div className="mt-ui-sm flex shrink-0 items-center gap-ui-sm border-t border-line pt-ui-sm">
+                <dl className="min-w-0 flex-1 space-y-ui-xs text-xs">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
+                        <dt className="text-ink-muted">Patch</dt>
+                        <dd className="font-mono text-ink">
+                            {patch ?? "unknown"}
+                        </dd>
+                    </div>
 
-                <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
-                    <dt className="text-ink-muted">Last updated</dt>
-                    <dd className="text-ink">{lastUpdated ?? "unknown"}</dd>
-                </div>
-            </dl>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-ui-sm">
+                        <dt className="text-ink-muted">Last updated</dt>
+                        <dd className="text-ink">
+                            {lastUpdated ?? "unknown"}
+                        </dd>
+                    </div>
+                </dl>
+
+                {!isPractice && <SettingsButton />}
+            </div>
         </div>
     );
 }

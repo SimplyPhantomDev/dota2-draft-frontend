@@ -25,3 +25,7 @@ tauri = { version = "2.9.5", features = ["protocol-asset"] }
 tauri-plugin-log = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-http = "2"
+tauri-plugin-global-shortcut = "=2.3.0"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
