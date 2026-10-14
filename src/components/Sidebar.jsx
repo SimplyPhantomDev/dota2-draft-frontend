@@ -61,6 +61,7 @@ function RecommendationRow({
 }
 
 function Sidebar({
+    onSettingsSaved,
     active = true,
     isPractice = false,
     onStartTutorial = null,
@@ -770,7 +771,9 @@ function Sidebar({
                     </div>
                 </dl>
 
-                {!isPractice && <SettingsButton />}
+                {!isPractice && (
+                    <SettingsButton onSettingsSaved={onSettingsSaved} />
+                )}
             </div>
         </div>
     );

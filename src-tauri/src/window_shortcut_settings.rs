@@ -10,6 +10,8 @@ const DEFAULT_SHORTCUT: &str = "Control+Shift+F8";
 pub struct WindowShortcutSettings {
     pub enabled: bool,
     pub shortcut: String,
+    #[serde(rename = "matchFeedbackEnabled")]
+    pub match_feedback_enabled: bool,
 }
 
 impl Default for WindowShortcutSettings {
@@ -17,6 +19,7 @@ impl Default for WindowShortcutSettings {
         Self {
             enabled: true,
             shortcut: DEFAULT_SHORTCUT.to_string(),
+            match_feedback_enabled: false,
         }
     }
 }

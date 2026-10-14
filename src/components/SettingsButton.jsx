@@ -3,7 +3,11 @@ import { createPortal } from "react-dom";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-const DEFAULT_SETTINGS = { enabled: true, shortcut: "Control+Shift+F8" };
+const DEFAULT_SETTINGS = {
+    enabled: true,
+    shortcut: "Control+Shift+F8",
+    matchFeedbackEnabled: false,
+};
 const META_LABEL = /Mac/i.test(navigator.userAgent) ? "Cmd" : "Win";
 
 function shortcutFromKey(event) {
@@ -50,7 +54,7 @@ function shortcutLabel(shortcut) {
         .replace(/\+/g, " + ");
 }
 
-export default function SettingsButton() {
+export default function SettingsButton({ onSettingsSaved }) {
     const desktop = isTauri();
     const [open, setOpen] = useState(false);
     const [saved, setSaved] = useState(null);
@@ -230,6 +234,7 @@ export default function SettingsButton() {
             setDraft(result.settings);
             setError(result.error || "");
             setMessage("Settings saved.");
+            onSettingsSaved?.(result.settings);
 
             // Keep native warnings visible, even when the settings were saved.
             if (result.error) return;
@@ -254,6 +259,7 @@ export default function SettingsButton() {
     const changed = saved && (
         draft.enabled !== saved.settings.enabled
         || normalizeShortcut(draft.shortcut) !== normalizeShortcut(saved.settings.shortcut)
+        || Boolean(draft.matchFeedbackEnabled) !== Boolean(saved.settings.matchFeedbackEnabled)
         || (draft.enabled && !saved.active)
     );
     const canEdit = Boolean(saved?.available) && !operation;
@@ -364,7 +370,11 @@ export default function SettingsButton() {
                                                     onClick={() => {
                                                         captureRef.current = false;
                                                         setCapturing(false);
-                                                        setDraft(DEFAULT_SETTINGS);
+                                                        setDraft(previous => ({
+                                                            ...previous,
+                                                            enabled: DEFAULT_SETTINGS.enabled,
+                                                            shortcut: DEFAULT_SETTINGS.shortcut,
+                                                        }));
                                                         setError("");
                                                         setMessage("");
                                                     }}>
@@ -377,6 +387,40 @@ export default function SettingsButton() {
                                             Use a function key, or Ctrl, Alt or {META_LABEL} with another key.
                                             Esc cancels recording.
                                             The window shortcut is paused while Settings is open.
+                                        </p>
+                                    </fieldset>
+                                    <fieldset
+                                        disabled={!canEdit}
+                                        className="mt-ui-lg space-y-ui-sm border-t border-line pt-ui-md"
+                                    >
+                                        <legend className="sr-only">
+                                            Match feedback
+                                        </legend>
+
+                                        <h3 className="font-semibold">
+                                            Match feedback
+                                        </h3>
+
+                                        <label className="flex items-center gap-ui-sm text-sm">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(draft.matchFeedbackEnabled)}
+                                                className="h-4 w-4 accent-accent"
+                                                onChange={event => {
+                                                    setDraft(previous => ({
+                                                        ...previous,
+                                                        matchFeedbackEnabled: event.target.checked,
+                                                    }));
+                                                    setMessage("");
+                                                }}
+                                            />
+                                            Save drafts for match feedback
+                                        </label>
+
+                                        <p className="text-xs leading-relaxed text-ink-muted">
+                                            Save completed drafts and their predictions on this device.
+                                            Nothing is submitted automatically.
+                                            Turning this off removes the pending draft.
                                         </p>
                                     </fieldset>
                                 </>

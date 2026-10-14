@@ -15,6 +15,7 @@ import DraftOverview from '../components/DraftOverview';
 import Sidebar from '../components/Sidebar';
 import { DraggableHero } from '../components/structures';
 import ReportIssueButton from '../components/ReportIssueButton';
+import { useDraftCapture } from '../matchFeedback/useDraftCapture';
 
 const TOOLTIP_KEY = "guideTooltipSeen";
 const TEAM_SWITCH_KEY = "F2";
@@ -296,6 +297,14 @@ export default function HeroList({
     enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),
     matchupIndex,
   }), [selectedHeroes, matchupIndex]);
+
+  const onSettingsSaved = useDraftCapture({
+    active,
+    isPractice,
+    selectedHeroes,
+    prediction: draftWinProbability,
+    manifest: datasetManifest,
+  });
 
   //==============================================
   //=========== Data Initialization ==============
@@ -1036,6 +1045,7 @@ export default function HeroList({
 
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
         <Sidebar
+          onSettingsSaved={onSettingsSaved}
           active={active}
           isPractice={isPractice}
           onStartTutorial={onStartTutorial}
