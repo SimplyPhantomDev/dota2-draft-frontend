@@ -29,6 +29,19 @@ export function readMatchResults(storage = localStorage) {
   return results;
 }
 
+// Remove one result after server acknowledgement or explicit dismissal.
+// Reading the latest queue preserves results added while a request was in flight.
+export function removeMatchResult(draftId, storage = localStorage) {
+  const results = readMatchResults(storage);
+  const remaining = results.filter(result => result.draftId !== draftId);
+
+  if (remaining.length !== results.length) {
+    storage.setItem(MATCH_RESULTS_KEY, JSON.stringify(remaining));
+  }
+
+  return remaining;
+}
+
 // Persist the result before removing its draft.
 // A failed write must leave the draft available to retry.
 export function finishPendingDraft(draftId, outcome, storage = localStorage) {
@@ -66,6 +79,10 @@ export function finishPendingDraft(draftId, outcome, storage = localStorage) {
         draft,
       }]));
     }
+  } else {
+    // A result write may previously have succeeded while pending-draft cleanup
+    // failed. Explicit dismissal must discard that unfinished result too.
+    removeMatchResult(draft.id, storage);
   }
 
   clearPendingDraft(storage);

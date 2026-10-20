@@ -230,7 +230,7 @@ export function useDraftCapture({
       setError("");
       setMessage(
         outcome === "ally-win" || outcome === "ally-loss"
-          ? "Result saved on this device."
+          ? "Result recorded."
           : "Draft dismissed."
       );
 

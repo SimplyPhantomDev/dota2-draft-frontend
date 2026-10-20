@@ -3,6 +3,7 @@ import HoverTooltip from "./HoverTooltip";
 import HeroPoolBreakdown from "./HeroPoolBreakdown";
 import SettingsButton from "./SettingsButton";
 import MatchFeedbackPanel from "../matchFeedback/MatchFeedbackPanel";
+import MatchResultsUpload from "../matchFeedback/MatchResultsUpload";
 
 const FLOATING_POOL_QUERY =
     "(min-width: 1800px) and (min-height: 720px)";
@@ -175,10 +176,14 @@ function Sidebar({
                 className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"
             >
                 {!isPractice && active && (
-                    <MatchFeedbackPanel
-                        feedback={matchFeedback}
-                        heroes={feedbackHeroes}
-                    />
+                    <>
+                        <MatchFeedbackPanel
+                            feedback={matchFeedback}
+                            heroes={feedbackHeroes}
+                        />
+
+                        <MatchResultsUpload feedback={matchFeedback} />
+                    </>
                 )}
                 {/* === User Guide Box === */}
                 {showGuide && (
