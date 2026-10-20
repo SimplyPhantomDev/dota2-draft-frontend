@@ -6,10 +6,16 @@ changing the current draft. Placed inside sidebar's
 scroll view.
 */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 export default function MatchFeedbackPanel({ feedback, heroes }) {
   const [openedDraftId, setOpenedDraftId] = useState(null);
+
+  const [matchIdEntry, setMatchIdEntry] = useState({
+    draftId: null,
+    value: "",
+  });
+  const matchIdInputId = useId();
 
   if (!feedback?.enabled) return null;
 
@@ -47,6 +53,11 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
     heroList.find(hero => Number(hero.HeroId) === id)?.name ?? `Hero ${id}`
   )).join(", ");
 
+  // An ID typed for an older snapshot must not carry over to another draft.
+  const matchId = matchIdEntry.draftId === pendingDraft.id
+    ? matchIdEntry.value
+    : "";
+
   return (
     <section
       aria-label="Match feedback"
@@ -78,11 +89,36 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
         </div>
       </dl>
 
+      <div className="mb-ui-sm">
+        <label htmlFor={matchIdInputId} className="font-semibold text-ink">
+          Dota match ID (optional)
+        </label>
+
+        <input
+          id={matchIdInputId}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
+          value={matchId}
+          onChange={event => setMatchIdEntry({
+            draftId: pendingDraft.id,
+            value: event.target.value,
+          })}
+          aria-describedby={`${matchIdInputId}-help`}
+          className="mt-ui-xs w-full min-w-0 rounded-control border border-line bg-canvas px-ui-sm py-ui-xs font-mono text-ink"
+        />
+
+        <p id={`${matchIdInputId}-help`} className="mt-ui-xs text-ink-muted">
+          Include the ID from Dota's match details to help us check this result.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-ui-sm">
         <button
           type="button"
           className="ui-button ui-button-accent"
-          onClick={() => resolveDraft(pendingDraft.id, "ally-win")}
+          onClick={() => resolveDraft(pendingDraft.id, "ally-win", matchId)}
         >
           Ally win
         </button>
@@ -90,7 +126,7 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
         <button
           type="button"
           className="ui-button"
-          onClick={() => resolveDraft(pendingDraft.id, "ally-loss")}
+          onClick={() => resolveDraft(pendingDraft.id, "ally-loss", matchId)}
         >
           Ally loss
         </button>

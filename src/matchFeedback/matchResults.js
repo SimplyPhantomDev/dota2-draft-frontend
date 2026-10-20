@@ -10,6 +10,12 @@ import { clearPendingDraft, readPendingDraft } from "./draftSnapshots";
 export const MATCH_RESULTS_KEY = "d2dt.match-feedback.results.v1";
 const MAX_RESULTS = 1000;
 
+function validMatchId(value) {
+  return typeof value === "string"
+    && /^[1-9][0-9]{0,18}$/.test(value)
+    && BigInt(value) <= 9223372036854775807n;
+}
+
 export function readMatchResults(storage = localStorage) {
   const raw = storage.getItem(MATCH_RESULTS_KEY);
   if (raw === null) return [];
@@ -22,6 +28,7 @@ export function readMatchResults(storage = localStorage) {
     || result.draft?.id !== result.draftId
     || !["ally-win", "ally-loss"].includes(result.outcome)
     || !Number.isFinite(Date.parse(result.reportedAt))
+    || (result.matchId != null && !validMatchId(result.matchId))
   ))) {
     throw new Error("The saved match results are invalid.");
   }
@@ -44,7 +51,12 @@ export function removeMatchResult(draftId, storage = localStorage) {
 
 // Persist the result before removing its draft.
 // A failed write must leave the draft available to retry.
-export function finishPendingDraft(draftId, outcome, storage = localStorage) {
+export function finishPendingDraft(
+  draftId,
+  outcome,
+  storage = localStorage,
+  rawMatchId = "",
+) {
   const draft = readPendingDraft(storage);
 
   if (!draft || draft.id !== draftId) {
@@ -56,11 +68,32 @@ export function finishPendingDraft(draftId, outcome, storage = localStorage) {
   }
 
   if (outcome === "ally-win" || outcome === "ally-loss") {
+    const matchId = rawMatchId == null
+      ? ""
+      : typeof rawMatchId === "string"
+        ? rawMatchId.trim()
+        : rawMatchId;
+
+    if (matchId !== "" && !validMatchId(matchId)) {
+      throw new Error(
+        "Enter a valid Dota match ID using digits only, or leave it blank."
+      );
+    }
+
     const results = readMatchResults(storage);
     const existing = results.find(result => result.draftId === draft.id);
 
     if (existing && existing.outcome !== outcome) {
       throw new Error("A different result was already saved for this draft.");
+    }
+
+    // A partial-save retry must preserve the original report and its upload hash.
+    if (existing && (existing.matchId ?? "") !== matchId) {
+      throw new Error(
+        existing.matchId
+          ? `This result was already saved with match ID ${existing.matchId}. Use that ID to retry.`
+          : "This result was already saved without a match ID. Leave the field blank to retry."
+      );
     }
 
     // Retrying after a partially completed save must not duplicate the result.
@@ -77,6 +110,7 @@ export function finishPendingDraft(draftId, outcome, storage = localStorage) {
         source: "self-report",
         verification: "unverified",
         draft,
+        ...(matchId === "" ? {} : { matchId }),
       }]));
     }
   } else {

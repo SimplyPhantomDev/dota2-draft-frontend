@@ -208,7 +208,7 @@ export function useDraftCapture({
     };
   }, [active, isPractice, enabled]);
 
-  function resolveDraft(draftId, outcome) {
+  function resolveDraft(draftId, outcome, matchId = "") {
     if (
       !active
       || isPractice
@@ -219,7 +219,9 @@ export function useDraftCapture({
     }
 
     try {
-      const resolved = finishPendingDraft(draftId, outcome);
+      const resolved = finishPendingDraft(
+        draftId, outcome, localStorage, matchId
+      );
 
       // Prevent immediate recapture of this finished or dismissed draft.
       // Another complete draft already on screen can become the new candidate.
