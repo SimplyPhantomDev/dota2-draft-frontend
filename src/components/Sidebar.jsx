@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import HoverTooltip from "./HoverTooltip";
 import HeroPoolBreakdown from "./HeroPoolBreakdown";
 import SettingsButton from "./SettingsButton";
+import MatchFeedbackPanel from "../matchFeedback/MatchFeedbackPanel";
 
 const FLOATING_POOL_QUERY =
     "(min-width: 1800px) and (min-height: 720px)";
@@ -62,6 +63,8 @@ function RecommendationRow({
 
 function Sidebar({
     onSettingsSaved,
+    matchFeedback,
+    feedbackHeroes,
     active = true,
     isPractice = false,
     onStartTutorial = null,
@@ -171,6 +174,12 @@ function Sidebar({
                 ref={sidebarScrollRef}
                 className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"
             >
+                {!isPractice && active && (
+                    <MatchFeedbackPanel
+                        feedback={matchFeedback}
+                        heroes={feedbackHeroes}
+                    />
+                )}
                 {/* === User Guide Box === */}
                 {showGuide && (
                     <section

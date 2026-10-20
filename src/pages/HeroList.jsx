@@ -298,7 +298,7 @@ export default function HeroList({
     matchupIndex,
   }), [selectedHeroes, matchupIndex]);
 
-  const onSettingsSaved = useDraftCapture({
+  const matchFeedback = useDraftCapture({
     active,
     isPractice,
     selectedHeroes,
@@ -1045,7 +1045,9 @@ export default function HeroList({
 
         {/* === Sidebar Panel (suggestions / full draft analysis) === */}
         <Sidebar
-          onSettingsSaved={onSettingsSaved}
+          onSettingsSaved={matchFeedback.onSettingsSaved}
+          matchFeedback={matchFeedback}
+          feedbackHeroes={heroes}
           active={active}
           isPractice={isPractice}
           onStartTutorial={onStartTutorial}
