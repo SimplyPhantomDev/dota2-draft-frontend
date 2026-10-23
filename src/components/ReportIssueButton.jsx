@@ -275,6 +275,7 @@ export default function ReportIssueButton() {
                                         />
 
                                         <ReportField
+                                            maxLength={6000}
                                             id="report-issue-description"
                                             label="What happened? (required)"
                                             inputRef={descriptionRef}
@@ -299,6 +300,7 @@ export default function ReportIssueButton() {
                                         />
 
                                         <ReportField
+                                            maxLength={4000}
                                             id="report-issue-steps"
                                             label="Steps to reproduce (optional)"
                                             multiline
