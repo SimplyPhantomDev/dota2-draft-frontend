@@ -38,9 +38,8 @@ function ReportField({
                 rows={multiline ? 4 : undefined}
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? `${id}-error` : undefined}
-                className={`${FIELD_CLASS} ${
-                    error ? "border-danger" : "border-line"
-                } ${multiline ? "min-h-24 resize-y" : ""}`}
+                className={`${FIELD_CLASS} ${error ? "border-danger" : "border-line"
+                    } ${multiline ? "min-h-24 resize-y" : ""}`}
             />
 
             {error && (
@@ -67,10 +66,18 @@ export default function ReportIssueButton() {
     const descriptionRef = useRef(null);
     const submissionPendingRef = useRef(false);
 
-    const datasetGeneratedAt =
-        window.__LOCAL_DATASET_MANIFEST__?.generatedAt ||
-        window.__SYNERGY_MANIFEST__?.generatedAt ||
-        "";
+    // Missing or invalid metadata must not prevent filing a bug report.
+    const datasetGeneratedAt = [
+        window.__LOCAL_DATASET_MANIFEST__?.generatedAt,
+        window.__SYNERGY_MANIFEST__?.generatedAt
+    ].find(value => {
+        if (typeof value !== "string") return false;
+
+        const time = Date.parse(value);
+
+        return Number.isFinite(time)
+            && new Date(time).toISOString() === value;
+    }) ?? null;
 
     const errors = {
         title: fields.title.trim() ? "" : "Short title is required.",
@@ -157,7 +164,7 @@ export default function ReportIssueButton() {
                     userAgent: navigator.userAgent,
                     steps: fields.steps.trim() || undefined,
                     appVersion: window.__APP_VERSION__ || undefined,
-                    datasetGeneratedAt: datasetGeneratedAt || undefined
+                    datasetGeneratedAt
                 }
             });
 
