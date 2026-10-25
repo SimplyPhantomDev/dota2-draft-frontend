@@ -6,6 +6,7 @@ import TutorialStage from "./TutorialStage";
 import tutorialScript from "./tutorialScript.json";
 import { calculateSynergyPicks } from "../utils/synergy";
 import { useDragLayer } from "react-dnd";
+import useSideSwitchEasterEgg from "./useSideSwitchEasterEgg";
 
 const LESSONS = {
   "first-pick": {
@@ -34,7 +35,7 @@ const LESSONS = {
   "dragging": {
     script: tutorialScript.dragging,
     pickSource: "drop",
-    nextPhase: "practice",
+    nextPhase: "ban-and-correction",
     endDraft: {
       ally: [
         tutorialScript.firstPick.heroId,
@@ -49,6 +50,21 @@ const LESSONS = {
           .map(pick => pick.heroId),
       ],
       bans: [],
+      team: "enemy",
+    },
+  },
+  "ban-and-correction": {
+    script: tutorialScript.banAndCorrection,
+    nextPhase: "practice",
+    endDraft: {
+      ally: [
+        tutorialScript.firstPick.heroId,
+        ...tutorialScript.dragging.picks
+          .filter(pick => pick.team === "ally")
+          .map(pick => pick.heroId),
+      ],
+      enemy: [tutorialScript.pickingSide.heroId],
+      bans: [tutorialScript.banAndCorrection.heroId],
       team: "enemy",
     },
   },
@@ -69,29 +85,48 @@ export default function TutorialSession({ dataset, onExit }) {
 
   const workspaceRef = useRef(null);
   const lastInterruptionRef = useRef(0);
+  const {
+    escaped: sideButtonRunaway,
+    recordSwitch,
+    breakStreak,
+    reset: resetSideSwitches,
+  } = useSideSwitchEasterEgg(
+    tutorialScript.sideSwitchEasterEgg,
+    setFeedback
+  );
 
   const isLesson = Boolean(LESSONS[phase]);
   const lesson = LESSONS[phase] ?? LESSONS["first-pick"];
   const script = lesson.script;
 
-  // Click lessons require one pick; dragging can require several.
-  const requiredPicks = useMemo(() => script.picks ?? [
-    { heroId: script.heroId, team: lesson.team },
-  ], [script, lesson.team]);
+  const line = script.lines[page];
+  const successPage = script.lines.findIndex(
+    item => item.id === script.successLineId
+  );
 
-  const targetHeroIds = useMemo(() => picked ? [] : requiredPicks
-    .filter(pick => !practiceDraft[pick.team].some(
-      hero => hero.HeroId === pick.heroId
-    ))
-    .map(pick => pick.heroId), [picked, requiredPicks, practiceDraft]);
+  // Removal and banning lessons have no required picks.
+  const requiredPicks = useMemo(() => script.picks ?? (
+    lesson.team ? [{ heroId: script.heroId, team: lesson.team }] : []
+  ), [script, lesson.team]);
+
+  const targetHeroIds = useMemo(() => {
+    if (line.action?.type === "ban") return [line.action.heroId];
+    if (picked) return [];
+
+    return requiredPicks
+      .filter(pick => !practiceDraft[pick.team].some(
+        hero => hero.HeroId === pick.heroId
+      ))
+      .map(pick => pick.heroId);
+  }, [line.action, picked, requiredPicks, practiceDraft]);
 
   const draggedHeroId = useDragLayer(monitor => monitor.isDragging()
     ? monitor.getItem()?.hero?.HeroId ?? null
     : null);
 
-  const line = script.lines[page];
-  const successPage = script.lines.findIndex(
-    item => item.id === script.successLineId
+  // Action pages advance after the committed draft confirms the action.
+  const waitingForInput = Boolean(
+    line.action || (line.waitForPick && !picked)
   );
 
   const showComparison = isLesson
@@ -99,11 +134,12 @@ export default function TutorialSession({ dataset, onExit }) {
     && line.compareRecommendations === true
     && beforeRecommendations !== null;
 
-  const lineHighlight = line.highlightWhileDragging?.[draggedHeroId]
+  const lineHighlight = sideButtonRunaway ? "hero-grid" : (
+    line.highlightWhileDragging?.[draggedHeroId]
     ?? line.highlightByPickingSide?.[pickingSide]
     ?? line.highlight
-    ?? null;
-
+    ?? null
+  );
   const spotlight = isLesson
     && !(line.releaseHighlightOnComplete && completedLineId === line.id)
     ? lineHighlight
@@ -118,6 +154,22 @@ export default function TutorialSession({ dataset, onExit }) {
     if (!isLesson) return true;
 
     if (!picked && lesson.allowTeamSwitch && action.type === "team-switch") {
+      recordSwitch(action.source);
+      return true;
+    }
+
+    // Another attempted action ends the consecutive-click streak.
+    breakStreak();
+
+    const expectedAction = line.action;
+
+    if (
+      expectedAction
+      && action.type === expectedAction.type
+      && action.heroId === expectedAction.heroId
+      && (!expectedAction.team || action.team === expectedAction.team)
+    ) {
+      setFeedback("");
       return true;
     }
 
@@ -130,25 +182,71 @@ export default function TutorialSession({ dataset, onExit }) {
         pick.heroId === action.heroId && pick.team === action.team
       )
     ) {
+      setFeedback("");
       return true;
     }
 
-    const now = Date.now();
+    const context = {
+      ...action,
+      phase,
+      expectedAction: expectedAction?.type,
+    };
 
-    if (now - lastInterruptionRef.current >= 1500) {
+    const specificReply = tutorialScript.interruptions.find(reply =>
+      reply.when
+      && Object.entries(reply.when).every(([key, expected]) =>
+        Array.isArray(expected)
+          ? expected.includes(context[key])
+          : context[key] === expected
+      )
+    );
+
+    // A relevant reply takes priority, even during the generic cooldown.
+    if (specificReply) {
+      lastInterruptionRef.current = Date.now();
+      setFeedback(specificReply.text);
+      return false;
+    }
+
+    const now = Date.now();
+    const replies = tutorialScript.interruptions.filter(reply => !reply.when);
+
+    if (replies.length > 0 && now - lastInterruptionRef.current >= 1500) {
       lastInterruptionRef.current = now;
-      const replies = tutorialScript.interruptions;
       setFeedback(replies[Math.floor(Math.random() * replies.length)].text);
     }
 
     return false;
-  }, [isLesson, lesson, requiredPicks, picked]);
+  }, [isLesson, lesson, requiredPicks, picked, line.action, phase, recordSwitch, breakStreak]);
 
-  const onDraftChange = useCallback((draft, team) => {
+  const onDraftChange = useCallback((draft, team, bans = []) => {
     setPickingSide(team);
     setPracticeDraft(draft);
 
     if (!isLesson || picked) return;
+
+    const expectedAction = line.action;
+
+    if (expectedAction) {
+      const complete = expectedAction.type === "remove-pick"
+        ? !draft[expectedAction.team].some(
+          hero => hero.HeroId === expectedAction.heroId
+        )
+        : expectedAction.type === "ban"
+        && bans.some(hero => hero.HeroId === expectedAction.heroId);
+
+      if (complete) {
+        resetSideSwitches();
+        setFeedback("");
+        setPage(script.lines.findIndex(
+          item => item.id === expectedAction.successLineId
+        ));
+      }
+
+      return;
+    }
+
+    if (requiredPicks.length === 0) return;
 
     const complete = requiredPicks.every(pick =>
       draft[pick.team].some(hero => hero.HeroId === pick.heroId)
@@ -170,18 +268,20 @@ export default function TutorialSession({ dataset, onExit }) {
         setBeforeRecommendations(before?.outPool.slice(0, 10) ?? []);
       }
 
+      resetSideSwitches();
       setPicked(true);
       setFeedback("");
       setPage(successPage);
     }
-  }, [isLesson, script, requiredPicks, successPage, picked, phase, dataset]);
+  }, [isLesson, script, requiredPicks, successPage, picked, phase, dataset, line.action, resetSideSwitches]);
 
   const tutorial = useMemo(() => isLesson ? {
     beforeAction,
     onDraftChange,
     highlight: spotlight,
-    comparisonLabel: showComparison ? "After" : null,
+    comparisonLabel: showComparison ? "AFTER" : null,
     targetHeroIds,
+    sideButtonRunaway,
   } : null, [
     isLesson,
     beforeAction,
@@ -189,10 +289,12 @@ export default function TutorialSession({ dataset, onExit }) {
     spotlight,
     showComparison,
     targetHeroIds,
+    sideButtonRunaway,
   ]);
 
 
   function finishLesson() {
+    resetSideSwitches();
     setBeforeRecommendations(null);
     setDialogueReserve(0);
     setPage(0);
@@ -204,8 +306,9 @@ export default function TutorialSession({ dataset, onExit }) {
   }
 
   function advanceLesson() {
-    if (line.waitForPick && !picked) return;
+    if (waitingForInput) return;
 
+    breakStreak();
     setFeedback("");
 
     if (page < script.lines.length - 1) setPage(page + 1);
@@ -293,8 +396,10 @@ export default function TutorialSession({ dataset, onExit }) {
             line={line}
             reserveLines={script.lines}
             pageLabel={`${page + 1} / ${script.lines.length}`}
-            canAdvance={!line.waitForPick || picked}
-            hint={line.hint}
+            canAdvance={!waitingForInput}
+            hint={sideButtonRunaway
+              ? tutorialScript.sideSwitchEasterEgg.runawayHint
+              : line.hint}
             feedback={feedback}
             onNext={advanceLesson}
             onLineComplete={onLineComplete}

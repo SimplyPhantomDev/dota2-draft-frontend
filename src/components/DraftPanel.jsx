@@ -1,5 +1,6 @@
 import { TeamDropZone } from "./structures";
 import { OverviewIcon, InspectionIcon, GridLayoutIcon, RowLayoutIcon } from "./DraftIcons";
+import SideSwitchButton from "./SideSwitchButton";
 
 function DraftPanel({
     selectedHeroes,
@@ -7,6 +8,7 @@ function DraftPanel({
     handleTeamSwitch,
     canSwitchTeam,
     teamSwitchKey,
+    sideButtonRunaway = false,
     openDraftOverview,
     draftOverviewKey,
     showHeroInspector,
@@ -136,39 +138,13 @@ function DraftPanel({
                         handleHeroDeselect={handleHeroDeselect}
                     />
 
-                    <button
-                        data-tutorial-target="picking-side"
-                        onClick={handleTeamSwitch}
-                        disabled={!canSwitchTeam}
-                        title={`Switch pick team (${teamSwitchKey})`}
-                        aria-keyshortcuts={teamSwitchKey}
-                        className={`inline-grid place-items-center whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold text-center leading-tight 2xl:leading-5 transition
-                            ${selectedTeam === "ally"
-                                ? "bg-green-600 hover:bg-green-700"
-                                : "bg-red-600 hover:bg-red-700"
-                            }
-                            ${!canSwitchTeam
-                                ? "bg-gray-500 cursor-not-allowed opacity-50"
-                                : ""
-                            }`}
-                    >
-                        {/* Match the responsive wrapping in both labels to keep
-                        the button's size stable when switching teams. */}
-                        <span
-                            aria-hidden="true"
-                            className="invisible col-start-1 row-start-1"
-                        >
-                            <span className="block 2xl:inline">Picking for:</span>{" "}
-                            <span className="block 2xl:inline">Enemy Team</span>
-                        </span>
-
-                        <span className="col-start-1 row-start-1">
-                            <span className="block 2xl:inline">Picking for:</span>{" "}
-                            <span className="block 2xl:inline">
-                                {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
-                            </span>
-                        </span>
-                    </button>
+                    <SideSwitchButton
+                        selectedTeam={selectedTeam}
+                        canSwitchTeam={canSwitchTeam}
+                        teamSwitchKey={teamSwitchKey}
+                        onSwitch={handleTeamSwitch}
+                        runaway={sideButtonRunaway}
+                    />
 
                     <TeamDropZone
                         team="enemy"
@@ -251,7 +227,11 @@ function DraftPanel({
                 </div>
 
                 {/* Bottom middle: ban slots */}
-                <div className="col-start-2 row-start-2 mt-ui-xs grid w-full min-w-0 max-w-[34rem] grid-cols-8 gap-ui-xs justify-self-center 2xl:max-w-[68rem] 2xl:grid-cols-[repeat(16,minmax(0,1fr))]">
+                <div className="col-start-2 row-start-2 mt-ui-xs grid w-full
+                                min-w-0 max-w-[34rem] grid-cols-8 gap-ui-xs
+                                justify-self-center 2xl:max-w-[68rem]
+                                2xl:grid-cols-[repeat(16,minmax(0,1fr))]"
+                    data-tutorial-target="bans">
                     {[...Array(16)].map((_, i) => (
                         <div
                             key={i}

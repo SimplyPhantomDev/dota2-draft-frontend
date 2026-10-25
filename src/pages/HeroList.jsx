@@ -224,10 +224,10 @@ export default function HeroList({
     [beforeTutorialAction]
   );
 
-  // Report the committed draft and picking side so tutorial cues follow the UI.
+  // Include bans so the tutorial confirms actions after state is committed.
   useEffect(() => {
-    reportTutorialDraft?.(selectedHeroes, selectedTeam);
-  }, [selectedHeroes, selectedTeam, reportTutorialDraft]);
+    reportTutorialDraft?.(selectedHeroes, selectedTeam, bannedHeroes);
+  }, [selectedHeroes, selectedTeam, bannedHeroes, reportTutorialDraft]);
 
   // Skipping prepares the draft that the following lesson expects.
   useEffect(() => {
@@ -246,9 +246,9 @@ export default function HeroList({
     setSearchQuery("");
   }, [practiceDataset, practiceSeed]);
 
-  const handleTeamSwitch = useCallback(() => {
-    if (!requestTutorialAction({ type: "team-switch" })) return;
+  const handleTeamSwitch = useCallback((source = "keyboard") => {
     if (!canSwitchTeam) return;
+    if (!requestTutorialAction({ type: "team-switch", source })) return;
 
     setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
   }, [canSwitchTeam, requestTutorialAction]);
@@ -764,7 +764,11 @@ export default function HeroList({
    */
   const handleHeroDeselect = (hero, team) => {
 
-    if (!requestTutorialAction({ type: "remove-pick" })) return;
+    if (!requestTutorialAction({
+      type: "remove-pick",
+      heroId: hero.HeroId,
+      team,
+    })) return;
 
     const newSelected = {
       ...selectedHeroes,
@@ -803,7 +807,7 @@ export default function HeroList({
    * @param {*} hero The hero object being banned
    */
   const handleHeroBan = (hero) => {
-    if (!requestTutorialAction({ type: "ban" }) ||
+    if (!requestTutorialAction({ type: "ban", heroId: hero.HeroId }) ||
       bannedHeroes.length >= 16 ||
       clickLockedHeroes.has(hero.HeroId)) return;
 
@@ -811,7 +815,8 @@ export default function HeroList({
 
     const updatedBans = [...bannedHeroes, hero];
 
-    setBannedHeroes(updatedBans)
+    setBannedHeroes(updatedBans);
+    if (beforeTutorialAction) setSearchQuery("");
 
     unlockHero(hero.HeroId);
   };
@@ -932,6 +937,7 @@ export default function HeroList({
         handleTeamSwitch={handleTeamSwitch}
         canSwitchTeam={canSwitchTeam}
         teamSwitchKey={TEAM_SWITCH_KEY}
+        sideButtonRunaway={tutorial?.sideButtonRunaway ?? false}
         openDraftOverview={openDraftOverview}
         draftOverviewKey={DRAFT_OVERVIEW_KEY}
         showHeroInspector={showHeroInspector}

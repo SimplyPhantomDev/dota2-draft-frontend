@@ -70,7 +70,7 @@
                 "id": "first-pick-scores",
                 "placement": "beside-sidebar",
                 "highlight": "recommendations",
-                "text": "The higher the number, the better that hero fits your current draft. This is your equivalent of Town Portal Scroll. You use this information to the best of your ability and good things will follow."
+                "text": "The higher the number, the better that hero fits your current draft. This is your equivalent of a Town Portal Scroll. You use this information to the best of your ability and good things will follow."
             },
             {
                 "id": "first-pick-promise",
@@ -132,7 +132,7 @@
             }
         ]
     },
-        "dragging": {
+    "dragging": {
         "title": "Dragging",
         "picks": [
             {
@@ -198,7 +198,112 @@
             }
         ]
     },
+    "banAndCorrection": {
+        "title": "Ban and correction",
+        "heroId": 2,
+        "lines": [
+            {
+                "id": "ban-correction-intro",
+                "text": "It seems our Dazzle is about to have a terrible time. Perhaps a wise player would ban the Axe either right after picking Dazzle or beforehand."
+            },
+            {
+                "id": "ban-correction-removal",
+                "highlight": "enemy-draft",
+                "text": "Good thing you can reverse a pick by clicking on the hero's portrait in the draft panel."
+            },
+            {
+                "id": "ban-correction-remove-task",
+                "highlight": "enemy-draft",
+                "action": {
+                    "type": "remove-pick",
+                    "heroId": 2,
+                    "team": "enemy",
+                    "successLineId": "ban-correction-home"
+                },
+                "hint": "Click Axe's portrait in the enemy team to remove him.",
+                "text": "Go ahead, remove Axe from the enemy team."
+            },
+            {
+                "id": "ban-correction-home",
+                "highlight": "hero-grid",
+                "text": "Now, when looking into Axe's soul it seems he is a bit anxious being placed between Alchemist and Bristleback."
+            },
+            {
+                "id": "ban-correction-ban-list",
+                "highlight": "bans",
+                "text": "So, how about we give Axe his own little home within the ban list?"
+            },
+            {
+                "id": "ban-correction-right-click",
+                "highlight": "hero-grid",
+                "text": "You can right click on any hero currently not picked or banned to ban them."
+            },
+            {
+                "id": "ban-correction-unban",
+                "highlight": "bans",
+                "text": "Apparently the same removal functionality works to banned heroes too."
+            },
+            {
+                "id": "ban-correction-ban-task",
+                "highlight": "hero-grid",
+                "action": {
+                    "type": "ban",
+                    "heroId": 2,
+                    "successLineId": "ban-correction-success"
+                },
+                "hint": "Find Axe in the hero grid and right-click his portrait.",
+                "text": "So yeah, go on and ban that Axe!"
+            },
+            {
+                "id": "ban-correction-success",
+                "highlight": "bans",
+                "text": "There we go! Although, now axe is looking extra sad with his little greyscale filter on his image. Poor thing."
+            }
+        ]
+    },
+    "sideSwitchEasterEgg": {
+        "warnAfter": 20,
+        "escapeAfter": 100,
+        "text": "Yes, the button works. Thank you for your independent quality assurance.",
+        "escapeText": "Oh. That's new. You've annoyed the button so much it's developed a survival instinct. I'm beginning to understand how it feels. Finish the task. I'll see if I can talk it down.",
+        "runawayHint": "The button has escaped. Use F2 to switch sides and complete the task to bring it back."
+    },
     "interruptions": [
+        {
+            "id": "interrupt-axe-ally",
+            "when": {
+                "phase": [
+                    "dragging",
+                    "ban-and-correction"
+                ],
+                "type": "pick",
+                "heroId": 2,
+                "team": "ally"
+            },
+            "text": "Dazzle has specifically told me for the purposes of this tutorial not to be allied with any hairy men."
+        },
+        {
+            "id": "interrupt-slark-enemy",
+            "when": {
+                "phase": "dragging",
+                "type": "pick",
+                "heroId": 93,
+                "team": "enemy",
+                "source": "drop"
+            },
+            "text": "Slark would so obviously eat this Weaver. That won't do."
+        },
+        {
+            "id": "interrupt-pick-axe-instead-of-ban",
+            "when": {
+                "phase": "ban-and-correction",
+                "expectedAction": "ban",
+                "type": "pick",
+                "heroId": 2,
+                "team": "enemy"
+            },
+            "text": "What did I just say about not picking Dazzle into Axe?!"
+        },
         {
             "id": "interrupt-impatient",
             "text": "Hey! If you are that impatient you might as well just quit the whole thing."
@@ -206,6 +311,22 @@
         {
             "id": "interrupt-walk-first",
             "text": "Hold on there pal, a toddler must walk before they can run."
+        },
+        {
+            "id": "interrupt-not-right",
+            "text": "An excellent demonstration of what I wasn't asking you to do."
+        },
+        {
+            "id": "interrupt-free-will",
+            "text": "Who gave you free will? Was it that damn intern again?!"
+        },
+        {
+            "id": "interrupt-thats-me",
+            "text": "There should be some helpful explanation here somewhere... Oh wait. That's me."
+        },
+        {
+            "id": "interrupt-something-different",
+            "text": "That was very nearly a completely different instruction."
         }
     ]
 }
