@@ -36,7 +36,7 @@ export default function HeroList({
     practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
   const beforeTutorialAction = tutorial?.beforeAction;
   const reportTutorialDraft = tutorial?.onDraftChange;
-  const tutorialTargetHeroId = tutorial?.targetHeroId;
+  const tutorialTargetHeroIds = tutorial?.targetHeroIds;
 
   //==============================================
   //============= Drafting State =================
@@ -833,26 +833,28 @@ export default function HeroList({
     return nameMatch || aliasMatch;
   };
 
-  // Bring the lesson hero into view when searching, even below the fold.
+  // Bring a matching unfinished lesson hero into view when searching.
   useEffect(() => {
-    if (!active || !tutorialTargetHeroId || !searchQuery.trim()) return;
-
-    const hero = practiceDataset?.heroById.get(tutorialTargetHeroId);
     const query = searchQuery.trim().toLowerCase();
+    if (!active || !tutorialTargetHeroIds?.length || !query) return;
 
-    if (!hero || !(
-      hero.name.toLowerCase().includes(query) ||
-      hero.aliases?.some(alias => alias.toLowerCase().includes(query))
-    )) return;
+    const hero = tutorialTargetHeroIds
+      .map(id => practiceDataset?.heroById.get(id))
+      .find(candidate => candidate && (
+        candidate.name.toLowerCase().includes(query) ||
+        candidate.aliases?.some(alias => alias.toLowerCase().includes(query))
+      ));
+
+    if (!hero) return;
 
     containerRef.current
-      ?.querySelector(`[data-hero-id="${tutorialTargetHeroId}"]`)
+      ?.querySelector(`[data-hero-id="${hero.HeroId}"]`)
       ?.scrollIntoView({
         block: "nearest",
         inline: "nearest",
         behavior: "auto",
       });
-  }, [active, tutorialTargetHeroId, searchQuery, practiceDataset]);
+  }, [active, tutorialTargetHeroIds, searchQuery, practiceDataset]);
 
   //==============================================
   //=============== Render Helpers ===============

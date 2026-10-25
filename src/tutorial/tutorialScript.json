@@ -103,7 +103,7 @@
                     "enemy": "hero-grid"
                 },
                 "waitForPick": true,
-                "hint": "Go on, change the picking side and click on Weaver.",
+                "hint": "Change the picking side and choose Weaver.",
                 "text": "Now, let's say your opponents go ahead and pick Weaver position 4 as a response to your Dazzle. Go on, change the picking side and click on Weaver."
             },
             {
@@ -129,6 +129,72 @@
                 "id": "picking-side-intern",
                 "placement": "beside-sidebar",
                 "text": "Who wrote this in here. Must've been the summer intern when I wasn't looking..."
+            }
+        ]
+    },
+        "dragging": {
+        "title": "Dragging",
+        "picks": [
+            {
+                "heroId": 2,
+                "team": "enemy"
+            },
+            {
+                "heroId": 93,
+                "team": "ally"
+            }
+        ],
+        "successLineId": "dragging-success",
+        "lines": [
+            {
+                "id": "dragging-intro",
+                "text": "I did a little research into all these F-controls and apparently it is also possible to select heroes for either team whenever you want."
+            },
+            {
+                "id": "dragging-explanation",
+                "highlight": "hero-grid",
+                "text": "Apparently grabbing hold of a hero's hand, and walking them to their appropriate team works regardless of pick selection side."
+            },
+            {
+                "id": "dragging-task",
+                "highlight": "hero-grid",
+                "highlightWhileDragging": {
+                    "2": "enemy-draft",
+                    "93": "ally-draft"
+                },
+                "waitForPick": true,
+                "hint": "Drag and drop Axe to the enemy team and Slark to the ally team.",
+                "text": "This one is something I've never heard of, but go on. Try and walk Axe to the enemy team and walk Slark to the ally team."
+            },
+            {
+                "id": "dragging-success",
+                "text": "Oh. It actually worked. I... hadn't thought of that."
+            },
+            {
+                "id": "dragging-recommendations",
+                "pointToBonus": "needsInitiator",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "So... Look here! You can see heroes within the recommendations that have purple numbers below their scores."
+            },
+            {
+                "id": "dragging-bonus-purpose",
+                "pointToBonus": "needsInitiator",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "The purpose of these purple numbers is to highlight a key aspect of your team composition that is currently missing."
+            },
+            {
+                "id": "dragging-bonus-thresholds",
+                "pointToBonus": "needsInitiator",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "Initiators recieve a bonus after 2 picks, pushers and disablers after 3 picks."
+            },
+            {
+                "id": "dragging-outro",
+                "placement": "beside-sidebar",
+                "text": "Do what you will with this information, I'm not your dad."
             }
         ]
     },

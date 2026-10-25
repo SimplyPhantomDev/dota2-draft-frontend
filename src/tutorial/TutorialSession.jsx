@@ -5,6 +5,7 @@ import TutorialDialogue from "./TutorialDialogue";
 import TutorialStage from "./TutorialStage";
 import tutorialScript from "./tutorialScript.json";
 import { calculateSynergyPicks } from "../utils/synergy";
+import { useDragLayer } from "react-dnd";
 
 const LESSONS = {
   "first-pick": {
@@ -22,10 +23,31 @@ const LESSONS = {
     script: tutorialScript.pickingSide,
     team: "enemy",
     allowTeamSwitch: true,
-    nextPhase: "practice",
+    nextPhase: "dragging",
     endDraft: {
       ally: [tutorialScript.firstPick.heroId],
       enemy: [tutorialScript.pickingSide.heroId],
+      bans: [],
+      team: "enemy",
+    },
+  },
+  "dragging": {
+    script: tutorialScript.dragging,
+    pickSource: "drop",
+    nextPhase: "practice",
+    endDraft: {
+      ally: [
+        tutorialScript.firstPick.heroId,
+        ...tutorialScript.dragging.picks
+          .filter(pick => pick.team === "ally")
+          .map(pick => pick.heroId),
+      ],
+      enemy: [
+        tutorialScript.pickingSide.heroId,
+        ...tutorialScript.dragging.picks
+          .filter(pick => pick.team === "enemy")
+          .map(pick => pick.heroId),
+      ],
       bans: [],
       team: "enemy",
     },
@@ -37,6 +59,7 @@ export default function TutorialSession({ dataset, onExit }) {
   const [page, setPage] = useState(0);
   const [picked, setPicked] = useState(false);
   const [pickingSide, setPickingSide] = useState("ally");
+  const [practiceDraft, setPracticeDraft] = useState({ ally: [], enemy: [] });
   const [feedback, setFeedback] = useState("");
   const [practiceSeed, setPracticeSeed] = useState(null);
   const [completedLineId, setCompletedLineId] = useState(null);
@@ -50,6 +73,22 @@ export default function TutorialSession({ dataset, onExit }) {
   const isLesson = Boolean(LESSONS[phase]);
   const lesson = LESSONS[phase] ?? LESSONS["first-pick"];
   const script = lesson.script;
+
+  // Click lessons require one pick; dragging can require several.
+  const requiredPicks = useMemo(() => script.picks ?? [
+    { heroId: script.heroId, team: lesson.team },
+  ], [script, lesson.team]);
+
+  const targetHeroIds = useMemo(() => picked ? [] : requiredPicks
+    .filter(pick => !practiceDraft[pick.team].some(
+      hero => hero.HeroId === pick.heroId
+    ))
+    .map(pick => pick.heroId), [picked, requiredPicks, practiceDraft]);
+
+  const draggedHeroId = useDragLayer(monitor => monitor.isDragging()
+    ? monitor.getItem()?.hero?.HeroId ?? null
+    : null);
+
   const line = script.lines[page];
   const successPage = script.lines.findIndex(
     item => item.id === script.successLineId
@@ -60,7 +99,8 @@ export default function TutorialSession({ dataset, onExit }) {
     && line.compareRecommendations === true
     && beforeRecommendations !== null;
 
-  const lineHighlight = line.highlightByPickingSide?.[pickingSide]
+  const lineHighlight = line.highlightWhileDragging?.[draggedHeroId]
+    ?? line.highlightByPickingSide?.[pickingSide]
     ?? line.highlight
     ?? null;
 
@@ -81,13 +121,14 @@ export default function TutorialSession({ dataset, onExit }) {
       return true;
     }
 
-    // The lesson accepts only a left-click pick of its hero for its team.
+    // Enforce the requested input method and each hero's destination.
     if (
       !picked
       && action.type === "pick"
-      && action.source === "click"
-      && action.heroId === script.heroId
-      && action.team === lesson.team
+      && action.source === (lesson.pickSource ?? "click")
+      && requiredPicks.some(pick =>
+        pick.heroId === action.heroId && pick.team === action.team
+      )
     ) {
       return true;
     }
@@ -101,14 +142,19 @@ export default function TutorialSession({ dataset, onExit }) {
     }
 
     return false;
-  }, [isLesson, lesson, script, picked]);
+  }, [isLesson, lesson, requiredPicks, picked]);
 
   const onDraftChange = useCallback((draft, team) => {
     setPickingSide(team);
+    setPracticeDraft(draft);
 
     if (!isLesson || picked) return;
 
-    if (draft[lesson.team].some(hero => hero.HeroId === script.heroId)) {
+    const complete = requiredPicks.every(pick =>
+      draft[pick.team].some(hero => hero.HeroId === pick.heroId)
+    );
+
+    if (complete) {
       if (phase === "picking-side") {
         // Recreate the exact draft before Weaver using the shared scoring engine.
         // This avoids capturing stale rows while the live sidebar recalculates.
@@ -128,23 +174,23 @@ export default function TutorialSession({ dataset, onExit }) {
       setFeedback("");
       setPage(successPage);
     }
-  }, [isLesson, lesson, script, successPage, picked, phase, dataset]);
+  }, [isLesson, script, requiredPicks, successPage, picked, phase, dataset]);
 
   const tutorial = useMemo(() => isLesson ? {
     beforeAction,
     onDraftChange,
     highlight: spotlight,
     comparisonLabel: showComparison ? "After" : null,
-    targetHeroId: picked ? null : script.heroId,
+    targetHeroIds,
   } : null, [
     isLesson,
     beforeAction,
     onDraftChange,
     spotlight,
-    picked,
-    script,
     showComparison,
+    targetHeroIds,
   ]);
+
 
   function finishLesson() {
     setBeforeRecommendations(null);
@@ -237,6 +283,7 @@ export default function TutorialSession({ dataset, onExit }) {
           showDialogue={isLesson}
           comparisonRows={showComparison ? beforeRecommendations : null}
           onReserveSpace={setDialogueReserve}
+          pointToBonus={line.pointToBonus}
         >
           <TutorialDialogue
             compact

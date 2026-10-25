@@ -91,6 +91,7 @@ export function TeamDropZone({
   return (
     <div
       ref={dropRef}
+      data-tutorial-target={`${team}-draft`}
       className={`grid w-full min-w-0 grid-cols-5 gap-ui-xs p-ui-xs rounded-control border transition-all duration-200
         ${isOver ? "bg-yellow-500/20" : ""}
         ${isAlly ? "border-green-700" : "border-red-700"}

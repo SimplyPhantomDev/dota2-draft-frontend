@@ -25,6 +25,7 @@ export function RecommendationRow({
         <div
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
+            data-tutorial-recommendation={hero.HeroId}
             className={`grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-ui-sm rounded-control px-ui-sm py-ui-xs
                 ${fromPool ? "bg-accent/10" : "bg-surface-raised"}`}
         >
@@ -51,6 +52,8 @@ export function RecommendationRow({
 
                 {hero.synergyBonus > 0 && (
                     <span
+                        data-tutorial-bonuses={(hero.bonuses ?? [])
+                            .map(bonus => bonus.type).join(" ")}
                         className="rounded border border-accent/40 px-ui-xs text-[10px] font-semibold leading-4 text-accent"
                         title="Draft adjustment included in the total score"
                     >
@@ -179,6 +182,7 @@ function Sidebar({
             )}
             <div
                 ref={sidebarScrollRef}
+                data-tutorial-recommendations-scroll
                 className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"
             >
                 {!isPractice && active && (

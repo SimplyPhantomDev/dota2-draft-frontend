@@ -89,7 +89,7 @@ export default function TutorialDialogue({
         >
             <header
                 className={`flex shrink-0 items-center gap-ui-md border-b border-line
-          ${compact ? "px-ui-md py-ui-xs" : "p-ui-md"}`}
+                    ${compact ? "px-ui-md py-ui-xs" : "p-ui-md"}`}
             >
                 <button
                     type="button"
@@ -110,6 +110,7 @@ export default function TutorialDialogue({
             </header>
 
             <div
+                data-tutorial-dialogue-scroll
                 className={compact
                     ? "min-h-0 flex-1 overflow-y-auto px-ui-md py-ui-xs"
                     : "min-h-0 flex-1 overflow-y-auto p-ui-lg sm:p-ui-2xl"}
@@ -127,6 +128,7 @@ export default function TutorialDialogue({
                         <div
                             className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-accent/40 bg-surface-raised ${compact ? "h-16 w-16" : "h-20 w-20 sm:h-32 sm:w-32"
                                 }`}
+                            data-tutorial-narrator
                         >
                             {portraitSrc ? (
                                 <img
@@ -177,8 +179,8 @@ export default function TutorialDialogue({
                         <p
                             id={textId}
                             className={`col-start-1 row-start-1 ${line.appearance === "fine-print"
-                                    ? "text-xs leading-relaxed text-ink-muted"
-                                    : ""
+                                ? "text-xs leading-relaxed text-ink-muted"
+                                : ""
                                 }`}
                         >
                             <span

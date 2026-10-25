@@ -1,8 +1,9 @@
-import { useId, useLayoutEffect, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion as Motion, useReducedMotion } from "framer-motion";
 import { getTutorialStageLayout } from "./tutorialStageLayout";
 import TutorialRecommendationSnapshot from "./TutorialRecommendationSnapshot";
+import TutorialBonusArrows from "./TutorialBonusArrows";
 
 export default function TutorialStage({
   workspaceRef,
@@ -12,10 +13,12 @@ export default function TutorialStage({
   showDialogue,
   comparisonRows = null,
   onReserveSpace,
+  pointToBonus = null,
   children,
 }) {
   const maskId = `tutorial-mask-${useId().replace(/:/g, "")}`;
   const reduceMotion = useReducedMotion();
+  const dialogueRef = useRef(null);
   const [layout, setLayout] = useState(null);
   const comparing = comparisonRows !== null;
 
@@ -151,6 +154,7 @@ export default function TutorialStage({
 
       {showDialogue && (
         <Motion.section
+          ref={dialogueRef}
           aria-labelledby="tutorial-lesson-title"
           className="ui-panel pointer-events-auto absolute flex flex-col overflow-hidden text-ink"
           initial={reduceMotion || !initialFrame ? false : initialFrame}
@@ -159,6 +163,14 @@ export default function TutorialStage({
         >
           {children}
         </Motion.section>
+      )}
+
+      {showDialogue && pointToBonus && (
+        <TutorialBonusArrows
+          workspaceRef={workspaceRef}
+          dialogueRef={dialogueRef}
+          bonusType={pointToBonus}
+        />
       )}
     </div>,
     document.body
