@@ -23,525 +23,529 @@ const DRAFT_OVERVIEW_KEY = "F3";
 const HERO_INSPECTOR_KEY = "F4";
 
 export default function HeroList({
-  practiceDataset = null,
-  tutorial = null,
-  practiceSeed = null,
-  active = true,
-  onStartTutorial = null,
-  tutorialLoading = false,
-  tutorialError = "",
+    practiceDataset = null,
+    tutorial = null,
+    practiceSeed = null,
+    active = true,
+    onStartTutorial = null,
+    tutorialLoading = false,
+    tutorialError = "",
 }) {
-  const isPractice = practiceDataset !== null;
-  const datasetManifest =
-    practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
-  const beforeTutorialAction = tutorial?.beforeAction;
-  const reportTutorialDraft = tutorial?.onDraftChange;
-  const tutorialTargetHeroIds = tutorial?.targetHeroIds;
-
-  //==============================================
-  //============= Drafting State =================
-  //==============================================
-
-  // Selected heroes for both teams
-  const [selectedHeroes, setSelectedHeroes] = useState({
-    ally: [],
-    enemy: []
-  });
-
-  // Heroes that have been banned from the draft
-  const [bannedHeroes, setBannedHeroes] = useState([]);
-
-  // Modernized static matchup data (synergy/counter values between heroes)
-  const [matchupIndex, setMatchupIndex] = useState(
-    () => practiceDataset?.matchupIndex ?? {}
-  );
-
-  // The team currently being drafted
-  const [selectedTeam, setSelectedTeam] = useState("ally");
-
-  // Heroes that are temporarily click-locked (Emergency fallback for quick inputs)
-  const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
-
-  // All hero data grouped by attribute (STR, AGI, INT, UNI)
-  const [heroes, setHeroes] = useState(
-    () => practiceDataset?.heroes ?? {}
-  );
-
-  // Suggestions calculated based on current draft and filters
-  const [suggestedHeroes, setSuggestedHeroes] = useState([]);
-
-  // Full synergy breakdown shown when both teams have their teams' full
-  const [fullDraftStats, setFullDraftStats] = useState(null);
-
-  // Filtering suggestions by selected role (e.g., "carry", "support")
-  const [roleFilter, setRoleFilter] = useState(null);
-
-  // Static hero role data (hero-specific position data)
-  const [heroRoleMap, setHeroRoleMap] = useState(null);
-
-  // Predicitons of the enemy team hero positions based on picks
-  const [enemyRolePredictions, setEnemyRolePredictions] = useState({});
-
-  //==============================================
-  //================ UI State ====================
-  //==============================================
-
-
-  // Layout mode: "default" = 2x2, "row" = 4x1
-  const [gridMode, setGridMode] = useState("default");
-
-  // Whether to show the tool's short tutorial
-  const [showGuide, setShowGuide] = useState(false);
-
-  // Whether to show the breakdown of the user's entire hero pool's synergies
-  const [showPoolBreakdown, setShowPoolBreakdown] = useState(false);
-
-  // Picked-hero analysis is available before either team is complete.
-  const [showDraftOverview, setShowDraftOverview] = useState(false);
-
-  const [showHeroInspector, setShowHeroInspector] = useState(false);
-
-  // Retain the floating panel's location while it is closed during this session.
-  const [inspectorPosition, setInspectorPosition] = useState(null);
-
-  // Only hero-grid clicks change this candidate; drop actions never replace it.
-  const [inspectedHero, setInspectedHero] = useState(null);
-
-  // Button pulse effect (used for visual alerts)
-  const [buttonPulse, setButtonPulse] = useState(false);
-
-  // Tooltip visibility toggle for info box to help users begin using the tool
-  const [showToolTip, setShowToolTip] = useState(false);
-
-  // Currently hovered hero (for synergy breakdown display)
-  const [hoveredHero, setHoveredHero] = useState(null);
-
-  // Show/hide specific information about how winrate prediction is calculated
-  const [showWinrateInfo, setShowWinrateInfo] = useState(false);
-
-  // Hero search bar input value
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Container position (used for centering search word)
-  const [containerRect, setContainerRect] = useState(null);
-
-  // Currently hovered hero from the draft suggestions (for suggested picks panel)
-  const [hoveredSuggestedHero, setHoveredSuggestedHero] = useState(null);
-
-  //==============================================
-  //============ Hero Pool System ================
-  //==============================================
-
-  // User specific hero pool (stored in localStorage and editable by user)
-  // Recover safely from invalid saved data or unavailable browser storage.
-  const [heroPool, setHeroPool] = useState(() => {
-
-    // Practice owns a temporary pool and never reads the user's saved pool.
-    if (isPractice) return [];
-
-    try {
-      const saved = localStorage.getItem("heroPool");
-      if (!saved) return [];
-
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed)) return [];
-
-      // Store each positive integer hero ID once; discard malformed entries.
-      return [...new Set(
-        parsed.filter(id => Number.isSafeInteger(id) && id > 0)
-      )];
-    } catch (error) {
-      console.warn("Could not load the saved hero pool:", error);
-      return [];
-    }
-  });
-
-  // Synergy scores of all heroes within the hero pool, positive and negative
-  const [fullPoolSynergies, setFullPoolSynergies] = useState([]);
-
-  // Whether to show suggestions based on the user's hero pool or not
-  const [filterByHeroPool, setFilterByHeroPool] = useState(!isPractice);
-
-  // Whether "Hero Pool Manipulation" mode is active (click to add/remove heroes)
-  const [editHeroPoolMode, setEditHeroPoolMode] = useState(false);
-
-  // Suggestions from the user's hero pool
-  const [poolSuggestions, setPoolSuggestions] = useState([]);
-
-  // Best picks only taking draft into account
-  const [globalSuggestions, setGlobalSuggestions] = useState([]);
-
-  //==============================================
-  //============= Status Messages ================
-  //==============================================
-
-  // Status message shown when user interacts with the hero pool editing tool
-  const [statusMessage, setStatusMessage] = useState(null);
-
-  // Cosmetic useState added to add a slight fade out to the status message
-  const [showStatus, setShowStatus] = useState(false);
-
-  //==============================================
-  //=========== Refs (DOM + Timing) ==============
-  //==============================================
-
-  // Ref to the container where all the hero cards are rendered
-  const containerRef = useRef(null);
-
-  // The floating inspector animates to and from this toolbar button.
-  const inspectorButtonRef = useRef(null);
-
-  // Ref to the search input for automatic focus on keyboard input
-  const searchInputRef = useRef(null);
-
-  // Timeout used to delay fade-out of hero pool edit status message
-  const fadeTimeoutRef = useRef(null);
-
-  // Timeout used to delay removal of status messages
-  const removeTimeoutRef = useRef(null);
-
-  // Timestamp of last user interaction (used for search backspace logic)
-  const lastInteractionRef = useRef(Date.now());
-
-  // Flag to bypass above timestamp with quick inputs when searching
-  // and picking heroes quickly
-  const bypassTimerRef = useRef(false);
-
-  //==============================================
-  //============== Derived Values ================
-  //==============================================
-
-  // True if either team has selected at least one hero
-  const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
-
-  // The button and focused shortcut share the same availability rule.
-  const canSwitchTeam =
-    selectedHeroes.ally.length < 5 && selectedHeroes.enemy.length < 5;
-
-  // Every draft input passes this gate before changing state during a lesson.
-  const requestTutorialAction = useCallback(
-    action => beforeTutorialAction?.(action) !== false,
-    [beforeTutorialAction]
-  );
-
-  // Include bans so the tutorial confirms actions after state is committed.
-  useEffect(() => {
-    reportTutorialDraft?.(selectedHeroes, selectedTeam, bannedHeroes);
-  }, [selectedHeroes, selectedTeam, bannedHeroes, reportTutorialDraft]);
-
-  // Skipping prepares the draft that the following lesson expects.
-  useEffect(() => {
-    if (!practiceDataset || !practiceSeed) return;
-
-    const resolveHeroes = ids => ids
-      .map(id => practiceDataset.heroById.get(id))
-      .filter(Boolean);
-
-    setSelectedHeroes({
-      ally: resolveHeroes(practiceSeed.ally),
-      enemy: resolveHeroes(practiceSeed.enemy),
-    });
-    setBannedHeroes(resolveHeroes(practiceSeed.bans));
-    setSelectedTeam(practiceSeed.team);
-    setSearchQuery("");
-  }, [practiceDataset, practiceSeed]);
-
-  const handleTeamSwitch = useCallback((source = "keyboard") => {
-    if (!canSwitchTeam) return;
-    if (!requestTutorialAction({ type: "team-switch", source })) return;
-
-    setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
-  }, [canSwitchTeam, requestTutorialAction]);
-
-  const openDraftOverview = useCallback(() => {
-    if (!requestTutorialAction({ type: "overview" })) return;
-    setShowDraftOverview(true);
-  }, [requestTutorialAction]);
-
-  const closeDraftOverview = useCallback(() => {
-    setShowDraftOverview(false);
-  }, []);
-
-  const toggleHeroInspector = useCallback(() => {
-    if (!requestTutorialAction({ type: "inspector" })) return;
-
-    setEditHeroPoolMode(false);
-    setShowPoolBreakdown(false);
-    setShowHeroInspector(open => !open);
-  }, [requestTutorialAction]);
-
-  const closeHeroInspector = useCallback(() => {
-    setShowHeroInspector(false);
-  }, []);
-
-  const togglePoolEdit = useCallback(() => {
-    if (!requestTutorialAction({ type: "pool-edit" })) return;
-
-    setShowHeroInspector(false);
-    setEditHeroPoolMode(editing => !editing);
-  }, [requestTutorialAction]);
-
-  // Recalculate from the live draft while keeping the candidate independent.
-  const heroInspection = useMemo(() => calculateHeroInspection({
-    hero: inspectedHero,
-    selectedTeam,
-    selectedHeroes,
-    bannedHeroes,
-    matchupIndex,
-  }), [inspectedHero, selectedTeam, selectedHeroes, bannedHeroes, matchupIndex]);
-
-  // The new estimator needs a complete draft and usable baseline/matchup data.
-  // A null result tells the sidebar to use the existing score-based estimate.
-  const draftWinProbability = useMemo(() => calculateDraftWinProbability({
-    allyHeroIds: selectedHeroes.ally.map(hero => hero.HeroId),
-    enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),
-    matchupIndex,
-  }), [selectedHeroes, matchupIndex]);
-
-  const matchFeedback = useDraftCapture({
-    active,
-    isPractice,
-    selectedHeroes,
-    prediction: draftWinProbability,
-    manifest: datasetManifest,
-  });
-
-  //==============================================
-  //=========== Data Initialization ==============
-  //==============================================
-
-  // Load and group hero data from local JSON on mount
-  useEffect(() => {
-    if (isPractice) return;
-    const heroesUrl = window.__HEROES_URL__ || "/heroes.json";
-    console.log("[heroes] heroesUrl:", heroesUrl);
-
-    fetch(heroesUrl)
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        const grouped = groupAndSortHeroes(data);
-        setHeroes(grouped);
-      })
-      .catch((err) => console.error("Failed to load static hero data:", err));
-  }, [isPractice]);
-
-  // Load synergy matrix from local JSON on mount
-  useEffect(() => {
-    if (isPractice) return;
-    const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
-    fetch(datasetUrl)
-      .then((res) => {
-        return res.json();
-      })
-      .then((data) => {
-        setMatchupIndex(indexMatrix(data));
-      })
-      .catch((err) => console.error("[synergy] Failed to load synergy data", err));
-  }, [isPractice]);
-
-  // Load hero-specific position data from local JSON on mount
-  useEffect(() => {
-    fetch("/hero-roles.json")
-      .then(res => res.json())
-      .then(data => setHeroRoleMap(data))
-      .catch(err => {
-        console.error("Failed to load hero-roles.json", err);
-        setHeroRoleMap({});
-      });
-  }, []);
-
-  //==============================================
-  //=========== Synergy Suggestions ==============
-  //==============================================
-
-  // Assign enemy hero roles based on already picked heroes in the enemy team
-  useEffect(() => {
-    if (!heroRoleMap || selectedHeroes.enemy.length === 0) return;
-
-    const ids = selectedHeroes.enemy.map(h => h.HeroId);
-    const predictions = predictEnemyRoles(ids, heroRoleMap);
-    setEnemyRolePredictions(predictions);
-  }, [selectedHeroes.enemy, heroRoleMap]);
-
-  // Trigger synergy calculations for all heroes within the user's hero pool
-  useEffect(() => {
-    const results = calculatePoolSynergies({
-      heroPool,
-      allyHeroIds: selectedHeroes.ally.map(h => h.HeroId),
-      enemyHeroIds: selectedHeroes.enemy.map(h => h.HeroId),
-      bannedHeroIds: bannedHeroes.map(h => h.HeroId),
-      matchupIndex,
-      heroes
+    const isPractice = practiceDataset !== null;
+    const datasetManifest =
+        practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
+    const beforeTutorialAction = tutorial?.beforeAction;
+    const reportTutorialDraft = tutorial?.onDraftChange;
+    const tutorialTargetHeroIds = tutorial?.targetHeroIds;
+
+    //==============================================
+    //============= Drafting State =================
+    //==============================================
+
+    // Selected heroes for both teams
+    const [selectedHeroes, setSelectedHeroes] = useState({
+        ally: [],
+        enemy: []
     });
 
-    setFullPoolSynergies(results);
-  }, [heroPool, selectedHeroes, bannedHeroes, matchupIndex, heroes]);
+    // Heroes that have been banned from the draft
+    const [bannedHeroes, setBannedHeroes] = useState([]);
 
-  //==============================================
-  //========== Hero Pool Persistence =============
-  //==============================================
+    // Modernized static matchup data (synergy/counter values between heroes)
+    const [matchupIndex, setMatchupIndex] = useState(
+        () => practiceDataset?.matchupIndex ?? {}
+    );
 
-  // Save pool edits when storage is available; failed saves will not break drafting.
-  useEffect(() => {
-    if (isPractice) return;
-    try {
-      localStorage.setItem("heroPool", JSON.stringify(heroPool));
-    } catch (error) {
-      console.warn("Could not save the hero pool:", error);
-    }
-  }, [heroPool, isPractice]);
+    // The team currently being drafted
+    const [selectedTeam, setSelectedTeam] = useState("ally");
 
-  // Automatically disable filter if hero pool is too small
-  useEffect(() => {
-    if (heroPool.length < 3 && filterByHeroPool) {
-      setFilterByHeroPool(false);
-    }
-  }, [heroPool, filterByHeroPool]);
+    // Heroes that are temporarily click-locked (Emergency fallback for quick inputs)
+    const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
 
-  //==============================================
-  //========= Keyboard & Search Logic ============
-  //==============================================
+    // All hero data grouped by attribute (STR, AGI, INT, UNI)
+    const [heroes, setHeroes] = useState(
+        () => practiceDataset?.heroes ?? {}
+    );
 
-  // Handle focused shortcuts before ordinary typing can activate hero search.
-  useEffect(() => {
+    // Suggestions calculated based on current draft and filters
+    const [suggestedHeroes, setSuggestedHeroes] = useState([]);
+
+    // Full synergy breakdown shown when both teams have their teams' full
+    const [fullDraftStats, setFullDraftStats] = useState(null);
+
+    // Filtering suggestions by selected role (e.g., "carry", "support")
+    const [roleFilter, setRoleFilter] = useState(null);
+
+    // Static hero role data (hero-specific position data)
+    const [heroRoleMap, setHeroRoleMap] = useState(null);
+
+    // Predicitons of the enemy team hero positions based on picks
+    const [enemyRolePredictions, setEnemyRolePredictions] = useState({});
+
+    //==============================================
+    //================ UI State ====================
+    //==============================================
+
+
+    // Layout mode: "default" = 2x2, "row" = 4x1
+    const [gridMode, setGridMode] = useState("default");
+
+    // Whether to show the tool's short tutorial
+    const [showGuide, setShowGuide] = useState(false);
+
+    // Whether to show the breakdown of the user's entire hero pool's synergies
+    const [showPoolBreakdown, setShowPoolBreakdown] = useState(false);
+
+    // Picked-hero analysis is available before either team is complete.
+    const [showDraftOverview, setShowDraftOverview] = useState(false);
+
+    const [showHeroInspector, setShowHeroInspector] = useState(false);
+
+    // Retain the floating panel's location while it is closed during this session.
+    const [inspectorPosition, setInspectorPosition] = useState(null);
+
+    // Only hero-grid clicks change this candidate; drop actions never replace it.
+    const [inspectedHero, setInspectedHero] = useState(null);
+
+    // Button pulse effect (used for visual alerts)
+    const [buttonPulse, setButtonPulse] = useState(false);
+
+    // Tooltip visibility toggle for info box to help users begin using the tool
+    const [showToolTip, setShowToolTip] = useState(false);
+
+    // Currently hovered hero (for synergy breakdown display)
+    const [hoveredHero, setHoveredHero] = useState(null);
+
+    // Show/hide specific information about how winrate prediction is calculated
+    const [showWinrateInfo, setShowWinrateInfo] = useState(false);
+
+    // Hero search bar input value
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Container position (used for centering search word)
+    const [containerRect, setContainerRect] = useState(null);
+
+    // Currently hovered hero from the draft suggestions (for suggested picks panel)
+    const [hoveredSuggestedHero, setHoveredSuggestedHero] = useState(null);
+
+    //==============================================
+    //============ Hero Pool System ================
+    //==============================================
+
+    // User specific hero pool (stored in localStorage and editable by user)
+    // Recover safely from invalid saved data or unavailable browser storage.
+    const [heroPool, setHeroPool] = useState(() => {
+
+        // Practice owns a temporary pool and never reads the user's saved pool.
+        if (isPractice) return [];
+
+        try {
+            const saved = localStorage.getItem("heroPool");
+            if (!saved) return [];
+
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return [];
+
+            // Store each positive integer hero ID once; discard malformed entries.
+            return [...new Set(
+                parsed.filter(id => Number.isSafeInteger(id) && id > 0)
+            )];
+        } catch (error) {
+            console.warn("Could not load the saved hero pool:", error);
+            return [];
+        }
+    });
+
+    // Synergy scores of all heroes within the hero pool, positive and negative
+    const [fullPoolSynergies, setFullPoolSynergies] = useState([]);
+
+    // Whether to show suggestions based on the user's hero pool or not
+    const [filterByHeroPool, setFilterByHeroPool] = useState(!isPractice);
+
+    // Whether "Hero Pool Manipulation" mode is active (click to add/remove heroes)
+    const [editHeroPoolMode, setEditHeroPoolMode] = useState(false);
+
+    // Suggestions from the user's hero pool
+    const [poolSuggestions, setPoolSuggestions] = useState([]);
+
+    // Best picks only taking draft into account
+    const [globalSuggestions, setGlobalSuggestions] = useState([]);
+
+    //==============================================
+    //============= Status Messages ================
+    //==============================================
+
+    // Status message shown when user interacts with the hero pool editing tool
+    const [statusMessage, setStatusMessage] = useState(null);
+
+    // Cosmetic useState added to add a slight fade out to the status message
+    const [showStatus, setShowStatus] = useState(false);
+
+    //==============================================
+    //=========== Refs (DOM + Timing) ==============
+    //==============================================
+
+    // Ref to the container where all the hero cards are rendered
+    const containerRef = useRef(null);
+
+    // The floating inspector animates to and from this toolbar button.
+    const inspectorButtonRef = useRef(null);
+
+    // Ref to the search input for automatic focus on keyboard input
+    const searchInputRef = useRef(null);
+
+    // Timeout used to delay fade-out of hero pool edit status message
+    const fadeTimeoutRef = useRef(null);
+
+    // Timeout used to delay removal of status messages
+    const removeTimeoutRef = useRef(null);
+
+    // Timestamp of last user interaction (used for search backspace logic)
+    const lastInteractionRef = useRef(Date.now());
+
+    // Flag to bypass above timestamp with quick inputs when searching
+    // and picking heroes quickly
+    const bypassTimerRef = useRef(false);
+
+    //==============================================
+    //============== Derived Values ================
+    //==============================================
+
+    // True if either team has selected at least one hero
+    const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
+
+    // The button and focused shortcut share the same availability rule.
+    const canSwitchTeam =
+        selectedHeroes.ally.length < 5 && selectedHeroes.enemy.length < 5;
+
+    // Every draft input passes this gate before changing state during a lesson.
+    const requestTutorialAction = useCallback(
+        action => beforeTutorialAction?.(action) !== false,
+        [beforeTutorialAction]
+    );
+
+    // Include bans so the tutorial confirms actions after state is committed.
+    useEffect(() => {
+        reportTutorialDraft?.(selectedHeroes, selectedTeam, bannedHeroes);
+    }, [selectedHeroes, selectedTeam, bannedHeroes, reportTutorialDraft]);
+
+    // Skipping prepares the draft that the following lesson expects.
+    useEffect(() => {
+        if (!practiceDataset || !practiceSeed) return;
+
+        const resolveHeroes = ids => ids
+            .map(id => practiceDataset.heroById.get(id))
+            .filter(Boolean);
+
+        setSelectedHeroes({
+            ally: resolveHeroes(practiceSeed.ally),
+            enemy: resolveHeroes(practiceSeed.enemy),
+        });
+        setBannedHeroes(resolveHeroes(practiceSeed.bans));
+        setSelectedTeam(practiceSeed.team);
+        setSearchQuery("");
+    }, [practiceDataset, practiceSeed]);
+
+    const handleTeamSwitch = useCallback((source = "keyboard") => {
+        if (!canSwitchTeam) return;
+        if (!requestTutorialAction({ type: "team-switch", source })) return;
+
+        setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
+    }, [canSwitchTeam, requestTutorialAction]);
+
+    const openDraftOverview = useCallback(() => {
+        if (!requestTutorialAction({ type: "overview" })) return;
+        setShowDraftOverview(true);
+    }, [requestTutorialAction]);
+
+    const closeDraftOverview = useCallback(() => {
+        setShowDraftOverview(false);
+    }, []);
+
+    const toggleHeroInspector = useCallback(() => {
+        if (!requestTutorialAction({ type: "inspector" })) return;
+
+        setEditHeroPoolMode(false);
+        setShowPoolBreakdown(false);
+        setShowHeroInspector(open => !open);
+    }, [requestTutorialAction]);
+
+    const closeHeroInspector = useCallback(() => {
+        setShowHeroInspector(false);
+    }, []);
+
+    const togglePoolEdit = useCallback(() => {
+        if (!requestTutorialAction({ type: "pool-edit" })) return;
+
+        setShowHeroInspector(false);
+        setEditHeroPoolMode(editing => !editing);
+    }, [requestTutorialAction]);
+
+    // Recalculate from the live draft while keeping the candidate independent.
+    const heroInspection = useMemo(() => calculateHeroInspection({
+        hero: inspectedHero,
+        selectedTeam,
+        selectedHeroes,
+        bannedHeroes,
+        matchupIndex,
+    }), [inspectedHero, selectedTeam, selectedHeroes, bannedHeroes, matchupIndex]);
+
+    // The new estimator needs a complete draft and usable baseline/matchup data.
+    // A null result tells the sidebar to use the existing score-based estimate.
+    const draftWinProbability = useMemo(() => calculateDraftWinProbability({
+        allyHeroIds: selectedHeroes.ally.map(hero => hero.HeroId),
+        enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),
+        matchupIndex,
+    }), [selectedHeroes, matchupIndex]);
+
+    const matchFeedback = useDraftCapture({
+        active,
+        isPractice,
+        selectedHeroes,
+        prediction: draftWinProbability,
+        manifest: datasetManifest,
+    });
+
+    //==============================================
+    //=========== Data Initialization ==============
+    //==============================================
+
+    // Load and group hero data from local JSON on mount
+    useEffect(() => {
+        if (isPractice) return;
+        const heroesUrl = window.__HEROES_URL__ || "/heroes.json";
+        console.log("[heroes] heroesUrl:", heroesUrl);
+
+        fetch(heroesUrl)
+            .then((res) => {
+                return res.json();
+            })
+            .then((data) => {
+                const grouped = groupAndSortHeroes(data);
+                setHeroes(grouped);
+            })
+            .catch((err) => console.error("Failed to load static hero data:", err));
+    }, [isPractice]);
+
+    // Load synergy matrix from local JSON on mount
+    useEffect(() => {
+        if (isPractice) return;
+        const datasetUrl = window.__SYNERGY_MATRIX_URL__ || "/synergyMatrix.json";
+        fetch(datasetUrl)
+            .then((res) => {
+                return res.json();
+            })
+            .then((data) => {
+                setMatchupIndex(indexMatrix(data));
+            })
+            .catch((err) => console.error("[synergy] Failed to load synergy data", err));
+    }, [isPractice]);
+
+    // Load hero-specific position data from local JSON on mount
+    useEffect(() => {
+        fetch("/hero-roles.json")
+            .then(res => res.json())
+            .then(data => setHeroRoleMap(data))
+            .catch(err => {
+                console.error("Failed to load hero-roles.json", err);
+                setHeroRoleMap({});
+            });
+    }, []);
+
+    //==============================================
+    //=========== Synergy Suggestions ==============
+    //==============================================
+
+    // Assign enemy hero roles based on already picked heroes in the enemy team
+    useEffect(() => {
+        if (!heroRoleMap || selectedHeroes.enemy.length === 0) return;
+
+        const ids = selectedHeroes.enemy.map(h => h.HeroId);
+        const predictions = predictEnemyRoles(ids, heroRoleMap);
+        setEnemyRolePredictions(predictions);
+    }, [selectedHeroes.enemy, heroRoleMap]);
+
+    // Trigger synergy calculations for all heroes within the user's hero pool
+    useEffect(() => {
+        const results = calculatePoolSynergies({
+            heroPool,
+            allyHeroIds: selectedHeroes.ally.map(h => h.HeroId),
+            enemyHeroIds: selectedHeroes.enemy.map(h => h.HeroId),
+            bannedHeroIds: bannedHeroes.map(h => h.HeroId),
+            matchupIndex,
+            heroes
+        });
+
+        setFullPoolSynergies(results);
+    }, [heroPool, selectedHeroes, bannedHeroes, matchupIndex, heroes]);
+
+    //==============================================
+    //========== Hero Pool Persistence =============
+    //==============================================
+
+    // Save pool edits when storage is available; failed saves will not break drafting.
+    useEffect(() => {
+        if (isPractice) return;
+        try {
+            localStorage.setItem("heroPool", JSON.stringify(heroPool));
+        } catch (error) {
+            console.warn("Could not save the hero pool:", error);
+        }
+    }, [heroPool, isPractice]);
+
+    // Automatically disable filter if hero pool is too small
+    useEffect(() => {
+        if (heroPool.length < 3 && filterByHeroPool) {
+            setFilterByHeroPool(false);
+        }
+    }, [heroPool, filterByHeroPool]);
+
+    //==============================================
+    //========= Keyboard & Search Logic ============
+    //==============================================
+
+    // Handle focused shortcuts before ordinary typing can activate hero search.
+    useEffect(() => {
     // The hidden real draft must not react to keys entered during practice.
-    if (!active) return;
-    const handleKeyDown = (e) => {
-      if (e.defaultPrevented || e.isComposing || !document.hasFocus()
+        if (!active) return;
+        const handleKeyDown = (e) => {
+            if (e.defaultPrevented || e.isComposing || !document.hasFocus()
         || document.visibilityState === "hidden") return;
 
-      // Modal dialogs own keyboard input. Floating pool panels remain interactive.
-      if (document.querySelector('dialog[open]:not([aria-modal="false"])')) return;
+            // Modal dialogs own keyboard input. Floating pool panels remain interactive.
+            if (document.querySelector('dialog[open]:not([aria-modal="false"])')) return;
 
-      const el = document.activeElement;
-      const tag = el?.tagName?.toLowerCase();
-      const editing = tag === "input" || tag === "textarea"
+            const el = document.activeElement;
+            const tag = el?.tagName?.toLowerCase();
+            const editing = tag === "input" || tag === "textarea"
         || tag === "select" || el?.isContentEditable;
 
-      // Search can stay focused during drafting; other fields own their keystrokes.
-      if (editing && el !== searchInputRef.current) return;
+            // Search can stay focused during drafting; other fields own their keystrokes.
+            if (editing && el !== searchInputRef.current) return;
 
-      if (e.code === TEAM_SWITCH_KEY
+            if (e.code === TEAM_SWITCH_KEY
         && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
-        e.preventDefault();
-        if (!e.repeat) handleTeamSwitch();
-        return;
-      }
+                e.preventDefault();
+                if (!e.repeat) handleTeamSwitch();
+                return;
+            }
 
-      if (e.code === DRAFT_OVERVIEW_KEY
+            if (e.code === DRAFT_OVERVIEW_KEY
         && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
-        e.preventDefault();
-        if (!e.repeat) openDraftOverview();
-        return;
-      }
+                e.preventDefault();
+                if (!e.repeat) openDraftOverview();
+                return;
+            }
 
-      if (e.code === HERO_INSPECTOR_KEY
+            if (e.code === HERO_INSPECTOR_KEY
         && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
-        e.preventDefault();
-        if (!e.repeat) toggleHeroInspector();
-        return;
-      }
+                e.preventDefault();
+                if (!e.repeat) toggleHeroInspector();
+                return;
+            }
 
-      // Navigation and modified shortcuts must not move focus into hero search.
-      if (e.ctrlKey || e.altKey || e.metaKey) return;
-      if (e.key.length !== 1 && e.key !== "Backspace") return;
+            // Navigation and modified shortcuts must not move focus into hero search.
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            if (e.key.length !== 1 && e.key !== "Backspace") return;
 
-      // Preserve keyboard activation of buttons and links with Space.
-      if (e.key === " " && el?.closest('button, a[href], [role="button"]')) return;
+            // Preserve keyboard activation of buttons and links with Space.
+            if (e.key === " " && el?.closest('button, a[href], [role="button"]')) return;
 
-      if (document.activeElement !== searchInputRef.current) {
-        searchInputRef.current?.focus();
-      }
+            if (document.activeElement !== searchInputRef.current) {
+                searchInputRef.current?.focus();
+            }
 
-      const now = Date.now();
+            const now = Date.now();
 
-      if (e.key === "Backspace") {
-        const timeSinceInteraction = now - lastInteractionRef.current;
-        if (bypassTimerRef.current || timeSinceInteraction > 2000) {
-          setSearchQuery("");
+            if (e.key === "Backspace") {
+                const timeSinceInteraction = now - lastInteractionRef.current;
+                if (bypassTimerRef.current || timeSinceInteraction > 2000) {
+                    setSearchQuery("");
+                }
+            }
+
+            lastInteractionRef.current = now;
+            bypassTimerRef.current = false;
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [active, handleTeamSwitch, openDraftOverview, toggleHeroInspector]);
+
+    //==============================================
+    //========== UI Behavior & Layout ==============
+    //==============================================
+
+    // Automatically hide tooltip for guide after 5 seconds.
+    useEffect(() => {
+        if (isPractice || !active || !showToolTip) return;
+
+        const timeout = setTimeout(() => {
+            setShowToolTip(false);
+            try {
+                localStorage.setItem(TOOLTIP_KEY, "1");
+            } catch {
+                // Dismissing the hint still works when storage is unavailable.
+            }
+        }, 5000);
+
+        return () => clearTimeout(timeout);
+    }, [showToolTip, isPractice, active]);
+
+    // Practice must not read or change the user's guide preference.
+    useEffect(() => {
+        if (isPractice) return;
+
+        try {
+            const seen = localStorage.getItem(TOOLTIP_KEY) === "1";
+            if (!seen) setShowToolTip(true);
+        } catch {
+            setShowToolTip(true);
         }
-      }
+    }, [isPractice]);
 
-      lastInteractionRef.current = now;
-      bypassTimerRef.current = false;
-    };
+    // Re-measure on return from practice; hidden containers have no size.
+    useEffect(() => {
+        if (!active) return;
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, handleTeamSwitch, openDraftOverview, toggleHeroInspector]);
+        const updateRect = () => {
+            if (containerRef.current) {
+                setContainerRect(containerRef.current.getBoundingClientRect());
+            }
+        };
 
-  //==============================================
-  //========== UI Behavior & Layout ==============
-  //==============================================
+        updateRect();
 
-  // Automatically hide tooltip for guide after 5 seconds.
-  useEffect(() => {
-    if (isPractice || !active || !showToolTip) return;
+        // Docked narration can resize the grid without resizing the window.
+        const observer = new ResizeObserver(updateRect);
+        if (containerRef.current) observer.observe(containerRef.current);
 
-    const timeout = setTimeout(() => {
-      setShowToolTip(false);
-      try { localStorage.setItem(TOOLTIP_KEY, "1"); } catch { }
-    }, 5000);
+        window.addEventListener("resize", updateRect);
 
-    return () => clearTimeout(timeout);
-  }, [showToolTip, isPractice, active]);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", updateRect);
+        };
+    }, [active]);
 
-  // Practice must not read or change the user's guide preference.
-  useEffect(() => {
-    if (isPractice) return;
+    // Track both team sizes to automatically change team selection is need be
+    useEffect(() => {
+        const allyFull = selectedHeroes.ally.length === 5;
+        const enemyFull = selectedHeroes.enemy.length === 5;
 
-    try {
-      const seen = localStorage.getItem(TOOLTIP_KEY) === "1";
-      if (!seen) setShowToolTip(true);
-    } catch {
-      setShowToolTip(true);
-    }
-  }, [isPractice]);
+        // Auto-switch to the team that still has space
+        if (allyFull && !enemyFull) {
+            setSelectedTeam("enemy");
+        } else if (enemyFull && !allyFull) {
+            setSelectedTeam("ally");
+        }
+    }, [selectedHeroes]);
 
-  // Re-measure on return from practice; hidden containers have no size.
-  useEffect(() => {
-    if (!active) return;
+    //==============================================
+    //========= Synergy Suggestion Engine ==========
+    //==============================================
 
-    const updateRect = () => {
-      if (containerRef.current) {
-        setContainerRect(containerRef.current.getBoundingClientRect());
-      }
-    };
-
-    updateRect();
-
-    // Docked narration can resize the grid without resizing the window.
-    const observer = new ResizeObserver(updateRect);
-    if (containerRef.current) observer.observe(containerRef.current);
-
-    window.addEventListener("resize", updateRect);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateRect);
-    };
-  }, [active]);
-
-  // Track both team sizes to automatically change team selection is need be
-  useEffect(() => {
-    const allyFull = selectedHeroes.ally.length === 5;
-    const enemyFull = selectedHeroes.enemy.length === 5;
-
-    // Auto-switch to the team that still has space
-    if (allyFull && !enemyFull) {
-      setSelectedTeam("enemy");
-    } else if (enemyFull && !allyFull) {
-      setSelectedTeam("ally");
-    }
-  }, [selectedHeroes]);
-
-  //==============================================
-  //========= Synergy Suggestion Engine ==========
-  //==============================================
-
-  /**
+    /**
    * Updates synergy suggestions or final draft stats based on the current draft state.
    * 
    * This function:
@@ -554,61 +558,61 @@ export default function HeroList({
    * It is memoized to avoid unnecessary recalculations.
    */
 
-  const updateSynergySuggestions = useCallback((
-    ally = selectedHeroes.ally,    // Selected heroes on the user's team
-    enemy = selectedHeroes.enemy,  // Selected heroes on the enemy team
-    bans = bannedHeroes,           // Banned heroes
-    role = roleFilter              // Current role filter (e.g. carry, support)
-  ) => {
+    const updateSynergySuggestions = useCallback((
+        ally = selectedHeroes.ally,    // Selected heroes on the user's team
+        enemy = selectedHeroes.enemy,  // Selected heroes on the enemy team
+        bans = bannedHeroes,           // Banned heroes
+        role = roleFilter              // Current role filter (e.g. carry, support)
+    ) => {
 
-    // If no heroes are picked on either team, clear all suggestions and stats
-    if (!ally.length && !enemy.length) {
-      setSuggestedHeroes([]);
-      setPoolSuggestions([]);
-      setGlobalSuggestions([]);
-      setFullDraftStats(null);
-      return;
-    }
+        // If no heroes are picked on either team, clear all suggestions and stats
+        if (!ally.length && !enemy.length) {
+            setSuggestedHeroes([]);
+            setPoolSuggestions([]);
+            setGlobalSuggestions([]);
+            setFullDraftStats(null);
+            return;
+        }
 
-    // Run synergy engine with all draft-related inputs
-    const result = calculateSynergyPicks({
-      allyHeroIds: ally.map(h => h.HeroId),
-      enemyHeroIds: enemy.map(h => h.HeroId),
-      bannedHeroIds: bans.map(h => h.HeroId),
-      roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
-      fullDraft: ally.length === 5 && enemy.length === 5,
-      matchupIndex,
-      heroes,
-      heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null
-    });
+        // Run synergy engine with all draft-related inputs
+        const result = calculateSynergyPicks({
+            allyHeroIds: ally.map(h => h.HeroId),
+            enemyHeroIds: enemy.map(h => h.HeroId),
+            bannedHeroIds: bans.map(h => h.HeroId),
+            roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
+            fullDraft: ally.length === 5 && enemy.length === 5,
+            matchupIndex,
+            heroes,
+            heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null
+        });
 
-    // === CASE 1: Full Draft Complete ===
-    // Show full synergy breakdown for both teams
-    if (result?.mode === "fullDraft") {
-      setFullDraftStats(result.teams);
-      setSuggestedHeroes([]); // No suggestions needed anymore
-    }
+        // === CASE 1: Full Draft Complete ===
+        // Show full synergy breakdown for both teams
+        if (result?.mode === "fullDraft") {
+            setFullDraftStats(result.teams);
+            setSuggestedHeroes([]); // No suggestions needed anymore
+        }
 
-    // === CASE 2: Still Drafting - Show Suggestions ===
-    // Show top synergy picks (in and out of personal hero pool)
-    else if (result?.mode === "suggestion") {
-      const { inPool = [], outPool = [] } = result;
-      setPoolSuggestions(inPool.slice(0, 3));     // Limit in-pool picks to top 3
-      setGlobalSuggestions(outPool.slice(0, 10)); // Limit global picks to top 10
-      setFullDraftStats(null);                    // Clear full drafts view
-    }
-  }, [
-    selectedHeroes.ally,
-    selectedHeroes.enemy,
-    bannedHeroes,
-    roleFilter,
-    matchupIndex,
-    heroes,
-    heroPool,
-    filterByHeroPool
-  ]);
+        // === CASE 2: Still Drafting - Show Suggestions ===
+        // Show top synergy picks (in and out of personal hero pool)
+        else if (result?.mode === "suggestion") {
+            const { inPool = [], outPool = [] } = result;
+            setPoolSuggestions(inPool.slice(0, 3));     // Limit in-pool picks to top 3
+            setGlobalSuggestions(outPool.slice(0, 10)); // Limit global picks to top 10
+            setFullDraftStats(null);                    // Clear full drafts view
+        }
+    }, [
+        selectedHeroes.ally,
+        selectedHeroes.enemy,
+        bannedHeroes,
+        roleFilter,
+        matchupIndex,
+        heroes,
+        heroPool,
+        filterByHeroPool
+    ]);
 
-  /*
+    /*
  * Automatically refresh draft recommendations when scoring inputs change.
  *
  * updateSynergySuggestions is memoized with useCallback. Its reference changes
@@ -623,496 +627,495 @@ export default function HeroList({
  * updateSynergySuggestions during render, so it must already be defined.
  */
 
-  useEffect(() => {
-    updateSynergySuggestions();
-  }, [updateSynergySuggestions]);
+    useEffect(() => {
+        updateSynergySuggestions();
+    }, [updateSynergySuggestions]);
 
-  //==============================================
-  //================== Helpers ===================
-  //==============================================
+    //==============================================
+    //================== Helpers ===================
+    //==============================================
 
-  /**
+    /**
    * Locks a hero to prevent it from being clicked or selected multiple times during
    * This helper is only called through other components 
    * @param {*} heroId The unique identifier of the hero being interacted with
    */
-  const lockHero = (heroId) => {
-    setClickLockedHeroes(prev => {
-      const updated = new Set(prev);
-      updated.add(heroId);
-      return updated;
-    });
-  };
+    const lockHero = (heroId) => {
+        setClickLockedHeroes(prev => {
+            const updated = new Set(prev);
+            updated.add(heroId);
+            return updated;
+        });
+    };
 
-  /**
+    /**
    * Unlocks a previously locked hero, restoring interactivity.
    * @param {*} heroId The unique identifier of the hero whose interactivity is being restored
    */
-  const unlockHero = (heroId) => {
-    setClickLockedHeroes((prev) => {
-      const updated = new Set(prev);
-      updated.delete(heroId);
-      return updated;
-    });
-  };
+    const unlockHero = (heroId) => {
+        setClickLockedHeroes((prev) => {
+            const updated = new Set(prev);
+            updated.delete(heroId);
+            return updated;
+        });
+    };
 
-  //==============================================
-  //=============== Draft Actions ================
-  //==============================================
+    //==============================================
+    //=============== Draft Actions ================
+    //==============================================
 
-  /**
+    /**
    * Clears all bans and recalculates suggestions without any banned heroes
    */
-  const handleClearBans = () => {
-    if (!requestTutorialAction({ type: "clear-bans" })) return;
-    setBannedHeroes([]);
-    updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
-  };
+    const handleClearBans = () => {
+        if (!requestTutorialAction({ type: "clear-bans" })) return;
+        setBannedHeroes([]);
+        updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
+    };
 
-  /**
+    /**
    * Handles selecting a hero by clicking on desktop
    * - Adds to ally or enemy draft depending on selected team
    * - Updates hero Pool if in edit mode
    * - Shows status message if in edit mode
    * @param {*} hero The hero object being interacted with
    */
-  const handleHeroClick = (hero) => {
-    if (!requestTutorialAction({
-      type: editHeroPoolMode
-        ? "pool-edit"
-        : showHeroInspector ? "inspect" : "pick",
-      heroId: hero.HeroId,
-      team: selectedTeam,
-      source: "click",
-    })) return;
-    if (clickLockedHeroes.has(hero.HeroId)) return;
+    const handleHeroClick = (hero) => {
+        if (!requestTutorialAction({
+            type: editHeroPoolMode
+                ? "pool-edit"
+                : showHeroInspector ? "inspect" : "pick",
+            heroId: hero.HeroId,
+            team: selectedTeam,
+            source: "click",
+        })) return;
+        if (clickLockedHeroes.has(hero.HeroId)) return;
 
-    bypassTimerRef.current = true;
+        bypassTimerRef.current = true;
 
-    // === Pool Editing Mode ===
-    if (editHeroPoolMode) {
-      const inPool = heroPool.includes(hero.HeroId);
-      const updatedPool = inPool
-        ? heroPool.filter(id => id !== hero.HeroId)
-        : [...heroPool, hero.HeroId];
+        // === Pool Editing Mode ===
+        if (editHeroPoolMode) {
+            const inPool = heroPool.includes(hero.HeroId);
+            const updatedPool = inPool
+                ? heroPool.filter(id => id !== hero.HeroId)
+                : [...heroPool, hero.HeroId];
 
-      setHeroPool(updatedPool);
+            setHeroPool(updatedPool);
 
-      clearTimeout(fadeTimeoutRef.current);
-      clearTimeout(removeTimeoutRef.current);
+            clearTimeout(fadeTimeoutRef.current);
+            clearTimeout(removeTimeoutRef.current);
 
-      setStatusMessage({
-        text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
-        type: inPool ? "removed" : "added"
-      });
-      setShowStatus(true);
+            setStatusMessage({
+                text: `${hero.name} has been ${inPool ? "removed from" : "added to"} the hero pool.`,
+                type: inPool ? "removed" : "added"
+            });
+            setShowStatus(true);
 
-      fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
-      removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
-      return;
-    }
+            fadeTimeoutRef.current = setTimeout(() => setShowStatus(false), 1800);
+            removeTimeoutRef.current = setTimeout(() => setStatusMessage(null), 2200);
+            return;
+        }
 
 
-    // Inspection changes only the candidate. Actual picks still use handleDrop.
-    if (showHeroInspector) {
-      setInspectedHero(hero);
-      return;
-    }
+        // Inspection changes only the candidate. Actual picks still use handleDrop.
+        if (showHeroInspector) {
+            setInspectedHero(hero);
+            return;
+        }
 
-    // === Draft Pick Logic ===
-    handleDrop(hero, selectedTeam, "click");
-  };
+        // === Draft Pick Logic ===
+        handleDrop(hero, selectedTeam, "click");
+    };
 
-  /**
+    /**
    * Handles dropping a hero card into a team (drag-and-drop).
    * @param {*} hero The hero object being dragged
    * @param {*} team The team the hero is being dragged to
    * @param {*} source From which state of the app the drop is being done
    */
-  // The source distinguishes a normal click from a drag-and-drop tutorial action.
-  const handleDrop = (hero, team, source = "drop") => {
-    if (!requestTutorialAction({
-      type: "pick",
-      heroId: hero.HeroId,
-      team,
-      source,
-    })) return;
+    // The source distinguishes a normal click from a drag-and-drop tutorial action.
+    const handleDrop = (hero, team, source = "drop") => {
+        if (!requestTutorialAction({
+            type: "pick",
+            heroId: hero.HeroId,
+            team,
+            source,
+        })) return;
 
-    if (clickLockedHeroes.has(hero.HeroId)) return;
-    if (bannedHeroes.some(h => h.HeroId === hero.HeroId)) return;
+        if (clickLockedHeroes.has(hero.HeroId)) return;
+        if (bannedHeroes.some(h => h.HeroId === hero.HeroId)) return;
 
-    setSelectedHeroes(prev => {
-      const alreadyPicked =
-        prev.ally.some(h => h.HeroId === hero.HeroId) ||
+        setSelectedHeroes(prev => {
+            const alreadyPicked =
+                prev.ally.some(h => h.HeroId === hero.HeroId) ||
         prev.enemy.some(h => h.HeroId === hero.HeroId);
 
-      if (alreadyPicked || prev[team].length >= 5) return prev;
+            if (alreadyPicked || prev[team].length >= 5) return prev;
 
-      return {
-        ...prev,
-        [team]: [...prev[team], hero],
-      };
-    });
+            return {
+                ...prev,
+                [team]: [...prev[team], hero],
+            };
+        });
 
-    if (beforeTutorialAction) setSearchQuery("");
-  };
+        if (beforeTutorialAction) setSearchQuery("");
+    };
 
-  /**
+    /**
    * Deselects a hero from the team and updates synergy suggestions.
    * @param {*} hero The hero object being removed
    * @param {*} team The team the hero is being removed from
    */
-  const handleHeroDeselect = (hero, team) => {
+    const handleHeroDeselect = (hero, team) => {
 
-    if (!requestTutorialAction({
-      type: "remove-pick",
-      heroId: hero.HeroId,
-      team,
-    })) return;
+        if (!requestTutorialAction({
+            type: "remove-pick",
+            heroId: hero.HeroId,
+            team,
+        })) return;
 
-    const newSelected = {
-      ...selectedHeroes,
-      [team]: selectedHeroes[team].filter(h => h.HeroId !== hero.HeroId),
+        const newSelected = {
+            ...selectedHeroes,
+            [team]: selectedHeroes[team].filter(h => h.HeroId !== hero.HeroId),
+        };
+
+        setSelectedHeroes(newSelected);
+
+        updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
     };
 
-    setSelectedHeroes(newSelected);
-
-    updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
-  };
-
-  /**
+    /**
    * Clears all picks, bans, suggestions and locked heroes (not hero pool)
    */
-  const handleClear = () => {
-    if (!requestTutorialAction({ type: "clear-draft" })) return;
+    const handleClear = () => {
+        if (!requestTutorialAction({ type: "clear-draft" })) return;
 
-    setSelectedHeroes({ ally: [], enemy: [] });
-    setSuggestedHeroes([]);
-    setBannedHeroes([]);
-    setClickLockedHeroes(new Set());
-  };
+        setSelectedHeroes({ ally: [], enemy: [] });
+        setSuggestedHeroes([]);
+        setBannedHeroes([]);
+        setClickLockedHeroes(new Set());
+    };
 
-  /**
+    /**
    * Removes a single hero from the bans
    * @param {*} hero The hero being removed from the bans
    */
-  const handleBanRemove = (hero) => {
-    if (!requestTutorialAction({ type: "unban" })) return;
-    const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
-    setBannedHeroes(updatedBans);
-  };
+    const handleBanRemove = (hero) => {
+        if (!requestTutorialAction({ type: "unban" })) return;
+        const updatedBans = bannedHeroes.filter(h => h.HeroId !== hero.HeroId);
+        setBannedHeroes(updatedBans);
+    };
 
-  /**
+    /**
    * Bans a hero (maximum of 16). Uses locking to prevent double-clicks.
    * @param {*} hero The hero object being banned
    */
-  const handleHeroBan = (hero) => {
-    if (!requestTutorialAction({ type: "ban", heroId: hero.HeroId }) ||
+    const handleHeroBan = (hero) => {
+        if (!requestTutorialAction({ type: "ban", heroId: hero.HeroId }) ||
       bannedHeroes.length >= 16 ||
       clickLockedHeroes.has(hero.HeroId)) return;
 
-    lockHero(hero.HeroId);
+        lockHero(hero.HeroId);
 
-    const updatedBans = [...bannedHeroes, hero];
+        const updatedBans = [...bannedHeroes, hero];
 
-    setBannedHeroes(updatedBans);
-    if (beforeTutorialAction) setSearchQuery("");
+        setBannedHeroes(updatedBans);
+        if (beforeTutorialAction) setSearchQuery("");
 
-    unlockHero(hero.HeroId);
-  };
+        unlockHero(hero.HeroId);
+    };
 
-  //==============================================
-  //========= Search & Filtering Helpers =========
-  //==============================================
+    //==============================================
+    //========= Search & Filtering Helpers =========
+    //==============================================
 
-  /**
+    /**
    * Checks whether a hero's name matches the current search query.
    * @param {*} hero the hero object which's name is being inspected
    * @returns true if there's no query or the hero name includes the query
    */
-  const isHeroMatch = (hero) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const nameMatch = hero.name.toLowerCase().includes(query);
-    const aliasMatch = hero.aliases?.some(alias => alias.toLowerCase().includes(query));
-    return nameMatch || aliasMatch;
-  };
+    const isHeroMatch = (hero) => {
+        if (!searchQuery.trim()) return true;
+        const query = searchQuery.toLowerCase();
+        const nameMatch = hero.name.toLowerCase().includes(query);
+        const aliasMatch = hero.aliases?.some(alias => alias.toLowerCase().includes(query));
+        return nameMatch || aliasMatch;
+    };
 
-  // Bring a matching unfinished lesson hero into view when searching.
-  useEffect(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!active || !tutorialTargetHeroIds?.length || !query) return;
+    // Bring a matching unfinished lesson hero into view when searching.
+    useEffect(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!active || !tutorialTargetHeroIds?.length || !query) return;
 
-    const hero = tutorialTargetHeroIds
-      .map(id => practiceDataset?.heroById.get(id))
-      .find(candidate => candidate && (
-        candidate.name.toLowerCase().includes(query) ||
+        const hero = tutorialTargetHeroIds
+            .map(id => practiceDataset?.heroById.get(id))
+            .find(candidate => candidate && (
+                candidate.name.toLowerCase().includes(query) ||
         candidate.aliases?.some(alias => alias.toLowerCase().includes(query))
-      ));
+            ));
 
-    if (!hero) return;
+        if (!hero) return;
 
-    containerRef.current
-      ?.querySelector(`[data-hero-id="${hero.HeroId}"]`)
-      ?.scrollIntoView({
-        block: "nearest",
-        inline: "nearest",
-        behavior: "auto",
-      });
-  }, [active, tutorialTargetHeroIds, searchQuery, practiceDataset]);
+        containerRef.current
+            ?.querySelector(`[data-hero-id="${hero.HeroId}"]`)
+            ?.scrollIntoView({
+                block: "nearest",
+                inline: "nearest",
+                behavior: "auto",
+            });
+    }, [active, tutorialTargetHeroIds, searchQuery, practiceDataset]);
 
-  //==============================================
-  //=============== Render Helpers ===============
-  //==============================================
+    //==============================================
+    //=============== Render Helpers ===============
+    //==============================================
 
-  /**
+    /**
    * Renders a single attribute column (STR, AGI, INT, UNI).
    * Includes hero grid with proper styling and interactivity.
    * @param {*} attr the attribute whiches column is being rendered (for color coding)
    */
-  function renderAttributeColumn(attr) {
-    const colorMap = {
-      str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
-      agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
-      int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
-      all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
-    };
+    function renderAttributeColumn(attr) {
+        const colorMap = {
+            str: { border: "border-transparent", bg: "strength-gradient", text: "text-white", label: "Strength" },
+            agi: { border: "border-transparent", bg: "agility-gradient", text: "text-white", label: "Agility" },
+            int: { border: "border-transparent", bg: "intelligence-gradient", text: "text-white", label: "Intelligence" },
+            all: { border: "border-transparent", bg: "universal-gradient", text: "text-white", label: "Universal" },
+        };
 
-    const { border, bg, text, label } = colorMap[attr];
+        const { border, bg, text, label } = colorMap[attr];
 
-    return (
-      <div
-        key={attr}
-        className={`flex-1 min-w-0 border-2 rounded-lg p-ui-md space-y-ui-sm 2xl:p-ui-lg ${border} ${bg}`}
-      >
-        <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
-        {/* Let each attribute panel choose how many readable cards fit across its width. */}
-        <motion.div
-          layout="position"
-          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,5.5rem),1fr))] gap-ui-sm transition-all duration-300 ease-in-out">
-          {heroes[attr]?.map((hero) => {
-            const isPicked =
-              selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
+        return (
+            <div
+                key={attr}
+                className={`flex-1 min-w-0 border-2 rounded-lg p-ui-md space-y-ui-sm 2xl:p-ui-lg ${border} ${bg}`}
+            >
+                <h2 className={`text-xl font-bold mb-2 ${text}`}>{label}</h2>
+                {/* Let each attribute panel choose how many readable cards fit across its width. */}
+                <motion.div
+                    layout="position"
+                    className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,5.5rem),1fr))] gap-ui-sm transition-all duration-300 ease-in-out">
+                    {heroes[attr]?.map((hero) => {
+                        const isPicked =
+                            selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
               selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId) ||
               bannedHeroes.some(h => h.HeroId === hero.HeroId) ||
               clickLockedHeroes.has(hero.HeroId);
 
-            return (
-              <DraggableHero
-                key={hero.HeroId}
-                hero={hero}
-                isPicked={isPicked}
-                handleHeroClick={handleHeroClick}
-                handleHeroBan={handleHeroBan}
-                grayscale={searchQuery ? !isHeroMatch(hero) : false}
-                highlight={searchQuery ? isHeroMatch(hero) : false}
-                glowPurple={editHeroPoolMode && heroPool.includes(hero.HeroId)}
-              />
-            );
-          })}
-        </motion.div>
-      </div>
-    );
-  };
-
-  return (
-    // === Main App Container ===
-    <div
-      className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-full overflow-hidden flex flex-col transition-shadow duration-300
-    ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
-    >
-      {/* === Search Input (invisible, global key listener) === */}
-      <input
-        type="text"
-        className="opacity-0 absolute"
-        autoFocus
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        ref={searchInputRef}
-      />
-      {/* Drafting Panel with Title */}
-      <DraftPanel
-        selectedHeroes={selectedHeroes}
-        selectedTeam={selectedTeam}
-        handleTeamSwitch={handleTeamSwitch}
-        canSwitchTeam={canSwitchTeam}
-        teamSwitchKey={TEAM_SWITCH_KEY}
-        sideButtonRunaway={tutorial?.sideButtonRunaway ?? false}
-        openDraftOverview={openDraftOverview}
-        draftOverviewKey={DRAFT_OVERVIEW_KEY}
-        showHeroInspector={showHeroInspector}
-        toggleHeroInspector={toggleHeroInspector}
-        heroInspectorKey={HERO_INSPECTOR_KEY}
-        inspectorButtonRef={inspectorButtonRef}
-        handleDrop={handleDrop}
-        handleHeroDeselect={handleHeroDeselect}
-        enemyRolePredictions={enemyRolePredictions}
-        showToolTip={showToolTip}
-        setShowGuide={setShowGuide}
-        infoButtonIcon={infoButtonIcon}
-        buttonPulse={buttonPulse}
-        setButtonPulse={setButtonPulse}
-        editHeroPoolMode={editHeroPoolMode}
-        onTogglePoolEdit={togglePoolEdit}
-        handleClear={handleClear}
-        handleClearBans={handleClearBans}
-        bannedHeroes={bannedHeroes}
-        handleBanRemove={handleBanRemove}
-        gridMode={gridMode}
-        setGridMode={setGridMode}
-        requestTutorialAction={requestTutorialAction}
-      />
-
-      {/* Portals live outside the hidden workspace; suspend them explicitly. */}
-      {active && showDraftOverview && (
-        <DraftOverview
-          selectedHeroes={selectedHeroes}
-          matchupIndex={matchupIndex}
-          heroes={heroes}
-          onClose={closeDraftOverview}
-          shortcutKey={DRAFT_OVERVIEW_KEY}
-        />
-      )}
-
-      {active && <AnimatePresence>
-        {showHeroInspector && (
-          <HeroInspector
-            key="hero-inspector"
-            inspection={heroInspection}
-            selectedTeam={selectedTeam}
-            onPick={handleDrop}
-            onClose={closeHeroInspector}
-            shortcutKey={HERO_INSPECTOR_KEY}
-            initialPosition={inspectorPosition}
-            onPositionChange={setInspectorPosition}
-            triggerRef={inspectorButtonRef}
-          />
-        )}
-      </AnimatePresence>}
-
-      {/* Main Hero Grid Area */}
-      <div
-        className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_clamp(17rem,22vw,22rem)] gap-ui-md overflow-hidden"
-      >
-        <div
-          ref={containerRef}
-          data-tutorial-target="hero-grid"
-          className="relative col-start-1 row-start-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pb-16"
-        >
-          {searchQuery && containerRect && (
-            <div
-              className="fixed pointer-events-none z-50"
-              style={{
-                left: containerRect.left + containerRect.width / 2,
-                top: containerRect.top + containerRect.height / 2,
-                transform: "translate(-50%, -50%)",
-              }}
-            >
-              <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
-                {searchQuery}
-              </span>
+                        return (
+                            <DraggableHero
+                                key={hero.HeroId}
+                                hero={hero}
+                                isPicked={isPicked}
+                                handleHeroClick={handleHeroClick}
+                                handleHeroBan={handleHeroBan}
+                                grayscale={searchQuery ? !isHeroMatch(hero) : false}
+                                highlight={searchQuery ? isHeroMatch(hero) : false}
+                                glowPurple={editHeroPoolMode && heroPool.includes(hero.HeroId)}
+                            />
+                        );
+                    })}
+                </motion.div>
             </div>
-          )}
-          <AnimatePresence mode="wait">
-            {gridMode === "default" ? (
-              <motion.div
-                key="default-layout"
-                layout="position"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="flex gap-4">
-                  {["str", "agi"].map((attr) => renderAttributeColumn(attr))}
-                </div>
-                <div className="flex gap-4 mt-4">
-                  {["int", "all"].map((attr) => renderAttributeColumn(attr))}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="row-layout"
-                layout="position"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="flex gap-4"
-              >
-                {["str", "agi", "int", "all"].map((attr) => renderAttributeColumn(attr))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        );
+    };
 
-        {/* Share the hero column's grid cell so cards scroll behind the glass. */}
-        <footer className="ui-footer col-start-1 row-start-1 self-end">
-          {!isPractice && <ReportIssueButton />}
-        </footer>
-
-        {/* === Sidebar Panel (suggestions / full draft analysis) === */}
-        <Sidebar
-          onSettingsSaved={matchFeedback.onSettingsSaved}
-          matchFeedback={matchFeedback}
-          feedbackHeroes={heroes}
-          active={active}
-          isPractice={isPractice}
-          onStartTutorial={onStartTutorial}
-          tutorialLoading={tutorialLoading}
-          tutorialError={tutorialError}
-          suggestedHeroes={suggestedHeroes}
-          poolSuggestions={poolSuggestions}
-          globalSuggestions={globalSuggestions}
-          selectedHeroes={selectedHeroes}
-          hoveredHero={hoveredHero}
-          setHoveredHero={setHoveredHero}
-          hoveredSuggestedHero={hoveredSuggestedHero}
-          setHoveredSuggestedHero={setHoveredSuggestedHero}
-          matchupIndex={matchupIndex}
-          getSynergyWith={getSynergyWith}
-          getCounterVs={getCounterVs}
-          fullDraftStats={fullDraftStats}
-          filterByHeroPool={filterByHeroPool}
-          setFilterByHeroPool={setFilterByHeroPool}
-          heroPool={heroPool}
-          roleFilter={roleFilter}
-          setRoleFilter={setRoleFilter}
-          showPoolBreakdown={showPoolBreakdown}
-          setShowPoolBreakdown={setShowPoolBreakdown}
-          fullPoolSynergies={fullPoolSynergies}
-          showGuide={showGuide}
-          setShowGuide={setShowGuide}
-          updateSynergySuggestions={updateSynergySuggestions}
-          showWinrateInfo={showWinrateInfo}
-          setShowWinrateInfo={setShowWinrateInfo}
-          draftWinProbability={draftWinProbability}
-          getWinProbability={getWinProbability}
-          hasPicks={hasPicks}
-          bannedHeroes={bannedHeroes}
-          infoButtonIcon={infoButtonIcon}
-          questionMarkIcon={questionMarkIcon}
-          patch={datasetManifest?.patch}
-          lastUpdated={
-            datasetManifest?.generatedAt
-              ? new Date(datasetManifest.generatedAt).toLocaleDateString()
-              : null
-          }
-          requestTutorialAction={requestTutorialAction}
-          comparisonLabel={tutorial?.comparisonLabel}
-        />
-      </div>{/* end hero+sidebar split */}
-      {/* === Status Toast (Bottom left) === */}
-      {statusMessage && (
+    return (
+    // === Main App Container ===
         <div
-          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
+            className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-full overflow-hidden flex flex-col transition-shadow duration-300
+    ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
+        >
+            {/* === Search Input (invisible, global key listener) === */}
+            <input
+                type="text"
+                className="opacity-0 absolute"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                ref={searchInputRef}
+            />
+            {/* Drafting Panel with Title */}
+            <DraftPanel
+                selectedHeroes={selectedHeroes}
+                selectedTeam={selectedTeam}
+                handleTeamSwitch={handleTeamSwitch}
+                canSwitchTeam={canSwitchTeam}
+                teamSwitchKey={TEAM_SWITCH_KEY}
+                sideButtonRunaway={tutorial?.sideButtonRunaway ?? false}
+                openDraftOverview={openDraftOverview}
+                draftOverviewKey={DRAFT_OVERVIEW_KEY}
+                showHeroInspector={showHeroInspector}
+                toggleHeroInspector={toggleHeroInspector}
+                heroInspectorKey={HERO_INSPECTOR_KEY}
+                inspectorButtonRef={inspectorButtonRef}
+                handleDrop={handleDrop}
+                handleHeroDeselect={handleHeroDeselect}
+                enemyRolePredictions={enemyRolePredictions}
+                setShowGuide={setShowGuide}
+                infoButtonIcon={infoButtonIcon}
+                buttonPulse={buttonPulse}
+                setButtonPulse={setButtonPulse}
+                editHeroPoolMode={editHeroPoolMode}
+                onTogglePoolEdit={togglePoolEdit}
+                handleClear={handleClear}
+                handleClearBans={handleClearBans}
+                bannedHeroes={bannedHeroes}
+                handleBanRemove={handleBanRemove}
+                gridMode={gridMode}
+                setGridMode={setGridMode}
+                requestTutorialAction={requestTutorialAction}
+            />
+
+            {/* Portals live outside the hidden workspace; suspend them explicitly. */}
+            {active && showDraftOverview && (
+                <DraftOverview
+                    selectedHeroes={selectedHeroes}
+                    matchupIndex={matchupIndex}
+                    heroes={heroes}
+                    onClose={closeDraftOverview}
+                    shortcutKey={DRAFT_OVERVIEW_KEY}
+                />
+            )}
+
+            {active && <AnimatePresence>
+                {showHeroInspector && (
+                    <HeroInspector
+                        key="hero-inspector"
+                        inspection={heroInspection}
+                        selectedTeam={selectedTeam}
+                        onPick={handleDrop}
+                        onClose={closeHeroInspector}
+                        shortcutKey={HERO_INSPECTOR_KEY}
+                        initialPosition={inspectorPosition}
+                        onPositionChange={setInspectorPosition}
+                        triggerRef={inspectorButtonRef}
+                    />
+                )}
+            </AnimatePresence>}
+
+            {/* Main Hero Grid Area */}
+            <div
+                className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_clamp(17rem,22vw,22rem)] gap-ui-md overflow-hidden"
+            >
+                <div
+                    ref={containerRef}
+                    data-tutorial-target="hero-grid"
+                    className="relative col-start-1 row-start-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pb-16"
+                >
+                    {searchQuery && containerRect && (
+                        <div
+                            className="fixed pointer-events-none z-50"
+                            style={{
+                                left: containerRect.left + containerRect.width / 2,
+                                top: containerRect.top + containerRect.height / 2,
+                                transform: "translate(-50%, -50%)",
+                            }}
+                        >
+                            <span className="font-serif text-[100px] font-bold uppercase text-white opacity-50 select-none tracking-widest">
+                                {searchQuery}
+                            </span>
+                        </div>
+                    )}
+                    <AnimatePresence mode="wait">
+                        {gridMode === "default" ? (
+                            <motion.div
+                                key="default-layout"
+                                layout="position"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className="flex gap-4">
+                                    {["str", "agi"].map((attr) => renderAttributeColumn(attr))}
+                                </div>
+                                <div className="flex gap-4 mt-4">
+                                    {["int", "all"].map((attr) => renderAttributeColumn(attr))}
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="row-layout"
+                                layout="position"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex gap-4"
+                            >
+                                {["str", "agi", "int", "all"].map((attr) => renderAttributeColumn(attr))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Share the hero column's grid cell so cards scroll behind the glass. */}
+                <footer className="ui-footer col-start-1 row-start-1 self-end">
+                    {!isPractice && <ReportIssueButton />}
+                </footer>
+
+                {/* === Sidebar Panel (suggestions / full draft analysis) === */}
+                <Sidebar
+                    onSettingsSaved={matchFeedback.onSettingsSaved}
+                    matchFeedback={matchFeedback}
+                    feedbackHeroes={heroes}
+                    active={active}
+                    isPractice={isPractice}
+                    onStartTutorial={onStartTutorial}
+                    tutorialLoading={tutorialLoading}
+                    tutorialError={tutorialError}
+                    suggestedHeroes={suggestedHeroes}
+                    poolSuggestions={poolSuggestions}
+                    globalSuggestions={globalSuggestions}
+                    selectedHeroes={selectedHeroes}
+                    hoveredHero={hoveredHero}
+                    setHoveredHero={setHoveredHero}
+                    hoveredSuggestedHero={hoveredSuggestedHero}
+                    setHoveredSuggestedHero={setHoveredSuggestedHero}
+                    matchupIndex={matchupIndex}
+                    getSynergyWith={getSynergyWith}
+                    getCounterVs={getCounterVs}
+                    fullDraftStats={fullDraftStats}
+                    filterByHeroPool={filterByHeroPool}
+                    setFilterByHeroPool={setFilterByHeroPool}
+                    heroPool={heroPool}
+                    roleFilter={roleFilter}
+                    setRoleFilter={setRoleFilter}
+                    showPoolBreakdown={showPoolBreakdown}
+                    setShowPoolBreakdown={setShowPoolBreakdown}
+                    fullPoolSynergies={fullPoolSynergies}
+                    showGuide={showGuide}
+                    setShowGuide={setShowGuide}
+                    updateSynergySuggestions={updateSynergySuggestions}
+                    showWinrateInfo={showWinrateInfo}
+                    setShowWinrateInfo={setShowWinrateInfo}
+                    draftWinProbability={draftWinProbability}
+                    getWinProbability={getWinProbability}
+                    hasPicks={hasPicks}
+                    bannedHeroes={bannedHeroes}
+                    infoButtonIcon={infoButtonIcon}
+                    questionMarkIcon={questionMarkIcon}
+                    patch={datasetManifest?.patch}
+                    lastUpdated={
+                        datasetManifest?.generatedAt
+                            ? new Date(datasetManifest.generatedAt).toLocaleDateString()
+                            : null
+                    }
+                    requestTutorialAction={requestTutorialAction}
+                    comparisonLabel={tutorial?.comparisonLabel}
+                />
+            </div>{/* end hero+sidebar split */}
+            {/* === Status Toast (Bottom left) === */}
+            {statusMessage && (
+                <div
+                    className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-lg text-sm font-semibold z-50
           transition-opacity duration-400 ease-in-out
           ${showStatus ? "opacity-100" : "opacity-0"}
           ${statusMessage.type === "added" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
-        >
-          {statusMessage.text}
+                >
+                    {statusMessage.text}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }

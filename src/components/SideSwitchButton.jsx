@@ -163,11 +163,11 @@ export default function SideSwitchButton({
 
     const className = `inline-grid place-items-center whitespace-nowrap px-ui-sm py-ui-xs font-serif rounded-full text-white text-sm font-semibold text-center leading-tight 2xl:leading-5 transition-colors
     ${selectedTeam === "ally"
-            ? "bg-green-600 hover:bg-green-700"
-            : "bg-red-600 hover:bg-red-700"}
+        ? "bg-green-600 hover:bg-green-700"
+        : "bg-red-600 hover:bg-red-700"}
     ${!canSwitchTeam
-            ? "bg-gray-500 cursor-not-allowed opacity-50"
-            : ""}`;
+        ? "bg-gray-500 cursor-not-allowed opacity-50"
+        : ""}`;
 
     const label = (
         <>

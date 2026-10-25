@@ -71,31 +71,31 @@ async function updateHero() {
 }
 
 async function assignAliases() {
-  while (index < heroList.length) {
-    const hero = heroList[index];
-    console.log(`\nHero ${index + 1}/${heroList.length}: ${hero.name} (ID: ${hero.HeroId})`);
+    while (index < heroList.length) {
+        const hero = heroList[index];
+        console.log(`\nHero ${index + 1}/${heroList.length}: ${hero.name} (ID: ${hero.HeroId})`);
 
-    try {
-      const aliasInput = await ask("  Aliases (comma-separated or leave blank): ");
-      const aliases = parseAliases(aliasInput);
-      hero.aliases = aliases.length > 0 ? aliases : undefined;
+        try {
+            const aliasInput = await ask("  Aliases (comma-separated or leave blank): ");
+            const aliases = parseAliases(aliasInput);
+            hero.aliases = aliases.length > 0 ? aliases : undefined;
 
-      index++;
-    } catch (err) {
-      console.error("Invalid input:", err.message);
+            index++;
+        } catch (err) {
+            console.error("Invalid input:", err.message);
+        }
     }
-  }
 
-  fs.writeFileSync(HEROES_PATH, JSON.stringify(heroList, null, 2));
-  console.log(`\n✅ All alias data written to ${HEROES_PATH}`);
-  rl.close();
+    fs.writeFileSync(HEROES_PATH, JSON.stringify(heroList, null, 2));
+    console.log(`\n✅ All alias data written to ${HEROES_PATH}`);
+    rl.close();
 }
 
 (async () => {
-  const mode = await ask("Choose mode: [f]ull entry or [u]pdate existing hero? ");
-  if (mode.toLowerCase() === 'u') {
-    await updateHero();
-  } else {
-    await assignAliases();
-  }
+    const mode = await ask("Choose mode: [f]ull entry or [u]pdate existing hero? ");
+    if (mode.toLowerCase() === 'u') {
+        await updateHero();
+    } else {
+        await assignAliases();
+    }
 })();

@@ -18,7 +18,6 @@ function DraftPanel({
     handleDrop,
     handleHeroDeselect,
     enemyRolePredictions,
-    showToolTip,
     setShowGuide,
     infoButtonIcon,
     buttonPulse,
@@ -192,14 +191,14 @@ function DraftPanel({
                                 className={`absolute inset-y-0 left-0 w-1/2 rounded-full border border-accent/50 bg-accent/20 transition-transform duration-200 motion-reduce:transition-none ${gridMode === "row"
                                     ? "translate-x-full"
                                     : "translate-x-0"
-                                    }`}
+                                }`}
                             />
 
                             <span
                                 className={`relative z-10 flex items-center justify-center ${gridMode === "default"
                                     ? "text-accent"
                                     : "text-ink-muted"
-                                    }`}
+                                }`}
                             >
                                 <GridLayoutIcon />
                             </span>
@@ -208,7 +207,7 @@ function DraftPanel({
                                 className={`relative z-10 flex items-center justify-center ${gridMode === "row"
                                     ? "text-accent"
                                     : "text-ink-muted"
-                                    }`}
+                                }`}
                             >
                                 <RowLayoutIcon />
                             </span>
@@ -231,7 +230,7 @@ function DraftPanel({
                                 min-w-0 max-w-[34rem] grid-cols-8 gap-ui-xs
                                 justify-self-center 2xl:max-w-[68rem]
                                 2xl:grid-cols-[repeat(16,minmax(0,1fr))]"
-                    data-tutorial-target="bans">
+                data-tutorial-target="bans">
                     {[...Array(16)].map((_, i) => (
                         <div
                             key={i}

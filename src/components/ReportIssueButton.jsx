@@ -39,7 +39,7 @@ function ReportField({
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? `${id}-error` : undefined}
                 className={`${FIELD_CLASS} ${error ? "border-danger" : "border-line"
-                    } ${multiline ? "min-h-24 resize-y" : ""}`}
+                } ${multiline ? "min-h-24 resize-y" : ""}`}
             />
 
             {error && (

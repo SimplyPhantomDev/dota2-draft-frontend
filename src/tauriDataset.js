@@ -83,7 +83,7 @@ async function validateDataset(data) {
             for (const pair of pairs) {
                 requireValid(pair && ids.has(pair.heroId2) && pair.heroId2 !== id &&
                     !seen.has(pair.heroId2) && Number.isFinite(pair.synergy),
-                    "Invalid or duplicate matrix pair");
+                "Invalid or duplicate matrix pair");
                 seen.add(pair.heroId2);
             }
         }

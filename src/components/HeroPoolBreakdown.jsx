@@ -89,7 +89,7 @@ export default function HeroPoolBreakdown({
             className={`max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink shadow-panel open:flex open:flex-col ${floating
                 ? "fixed z-[70] m-0 w-[21rem]"
                 : "m-auto w-[28rem] backdrop:bg-black/60"
-                }`}
+            }`}
             onCancel={(event) => {
                 event.preventDefault();
                 closeDialog();
@@ -163,7 +163,7 @@ export default function HeroPoolBreakdown({
                                             : score < 0
                                                 ? "text-danger"
                                                 : "text-ink-muted"
-                                            }`}
+                                        }`}
                                     >
                                         {hero.totalScore}
                                     </span>

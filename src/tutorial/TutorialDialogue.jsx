@@ -119,15 +119,15 @@ export default function TutorialDialogue({
                     className={`grid items-start gap-ui-md ${compact
                         ? "grid-cols-1"
                         : "grid-cols-[auto_minmax(0,1fr)] sm:gap-ui-xl"
-                        }`}
+                    }`}
                 >
                     <div
                         className={`flex flex-col items-center gap-ui-sm ${compact ? "mx-auto w-16" : "w-20 sm:w-32"
-                            }`}
+                        }`}
                     >
                         <div
                             className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-accent/40 bg-surface-raised ${compact ? "h-16 w-16" : "h-20 w-20 sm:h-32 sm:w-32"
-                                }`}
+                            }`}
                             data-tutorial-narrator
                         >
                             {portraitSrc ? (
@@ -159,8 +159,8 @@ export default function TutorialDialogue({
                     <div
                         className={`grid min-w-0 font-serif leading-relaxed
               ${compact
-                                ? "min-h-[3.5rem] text-[clamp(1rem,1.4vw,1.25rem)]"
-                                : "min-h-[9rem] text-[clamp(1.25rem,2.5vw,1.875rem)]"}`}
+            ? "min-h-[3.5rem] text-[clamp(1rem,1.4vw,1.25rem)]"
+            : "min-h-[9rem] text-[clamp(1.25rem,2.5vw,1.875rem)]"}`}
                     >
                         {/* Reserve the tallest line to keep the frame steady. */}
                         {reserveLines.map(item => (
@@ -170,7 +170,7 @@ export default function TutorialDialogue({
                                 className={`invisible col-start-1 row-start-1 ${item.appearance === "fine-print"
                                     ? "text-xs leading-relaxed"
                                     : ""
-                                    }`}
+                                }`}
                             >
                                 {item.text}
                             </p>
@@ -181,7 +181,7 @@ export default function TutorialDialogue({
                             className={`col-start-1 row-start-1 ${line.appearance === "fine-print"
                                 ? "text-xs leading-relaxed text-ink-muted"
                                 : ""
-                                }`}
+                            }`}
                         >
                             <span
                                 className="sr-only"
@@ -214,7 +214,7 @@ export default function TutorialDialogue({
                 className={`grid shrink-0 items-center gap-ui-sm border-t border-line ${compact
                     ? "grid-cols-[auto_1fr] p-ui-sm"
                     : "grid-cols-2 p-ui-md sm:grid-cols-3"
-                    }`}
+                }`}
             >
                 <button
                     type="button"
@@ -228,14 +228,14 @@ export default function TutorialDialogue({
                     className={`text-center text-xs text-ink-muted ${compact
                         ? "col-span-2 col-start-1 row-start-2"
                         : "col-span-2 col-start-1 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1"
-                        }`}
+                    }`}
                 >
                     {hint}
                 </p>
 
                 <div
                     className={`row-start-1 flex justify-self-end gap-ui-sm ${compact ? "col-start-2" : "col-start-2 sm:col-start-3"
-                        }`}
+                    }`}
                 >
                     <button
                         type="button"

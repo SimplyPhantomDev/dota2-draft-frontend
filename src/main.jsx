@@ -9,22 +9,22 @@ const rootEl = document.getElementById("root");
 const root = createRoot(rootEl);
 
 (async () => {
-  try {
-    await initSynergyMatrixUrl();
-  } catch (e) {
-    console.warn("[dataset] init failed, using bundled JSON", e);
-  }
+    try {
+        await initSynergyMatrixUrl();
+    } catch (e) {
+        console.warn("[dataset] init failed, using bundled JSON", e);
+    }
 
-  // Best-effort: app version (works in Tauri, will fail in plain web)
-  try {
-    window.__APP_VERSION__ = await getVersion();
-  } catch {
+    // Best-effort: app version (works in Tauri, will fail in plain web)
+    try {
+        window.__APP_VERSION__ = await getVersion();
+    } catch {
     // ignore (web dev mode etc.)
-  }
+    }
 
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  );
+    root.render(
+        <StrictMode>
+            <App />
+        </StrictMode>
+    );
 })();

@@ -516,7 +516,7 @@ function Sidebar({
                                                                     : score < 0
                                                                         ? 'text-danger'
                                                                         : 'text-ink-muted'
-                                                                    }`}
+                                                                }`}
                                                             >
                                                                 {score > 0 ? '+' : ''}{score.toFixed(2)}
                                                             </span>
