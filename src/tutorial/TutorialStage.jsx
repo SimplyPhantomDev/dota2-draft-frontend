@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion as Motion, useReducedMotion } from "framer-motion";
 import { getTutorialStageLayout } from "./tutorialStageLayout";
+import TutorialRecommendationSnapshot from "./TutorialRecommendationSnapshot";
 
 export default function TutorialStage({
   workspaceRef,
@@ -9,11 +10,14 @@ export default function TutorialStage({
   placement = "over-sidebar",
   initialFrame,
   showDialogue,
+  comparisonRows = null,
+  onReserveSpace,
   children,
 }) {
   const maskId = `tutorial-mask-${useId().replace(/:/g, "")}`;
   const reduceMotion = useReducedMotion();
   const [layout, setLayout] = useState(null);
+  const comparing = comparisonRows !== null;
 
   useLayoutEffect(() => {
     const workspace = workspaceRef.current;
@@ -38,7 +42,10 @@ export default function TutorialStage({
         sidebarRect: sidebar?.getBoundingClientRect(),
         targetRect: element?.getBoundingClientRect(),
         placement,
+        comparing,
       });
+
+      onReserveSpace?.(next.reserveBottom);
 
       setLayout(previous => {
         // Fade a dismissed spotlight in place instead of moving it to (0, 0).
@@ -66,17 +73,17 @@ export default function TutorialStage({
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [workspaceRef, target, placement]);
+  }, [workspaceRef, target, placement, comparing, onReserveSpace]);
 
   if (!layout) return null;
 
   const transition = reduceMotion
     ? { duration: 0 }
     : {
-        type: "tween",
-        duration: 0.4,
-        ease: [0.22, 1, 0.36, 1],
-      };
+      type: "tween",
+      duration: 0.4,
+      ease: [0.22, 1, 0.36, 1],
+    };
 
   const spotlight = {
     ...layout.hole,
@@ -130,9 +137,21 @@ export default function TutorialStage({
         />
       </svg>
 
+      {comparing && layout.comparisonFrame && (
+        <Motion.aside
+          aria-labelledby="tutorial-before-title"
+          className="ui-panel pointer-events-auto absolute flex flex-col overflow-hidden p-ui-md text-ink 2xl:p-ui-lg"
+          initial={{ opacity: 0 }}
+          animate={{ ...layout.comparisonFrame, opacity: 1 }}
+          transition={transition}
+        >
+          <TutorialRecommendationSnapshot heroes={comparisonRows} />
+        </Motion.aside>
+      )}
+
       {showDialogue && (
         <Motion.section
-          aria-labelledby="first-pick-title"
+          aria-labelledby="tutorial-lesson-title"
           className="ui-panel pointer-events-auto absolute flex flex-col overflow-hidden text-ink"
           initial={reduceMotion || !initialFrame ? false : initialFrame}
           animate={layout.frame}

@@ -1,6 +1,7 @@
 const MARGIN = 8;
 const SPOTLIGHT_PADDING = 8;
 const PANEL_GAP = 24;
+const MIN_DIALOGUE_WIDTH = 240;
 
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 
@@ -12,6 +13,7 @@ export function getTutorialStageLayout({
   sidebarRect,
   targetRect,
   placement,
+  comparing = false,
 }) {
   const availableWidth = Math.max(0, viewportWidth - MARGIN * 2);
   const availableHeight = Math.max(0, viewportHeight - MARGIN * 2);
@@ -31,13 +33,60 @@ export function getTutorialStageLayout({
     viewportHeight - MARGIN - height
   );
 
-  if (placement === "beside-sidebar") {
+  let comparisonFrame = null;
+  let reserveBottom = 0;
+  let highlightedRect = targetRect;
+
+  if (comparing) {
+    const comparisonWidth = Math.min(
+      anchor.width,
+      Math.max(0, anchor.left - PANEL_GAP - MARGIN)
+    );
+
+    comparisonFrame = {
+      left: anchor.left - PANEL_GAP - comparisonWidth,
+      top: anchor.top,
+      width: comparisonWidth,
+      height: anchor.height,
+    };
+
+    const roomForDialogue = comparisonFrame.left - PANEL_GAP - MARGIN;
+
+    if (roomForDialogue >= Math.min(width, MIN_DIALOGUE_WIDTH)) {
+      width = Math.min(width, roomForDialogue);
+      left = comparisonFrame.left - PANEL_GAP - width;
+    } else {
+      // Reserve real workspace space so the docked dialogue covers neither list.
+      reserveBottom = Math.min(280, viewportHeight * 0.4);
+      width = Math.min(560, availableWidth);
+      height = Math.max(0, reserveBottom - MARGIN);
+      left = (viewportWidth - width) / 2;
+      top = viewportHeight - MARGIN - height;
+    }
+
+    if (targetRect) {
+      const highlightLeft = Math.min(targetRect.left, comparisonFrame.left);
+      const highlightTop = Math.min(targetRect.top, comparisonFrame.top);
+
+      highlightedRect = {
+        left: highlightLeft,
+        top: highlightTop,
+        width: Math.max(
+          targetRect.left + targetRect.width,
+          comparisonFrame.left + comparisonFrame.width
+        ) - highlightLeft,
+        height: Math.max(
+          targetRect.top + targetRect.height,
+          comparisonFrame.top + comparisonFrame.height
+        ) - highlightTop,
+      };
+    }
+  } else if (placement === "beside-sidebar") {
     const besideLeft = anchor.left - width - PANEL_GAP;
 
     if (besideLeft >= MARGIN) {
       left = besideLeft;
     } else {
-      // A very narrow viewport has no room beside the sidebar.
       width = Math.min(560, availableWidth);
       height = Math.min(280, availableHeight);
       left = (viewportWidth - width) / 2;
@@ -45,29 +94,31 @@ export function getTutorialStageLayout({
     }
   }
 
-  const holeLeft = targetRect
-    ? Math.max(2, targetRect.left - SPOTLIGHT_PADDING)
+  const holeLeft = highlightedRect
+    ? Math.max(2, highlightedRect.left - SPOTLIGHT_PADDING)
     : 0;
-  const holeTop = targetRect
-    ? Math.max(2, targetRect.top - SPOTLIGHT_PADDING)
+  const holeTop = highlightedRect
+    ? Math.max(2, highlightedRect.top - SPOTLIGHT_PADDING)
     : 0;
-  const holeRight = targetRect
+  const holeRight = highlightedRect
     ? Math.min(
-        viewportWidth - 2,
-        targetRect.left + targetRect.width + SPOTLIGHT_PADDING
-      )
+      viewportWidth - 2,
+      highlightedRect.left + highlightedRect.width + SPOTLIGHT_PADDING
+    )
     : 0;
-  const holeBottom = targetRect
+  const holeBottom = highlightedRect
     ? Math.min(
-        viewportHeight - 2,
-        targetRect.top + targetRect.height + SPOTLIGHT_PADDING
-      )
+      viewportHeight - 2,
+      highlightedRect.top + highlightedRect.height + SPOTLIGHT_PADDING
+    )
     : 0;
 
   return {
     viewportWidth,
     viewportHeight,
     frame: { left, top, width, height },
+    comparisonFrame,
+    reserveBottom,
     hole: {
       attrX: holeLeft,
       attrY: holeTop,
@@ -75,6 +126,6 @@ export function getTutorialStageLayout({
       height: Math.max(0, holeBottom - holeTop),
       rx: 20,
     },
-    hasSpotlight: Boolean(targetRect),
+    hasSpotlight: Boolean(highlightedRect),
   };
 }

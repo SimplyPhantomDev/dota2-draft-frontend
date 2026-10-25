@@ -8,7 +8,7 @@ import MatchResultsUpload from "../matchFeedback/MatchResultsUpload";
 const FLOATING_POOL_QUERY =
     "(min-width: 1800px) and (min-height: 720px)";
 
-function RecommendationRow({
+export function RecommendationRow({
     hero,
     fromPool = false,
     onMouseEnter,
@@ -105,6 +105,7 @@ function Sidebar({
     patch,
     lastUpdated,
     requestTutorialAction = null,
+    comparisonLabel = null,
 }) {
     const sidebarScrollRef = useRef(null);
     const sidebarPanelRef = useRef(null);
@@ -171,6 +172,11 @@ function Sidebar({
             data-tutorial-target="recommendations"
             className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg"
         >
+            {comparisonLabel && (
+                <h2 className="mb-ui-sm shrink-0 text-center text-sm font-semibold">
+                    {comparisonLabel}
+                </h2>
+            )}
             <div
                 ref={sidebarScrollRef}
                 className="min-h-0 flex-1 overflow-y-auto space-y-ui-sm"

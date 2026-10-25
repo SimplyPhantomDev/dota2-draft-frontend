@@ -224,10 +224,10 @@ export default function HeroList({
     [beforeTutorialAction]
   );
 
-  // Observe committed state; callbacks inside state updaters would be unsafe.
+  // Report the committed draft and picking side so tutorial cues follow the UI.
   useEffect(() => {
-    reportTutorialDraft?.(selectedHeroes);
-  }, [selectedHeroes, reportTutorialDraft]);
+    reportTutorialDraft?.(selectedHeroes, selectedTeam);
+  }, [selectedHeroes, selectedTeam, reportTutorialDraft]);
 
   // Skipping prepares the draft that the following lesson expects.
   useEffect(() => {
@@ -1091,6 +1091,7 @@ export default function HeroList({
               : null
           }
           requestTutorialAction={requestTutorialAction}
+          comparisonLabel={tutorial?.comparisonLabel}
         />
       </div>{/* end hero+sidebar split */}
       {/* === Status Toast (Bottom left) === */}

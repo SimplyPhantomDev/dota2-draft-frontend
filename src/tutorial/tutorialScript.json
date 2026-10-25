@@ -82,10 +82,60 @@
             }
         ]
     },
+    "pickingSide": {
+        "title": "Picking for either side",
+        "heroId": 63,
+        "successLineId": "picking-side-success",
+        "lines": [
+            {
+                "id": "picking-side-intro",
+                "text": "Right. Now that we've gotten ourselves the best of the best supports selected, how about we choose some heroes to the enemy team as well."
+            },
+            {
+                "id": "picking-side-button",
+                "highlight": "picking-side",
+                "text": "As you previously saw, this label here is actually a 'change picking side' button that you can use to change the team you are picking for."
+            },
+            {
+                "id": "picking-side-weaver",
+                "highlightByPickingSide": {
+                    "ally": "picking-side",
+                    "enemy": "hero-grid"
+                },
+                "waitForPick": true,
+                "hint": "Go on, change the picking side and click on Weaver.",
+                "text": "Now, let's say your opponents go ahead and pick Weaver position 4 as a response to your Dazzle. Go on, change the picking side and click on Weaver."
+            },
+            {
+                "id": "picking-side-success",
+                "placement": "beside-comparison",
+                "highlight": "recommendations",
+                "compareRecommendations": true,
+                "text": "Nicely done! As you can see here some heroes thought twice once the Weaver showed his face."
+            },
+            {
+                "id": "picking-side-lycan",
+                "placement": "beside-comparison",
+                "highlight": "recommendations",
+                "compareRecommendations": true,
+                "text": "It would seem that wolves indeed do need armor, contrary to what Lycan claims."
+            },
+            {
+                "id": "picking-side-shortcut",
+                "placement": "beside-sidebar",
+                "text": "'The user can also press F2 to switch picking side quickly'? What does this even mean?"
+            },
+            {
+                "id": "picking-side-intern",
+                "placement": "beside-sidebar",
+                "text": "Who wrote this in here. Must've been the summer intern when I wasn't looking..."
+            }
+        ]
+    },
     "interruptions": [
         {
             "id": "interrupt-impatient",
-            "text": "Hey! If you are that impatient you might as well just exit the whole thing."
+            "text": "Hey! If you are that impatient you might as well just quit the whole thing."
         },
         {
             "id": "interrupt-walk-first",

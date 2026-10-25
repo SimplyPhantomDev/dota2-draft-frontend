@@ -4,28 +4,69 @@ import TutorialWelcome from "./TutorialWelcome";
 import TutorialDialogue from "./TutorialDialogue";
 import TutorialStage from "./TutorialStage";
 import tutorialScript from "./tutorialScript.json";
+import { calculateSynergyPicks } from "../utils/synergy";
 
-const LESSON = tutorialScript.firstPick;
-const SUCCESS_PAGE = LESSON.lines.findIndex(
-  line => line.id === LESSON.successLineId
-);
+const LESSONS = {
+  "first-pick": {
+    script: tutorialScript.firstPick,
+    team: "ally",
+    nextPhase: "picking-side",
+    endDraft: {
+      ally: [tutorialScript.firstPick.heroId],
+      enemy: [],
+      bans: [],
+      team: "ally",
+    },
+  },
+  "picking-side": {
+    script: tutorialScript.pickingSide,
+    team: "enemy",
+    allowTeamSwitch: true,
+    nextPhase: "practice",
+    endDraft: {
+      ally: [tutorialScript.firstPick.heroId],
+      enemy: [tutorialScript.pickingSide.heroId],
+      bans: [],
+      team: "enemy",
+    },
+  },
+};
 
 export default function TutorialSession({ dataset, onExit }) {
   const [phase, setPhase] = useState("welcome");
   const [page, setPage] = useState(0);
   const [picked, setPicked] = useState(false);
+  const [pickingSide, setPickingSide] = useState("ally");
   const [feedback, setFeedback] = useState("");
   const [practiceSeed, setPracticeSeed] = useState(null);
   const [completedLineId, setCompletedLineId] = useState(null);
   const [initialFrame, setInitialFrame] = useState(null);
+  const [beforeRecommendations, setBeforeRecommendations] = useState(null);
+  const [dialogueReserve, setDialogueReserve] = useState(0);
 
   const workspaceRef = useRef(null);
   const lastInterruptionRef = useRef(0);
-  const line = LESSON.lines[page];
 
-  const spotlight = phase === "first-pick"
+  const isLesson = Boolean(LESSONS[phase]);
+  const lesson = LESSONS[phase] ?? LESSONS["first-pick"];
+  const script = lesson.script;
+  const line = script.lines[page];
+  const successPage = script.lines.findIndex(
+    item => item.id === script.successLineId
+  );
+
+  const showComparison = isLesson
+    && picked
+    && line.compareRecommendations === true
+    && beforeRecommendations !== null;
+
+  const lineHighlight = line.highlightByPickingSide?.[pickingSide]
+    ?? line.highlight
+    ?? null;
+
+  const spotlight = isLesson
     && !(line.releaseHighlightOnComplete && completedLineId === line.id)
-    ? line.highlight ?? null
+    ? lineHighlight
     : null;
 
   const onLineComplete = useCallback(
@@ -34,20 +75,25 @@ export default function TutorialSession({ dataset, onExit }) {
   );
 
   const beforeAction = useCallback(action => {
-    if (phase !== "first-pick") return true;
+    if (!isLesson) return true;
 
-    // Accept Dazzle before the search explanation without requiring typing.
+    if (!picked && lesson.allowTeamSwitch && action.type === "team-switch") {
+      return true;
+    }
+
+    // The lesson accepts only a left-click pick of its hero for its team.
     if (
       !picked
       && action.type === "pick"
       && action.source === "click"
-      && action.heroId === LESSON.heroId
-      && action.team === "ally"
+      && action.heroId === script.heroId
+      && action.team === lesson.team
     ) {
       return true;
     }
 
     const now = Date.now();
+
     if (now - lastInterruptionRef.current >= 1500) {
       lastInterruptionRef.current = now;
       const replies = tutorialScript.interruptions;
@@ -55,51 +101,82 @@ export default function TutorialSession({ dataset, onExit }) {
     }
 
     return false;
-  }, [phase, picked]);
+  }, [isLesson, lesson, script, picked]);
 
-  const onDraftChange = useCallback(draft => {
-    if (phase !== "first-pick" || picked) return;
+  const onDraftChange = useCallback((draft, team) => {
+    setPickingSide(team);
 
-    if (draft.ally.some(hero => hero.HeroId === LESSON.heroId)) {
+    if (!isLesson || picked) return;
+
+    if (draft[lesson.team].some(hero => hero.HeroId === script.heroId)) {
+      if (phase === "picking-side") {
+        // Recreate the exact draft before Weaver using the shared scoring engine.
+        // This avoids capturing stale rows while the live sidebar recalculates.
+        const before = calculateSynergyPicks({
+          allyHeroIds: draft.ally.map(hero => hero.HeroId),
+          enemyHeroIds: draft.enemy
+            .filter(hero => hero.HeroId !== script.heroId)
+            .map(hero => hero.HeroId),
+          heroes: dataset.heroes,
+          matchupIndex: dataset.matchupIndex,
+        });
+
+        setBeforeRecommendations(before?.outPool.slice(0, 10) ?? []);
+      }
+
       setPicked(true);
       setFeedback("");
-      setPage(SUCCESS_PAGE);
+      setPage(successPage);
     }
-  }, [phase, picked]);
+  }, [isLesson, lesson, script, successPage, picked, phase, dataset]);
 
-  const tutorial = useMemo(() => phase === "first-pick" ? {
+  const tutorial = useMemo(() => isLesson ? {
     beforeAction,
     onDraftChange,
     highlight: spotlight,
-    targetHeroId: picked ? null : LESSON.heroId,
-  } : null, [phase, beforeAction, onDraftChange, spotlight, picked]);
+    comparisonLabel: showComparison ? "After" : null,
+    targetHeroId: picked ? null : script.heroId,
+  } : null, [
+    isLesson,
+    beforeAction,
+    onDraftChange,
+    spotlight,
+    picked,
+    script,
+    showComparison,
+  ]);
+
+  function finishLesson() {
+    setBeforeRecommendations(null);
+    setDialogueReserve(0);
+    setPage(0);
+    setPicked(false);
+    setFeedback("");
+    setCompletedLineId(null);
+    lastInterruptionRef.current = 0;
+    setPhase(lesson.nextPhase);
+  }
 
   function advanceLesson() {
     if (line.waitForPick && !picked) return;
 
     setFeedback("");
 
-    if (page < LESSON.lines.length - 1) setPage(page + 1);
-    else setPhase("practice");
+    if (page < script.lines.length - 1) setPage(page + 1);
+    else finishLesson();
   }
 
   function skipLesson() {
-    // Later lessons can rely on Dazzle being present when this lesson is skipped.
-    setPracticeSeed({
-      ally: [LESSON.heroId],
-      enemy: [],
-      bans: [],
-      team: "ally",
-    });
-    setPhase("practice");
-    setFeedback("");
+    // Preserve the exact draft expected by the following lesson.
+    setPracticeSeed(lesson.endDraft);
+    finishLesson();
   }
 
   return (
     <section
       className="flex h-full min-h-0 flex-col"
       onKeyDown={event => {
-        if (phase === "first-pick" && event.key === "Escape") {
+        if (isLesson && event.key === "Escape") {
           event.preventDefault();
           event.stopPropagation();
           onExit();
@@ -111,6 +188,7 @@ export default function TutorialSession({ dataset, onExit }) {
           <h1 className="text-sm font-semibold text-accent">
             Tutorial practice
           </h1>
+
           <p className="text-xs text-ink-muted">
             Fixed practice data
             {dataset.manifest?.patch
@@ -128,7 +206,11 @@ export default function TutorialSession({ dataset, onExit }) {
         </button>
       </header>
 
-      <div ref={workspaceRef} className="min-h-0 flex-1">
+      <div
+        ref={workspaceRef}
+        className="min-h-0 flex-1"
+        style={{ paddingBottom: showComparison ? dialogueReserve : 0 }}
+      >
         <HeroList
           practiceDataset={dataset}
           tutorial={tutorial}
@@ -152,16 +234,18 @@ export default function TutorialSession({ dataset, onExit }) {
           target={spotlight}
           placement={line.placement ?? "over-sidebar"}
           initialFrame={initialFrame}
-          showDialogue={phase === "first-pick"}
+          showDialogue={isLesson}
+          comparisonRows={showComparison ? beforeRecommendations : null}
+          onReserveSpace={setDialogueReserve}
         >
           <TutorialDialogue
             compact
-            title={LESSON.title}
-            titleId="first-pick-title"
-            textId="first-pick-text"
+            title={script.title}
+            titleId="tutorial-lesson-title"
+            textId="tutorial-lesson-text"
             line={line}
-            reserveLines={LESSON.lines}
-            pageLabel={`${page + 1} / ${LESSON.lines.length}`}
+            reserveLines={script.lines}
+            pageLabel={`${page + 1} / ${script.lines.length}`}
             canAdvance={!line.waitForPick || picked}
             hint={line.hint}
             feedback={feedback}
