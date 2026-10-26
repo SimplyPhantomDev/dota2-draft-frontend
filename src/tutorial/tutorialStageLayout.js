@@ -81,14 +81,43 @@ export function getTutorialStageLayout({
                 ) - highlightTop,
             };
         }
+    } else if (placement === "beside-breakdown" && targetRect) {
+        const roomLeft = targetRect.left - PANEL_GAP - MARGIN;
+        const roomRight = viewportWidth - MARGIN
+            - (targetRect.left + targetRect.width + PANEL_GAP);
+
+        if (
+            Math.max(roomLeft, roomRight)
+            >= Math.min(width, MIN_DIALOGUE_WIDTH)
+        ) {
+            const useLeft = roomLeft >= roomRight;
+
+            width = Math.min(width, useLeft ? roomLeft : roomRight);
+            left = useLeft
+                ? targetRect.left - PANEL_GAP - width
+                : targetRect.left + targetRect.width + PANEL_GAP;
+
+            top = clamp(
+                targetRect.top + (targetRect.height - height) / 2,
+                MARGIN,
+                viewportHeight - MARGIN - height
+            );
+        } else {
+            reserveBottom = Math.min(280, viewportHeight * 0.4);
+            width = Math.min(560, availableWidth);
+            height = Math.max(0, reserveBottom - MARGIN);
+            left = (viewportWidth - width) / 2;
+            top = viewportHeight - MARGIN - height;
+        }
     } else if (placement === "beside-sidebar") {
         const besideLeft = anchor.left - width - PANEL_GAP;
 
         if (besideLeft >= MARGIN) {
             left = besideLeft;
         } else {
+            reserveBottom = Math.min(280, viewportHeight * 0.4);
             width = Math.min(560, availableWidth);
-            height = Math.min(280, availableHeight);
+            height = Math.max(0, reserveBottom - MARGIN);
             left = (viewportWidth - width) / 2;
             top = viewportHeight - MARGIN - height;
         }

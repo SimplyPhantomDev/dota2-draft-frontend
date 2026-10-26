@@ -1,7 +1,13 @@
 import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
-export default function HoverTooltip({ initialPoint, anchorRef = null, children }) {
+export default function HoverTooltip({
+    initialPoint,
+    anchorRef = null,
+    frozen = false,
+    bottomInset = 0,
+    children,
+}) {
     const tooltipRef = useRef(null);
 
     // Measure before paint. Mouse movement only changes this tooltip's position;
@@ -12,9 +18,12 @@ export default function HoverTooltip({ initialPoint, anchorRef = null, children 
         let pointer = initialPoint;
 
         const positionTooltip = () => {
+            const viewportHeight = window.innerHeight - bottomInset;
+            tooltip.style.maxHeight =
+                `${Math.max(1, viewportHeight - margin * 2)}px`;
+
             const { width, height } = tooltip.getBoundingClientRect();
             const viewportWidth = document.documentElement.clientWidth;
-            const viewportHeight = window.innerHeight;
             const anchor = anchorRef?.current?.getBoundingClientRect();
             let left = anchor
                 ? anchor.left - width - margin
@@ -53,7 +62,7 @@ export default function HoverTooltip({ initialPoint, anchorRef = null, children 
 
         const observer = new ResizeObserver(positionTooltip);
         observer.observe(tooltip);
-        window.addEventListener("mousemove", handleMouseMove);
+        if (!frozen) window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("resize", positionTooltip);
 
         return () => {
@@ -61,14 +70,21 @@ export default function HoverTooltip({ initialPoint, anchorRef = null, children 
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("resize", positionTooltip);
         };
-    }, [initialPoint, anchorRef]);
+    }, [initialPoint, anchorRef, frozen, bottomInset]);
 
     // Render outside the sidebar so its scroll area cannot clip the tooltip.
     return createPortal(
         <div
+            data-tutorial-target={frozen ? "recommendation-breakdown" : undefined}
             ref={tooltipRef}
             role="tooltip"
-            className="pointer-events-none fixed z-50 w-[300px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-hidden rounded-panel border border-line bg-surface-raised p-ui-md text-sm text-ink shadow-panel"
+                        className={`fixed w-[300px] max-w-[calc(100vw-24px)]
+                            max-h-[calc(100vh-24px)] rounded-panel border
+                            border-line bg-surface-raised p-ui-md text-sm
+                            text-ink shadow-panel
+                        ${frozen
+                            ? "pointer-events-auto z-[85] overflow-y-auto"
+                            : "pointer-events-none z-50 overflow-hidden"}`}
         >
             {children}
         </div>,

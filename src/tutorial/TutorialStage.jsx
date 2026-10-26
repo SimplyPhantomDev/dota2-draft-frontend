@@ -29,9 +29,15 @@ export default function TutorialStage({
         const sidebar = workspace.querySelector(
             '[data-tutorial-target="recommendations"]'
         );
-        const element = target
-            ? workspace.querySelector(`[data-tutorial-target="${target}"]`)
-            : null;
+        const element = target === "recommendation-breakdown"
+            ? document.querySelector(
+                '[data-tutorial-target="recommendation-breakdown"]'
+            )
+            : target
+                ? workspace.querySelector(
+                    `[data-tutorial-target="${target}"]`
+                )
+                : null;
 
         let live = true;
 
