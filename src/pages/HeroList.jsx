@@ -225,9 +225,21 @@ export default function HeroList({
     );
 
     // Include bans so the tutorial confirms actions after state is committed.
+    // Report committed filters as well as picks, bans and the picking side.
     useEffect(() => {
-        reportTutorialDraft?.(selectedHeroes, selectedTeam, bannedHeroes);
-    }, [selectedHeroes, selectedTeam, bannedHeroes, reportTutorialDraft]);
+        reportTutorialDraft?.(
+            selectedHeroes,
+            selectedTeam,
+            bannedHeroes,
+            roleFilter
+        );
+    }, [
+        selectedHeroes,
+        selectedTeam,
+        bannedHeroes,
+        roleFilter,
+        reportTutorialDraft,
+    ]);
 
     // Skipping prepares the draft that the following lesson expects.
     useEffect(() => {
@@ -243,6 +255,7 @@ export default function HeroList({
         });
         setBannedHeroes(resolveHeroes(practiceSeed.bans));
         setSelectedTeam(practiceSeed.team);
+        setRoleFilter(practiceSeed.roleFilter ?? null);
         setSearchQuery("");
     }, [practiceDataset, practiceSeed]);
 
@@ -406,11 +419,11 @@ export default function HeroList({
 
     // Handle focused shortcuts before ordinary typing can activate hero search.
     useEffect(() => {
-    // The hidden real draft must not react to keys entered during practice.
+        // The hidden real draft must not react to keys entered during practice.
         if (!active) return;
         const handleKeyDown = (e) => {
             if (e.defaultPrevented || e.isComposing || !document.hasFocus()
-        || document.visibilityState === "hidden") return;
+                || document.visibilityState === "hidden") return;
 
             // Modal dialogs own keyboard input. Floating pool panels remain interactive.
             if (document.querySelector('dialog[open]:not([aria-modal="false"])')) return;
@@ -418,27 +431,27 @@ export default function HeroList({
             const el = document.activeElement;
             const tag = el?.tagName?.toLowerCase();
             const editing = tag === "input" || tag === "textarea"
-        || tag === "select" || el?.isContentEditable;
+                || tag === "select" || el?.isContentEditable;
 
             // Search can stay focused during drafting; other fields own their keystrokes.
             if (editing && el !== searchInputRef.current) return;
 
             if (e.code === TEAM_SWITCH_KEY
-        && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+                && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
                 e.preventDefault();
                 if (!e.repeat) handleTeamSwitch();
                 return;
             }
 
             if (e.code === DRAFT_OVERVIEW_KEY
-        && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+                && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
                 e.preventDefault();
                 if (!e.repeat) openDraftOverview();
                 return;
             }
 
             if (e.code === HERO_INSPECTOR_KEY
-        && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+                && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
                 e.preventDefault();
                 if (!e.repeat) toggleHeroInspector();
                 return;
@@ -748,7 +761,7 @@ export default function HeroList({
         setSelectedHeroes(prev => {
             const alreadyPicked =
                 prev.ally.some(h => h.HeroId === hero.HeroId) ||
-        prev.enemy.some(h => h.HeroId === hero.HeroId);
+                prev.enemy.some(h => h.HeroId === hero.HeroId);
 
             if (alreadyPicked || prev[team].length >= 5) return prev;
 
@@ -812,8 +825,8 @@ export default function HeroList({
    */
     const handleHeroBan = (hero) => {
         if (!requestTutorialAction({ type: "ban", heroId: hero.HeroId }) ||
-      bannedHeroes.length >= 16 ||
-      clickLockedHeroes.has(hero.HeroId)) return;
+            bannedHeroes.length >= 16 ||
+            clickLockedHeroes.has(hero.HeroId)) return;
 
         lockHero(hero.HeroId);
 
@@ -851,7 +864,7 @@ export default function HeroList({
             .map(id => practiceDataset?.heroById.get(id))
             .find(candidate => candidate && (
                 candidate.name.toLowerCase().includes(query) ||
-        candidate.aliases?.some(alias => alias.toLowerCase().includes(query))
+                candidate.aliases?.some(alias => alias.toLowerCase().includes(query))
             ));
 
         if (!hero) return;
@@ -897,9 +910,9 @@ export default function HeroList({
                     {heroes[attr]?.map((hero) => {
                         const isPicked =
                             selectedHeroes.ally.some(h => h.HeroId === hero.HeroId) ||
-              selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId) ||
-              bannedHeroes.some(h => h.HeroId === hero.HeroId) ||
-              clickLockedHeroes.has(hero.HeroId);
+                            selectedHeroes.enemy.some(h => h.HeroId === hero.HeroId) ||
+                            bannedHeroes.some(h => h.HeroId === hero.HeroId) ||
+                            clickLockedHeroes.has(hero.HeroId);
 
                         return (
                             <DraggableHero
@@ -920,7 +933,7 @@ export default function HeroList({
     };
 
     return (
-    // === Main App Container ===
+        // === Main App Container ===
         <div
             className={`px-ui-sm pt-ui-sm bg-canvas text-ink h-full overflow-hidden flex flex-col transition-shadow duration-300
     ${editHeroPoolMode ? "shadow-[0_0_40px_10px_rgba(128,0,128,0.5)]" : ""}`}
@@ -1103,6 +1116,10 @@ export default function HeroList({
                     }
                     requestTutorialAction={requestTutorialAction}
                     comparisonLabel={tutorial?.comparisonLabel}
+                    onRecommendationHover={tutorial?.onRecommendationHover}
+                    pinnedRecommendation={tutorial?.pinnedRecommendation}
+                    breakdownBottomInset={tutorial?.breakdownBottomInset}
+                    suppressRecommendationTooltip={tutorial?.suppressRecommendationTooltip}
                 />
             </div>{/* end hero+sidebar split */}
             {/* === Status Toast (Bottom left) === */}

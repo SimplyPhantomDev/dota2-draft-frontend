@@ -55,7 +55,7 @@ const LESSONS = {
     },
     "ban-and-correction": {
         script: tutorialScript.banAndCorrection,
-        nextPhase: "practice",
+        nextPhase: "recommendations",
         endDraft: {
             ally: [
                 tutorialScript.firstPick.heroId,
@@ -68,6 +68,23 @@ const LESSONS = {
             team: "enemy",
         },
     },
+    "recommendations": {
+        script: tutorialScript.recommendations,
+        nextPhase: "practice",
+        endDraft: {
+            ally: [
+                tutorialScript.firstPick.heroId,
+                ...tutorialScript.dragging.picks
+                    .filter(pick => pick.team === "ally")
+                    .map(pick => pick.heroId),
+                tutorialScript.recommendations.heroId,
+            ],
+            enemy: [tutorialScript.pickingSide.heroId],
+            bans: [tutorialScript.banAndCorrection.heroId],
+            team: "ally",
+            roleFilter: "Support",
+        },
+    },
 };
 
 export default function TutorialSession({ dataset, onExit }) {
@@ -76,6 +93,8 @@ export default function TutorialSession({ dataset, onExit }) {
     const [picked, setPicked] = useState(false);
     const [pickingSide, setPickingSide] = useState("ally");
     const [practiceDraft, setPracticeDraft] = useState({ ally: [], enemy: [] });
+    const [practiceRoleFilter, setPracticeRoleFilter] = useState(null);
+    const [pinnedRecommendation, setPinnedRecommendation] = useState(null);
     const [feedback, setFeedback] = useState("");
     const [practiceSeed, setPracticeSeed] = useState(null);
     const [completedLineId, setCompletedLineId] = useState(null);
@@ -110,7 +129,9 @@ export default function TutorialSession({ dataset, onExit }) {
     ), [script, lesson.team]);
 
     const targetHeroIds = useMemo(() => {
-        if (line.action?.type === "ban") return [line.action.heroId];
+        if (["ban", "pick"].includes(line.action?.type)) {
+            return [line.action.heroId];
+        }
         if (picked) return [];
 
         return requiredPicks
@@ -130,18 +151,38 @@ export default function TutorialSession({ dataset, onExit }) {
     );
 
     const showComparison = isLesson
-    && picked
-    && line.compareRecommendations === true
-    && beforeRecommendations !== null;
+        && picked
+        && line.compareRecommendations === true
+        && beforeRecommendations !== null;
 
-    const lineHighlight = sideButtonRunaway ? "hero-grid" : (
-        line.highlightWhileDragging?.[draggedHeroId]
-    ?? line.highlightByPickingSide?.[pickingSide]
-    ?? line.highlight
-    ?? null
+    const showPinnedBreakdown = Boolean(
+        pinnedRecommendation && line.keepBreakdown
+    );
+
+    const requiredRole = line.action?.requiresRoleFilter;
+
+    const dialoguePlacement = requiredRole && practiceRoleFilter !== requiredRole
+        ? "beside-sidebar"
+        : line.placement ?? "over-sidebar";
+
+    const taskHighlight = requiredRole
+        ? practiceRoleFilter !== requiredRole
+            ? "support-filter"
+            : pickingSide !== line.action.team
+                ? sideButtonRunaway ? "hero-grid" : "picking-side"
+                : "hero-grid"
+        : null;
+
+    const lineHighlight = taskHighlight ?? (
+        sideButtonRunaway ? "hero-grid" : (
+            line.highlightWhileDragging?.[draggedHeroId]
+            ?? line.highlightByPickingSide?.[pickingSide]
+            ?? line.highlight
+            ?? null
+        )
     );
     const spotlight = isLesson
-    && !(line.releaseHighlightOnComplete && completedLineId === line.id)
+        && !(line.releaseHighlightOnComplete && completedLineId === line.id)
         ? lineHighlight
         : null;
 
@@ -153,7 +194,11 @@ export default function TutorialSession({ dataset, onExit }) {
     const beforeAction = useCallback(action => {
         if (!isLesson) return true;
 
-        if (!picked && lesson.allowTeamSwitch && action.type === "team-switch") {
+        if (
+            !picked
+            && (lesson.allowTeamSwitch || line.action?.allowTeamSwitch)
+            && action.type === "team-switch"
+        ) {
             recordSwitch(action.source);
             return true;
         }
@@ -164,10 +209,21 @@ export default function TutorialSession({ dataset, onExit }) {
         const expectedAction = line.action;
 
         if (
+            action.type === "role-filter"
+            && expectedAction?.requiresRoleFilter === action.value
+        ) {
+            setFeedback("");
+            return true;
+        }
+
+        if (
             expectedAction
-      && action.type === expectedAction.type
-      && action.heroId === expectedAction.heroId
-      && (!expectedAction.team || action.team === expectedAction.team)
+            && action.type === expectedAction.type
+            && action.heroId === expectedAction.heroId
+            && (!expectedAction.team || action.team === expectedAction.team)
+            && (!expectedAction.source || action.source === expectedAction.source)
+            && (!expectedAction.requiresRoleFilter
+                || practiceRoleFilter === expectedAction.requiresRoleFilter)
         ) {
             setFeedback("");
             return true;
@@ -176,11 +232,11 @@ export default function TutorialSession({ dataset, onExit }) {
         // Enforce the requested input method and each hero's destination.
         if (
             !picked
-      && action.type === "pick"
-      && action.source === (lesson.pickSource ?? "click")
-      && requiredPicks.some(pick =>
-          pick.heroId === action.heroId && pick.team === action.team
-      )
+            && action.type === "pick"
+            && action.source === (lesson.pickSource ?? "click")
+            && requiredPicks.some(pick =>
+                pick.heroId === action.heroId && pick.team === action.team
+            )
         ) {
             setFeedback("");
             return true;
@@ -194,11 +250,11 @@ export default function TutorialSession({ dataset, onExit }) {
 
         const specificReply = tutorialScript.interruptions.find(reply =>
             reply.when
-      && Object.entries(reply.when).every(([key, expected]) =>
-          Array.isArray(expected)
-              ? expected.includes(context[key])
-              : context[key] === expected
-      )
+            && Object.entries(reply.when).every(([key, expected]) =>
+                Array.isArray(expected)
+                    ? expected.includes(context[key])
+                    : context[key] === expected
+            )
         );
 
         // A relevant reply takes priority, even during the generic cooldown.
@@ -217,11 +273,12 @@ export default function TutorialSession({ dataset, onExit }) {
         }
 
         return false;
-    }, [isLesson, lesson, requiredPicks, picked, line.action, phase, recordSwitch, breakStreak]);
+    }, [isLesson, lesson, requiredPicks, picked, line.action, phase, recordSwitch, breakStreak, practiceRoleFilter]);
 
-    const onDraftChange = useCallback((draft, team, bans = []) => {
+    const onDraftChange = useCallback((draft, team, bans = [], roleFilter = null) => {
         setPickingSide(team);
         setPracticeDraft(draft);
+        setPracticeRoleFilter(roleFilter);
 
         if (!isLesson || picked) return;
 
@@ -233,7 +290,13 @@ export default function TutorialSession({ dataset, onExit }) {
                     hero => hero.HeroId === expectedAction.heroId
                 )
                 : expectedAction.type === "ban"
-        && bans.some(hero => hero.HeroId === expectedAction.heroId);
+                    ? bans.some(hero => hero.HeroId === expectedAction.heroId)
+                    : expectedAction.type === "pick"
+                    && draft[expectedAction.team].some(
+                        hero => hero.HeroId === expectedAction.heroId
+                    )
+                    && (!expectedAction.requiresRoleFilter
+                        || roleFilter === expectedAction.requiresRoleFilter);
 
             if (complete) {
                 resetSideSwitches();
@@ -275,6 +338,32 @@ export default function TutorialSession({ dataset, onExit }) {
         }
     }, [isLesson, script, requiredPicks, successPage, picked, phase, dataset, line.action, resetSideSwitches]);
 
+    const onRecommendationHover = useCallback((hero, point) => {
+        const expectedAction = line.action;
+
+        if (
+            !isLesson
+            || expectedAction?.type !== "hover-recommendation"
+            || hero.HeroId !== expectedAction.heroId
+        ) return;
+
+        resetSideSwitches();
+
+        setPinnedRecommendation({
+            hero,
+            point,
+            draft: {
+                ally: [...practiceDraft.ally],
+                enemy: [...practiceDraft.enemy],
+            },
+        });
+
+        setFeedback("");
+        setPage(script.lines.findIndex(
+            item => item.id === expectedAction.successLineId
+        ));
+    }, [isLesson, line.action, practiceDraft, script, resetSideSwitches]);
+
     const tutorial = useMemo(() => isLesson ? {
         beforeAction,
         onDraftChange,
@@ -282,6 +371,10 @@ export default function TutorialSession({ dataset, onExit }) {
         comparisonLabel: showComparison ? "AFTER" : null,
         targetHeroIds,
         sideButtonRunaway,
+        onRecommendationHover,
+        pinnedRecommendation: showPinnedBreakdown ? pinnedRecommendation : null,
+        breakdownBottomInset: showPinnedBreakdown ? dialogueReserve : 0,
+        suppressRecommendationTooltip: phase === "recommendations",
     } : null, [
         isLesson,
         beforeAction,
@@ -290,6 +383,12 @@ export default function TutorialSession({ dataset, onExit }) {
         showComparison,
         targetHeroIds,
         sideButtonRunaway,
+        onRecommendationHover,
+        showPinnedBreakdown,
+        pinnedRecommendation,
+        dialogueReserve,
+        phase,
+        
     ]);
 
 
@@ -297,6 +396,7 @@ export default function TutorialSession({ dataset, onExit }) {
         resetSideSwitches();
         setBeforeRecommendations(null);
         setDialogueReserve(0);
+        setPinnedRecommendation(null);
         setPage(0);
         setPicked(false);
         setFeedback("");
@@ -316,7 +416,7 @@ export default function TutorialSession({ dataset, onExit }) {
     }
 
     function skipLesson() {
-    // Preserve the exact draft expected by the following lesson.
+        // Preserve the exact draft expected by the following lesson.
         setPracticeSeed(lesson.endDraft);
         finishLesson();
     }
@@ -358,7 +458,7 @@ export default function TutorialSession({ dataset, onExit }) {
             <div
                 ref={workspaceRef}
                 className="min-h-0 flex-1"
-                style={{ paddingBottom: showComparison ? dialogueReserve : 0 }}
+                style={{ paddingBottom: dialogueReserve }}
             >
                 <HeroList
                     practiceDataset={dataset}
@@ -381,7 +481,7 @@ export default function TutorialSession({ dataset, onExit }) {
                 <TutorialStage
                     workspaceRef={workspaceRef}
                     target={spotlight}
-                    placement={line.placement ?? "over-sidebar"}
+                    placement={dialoguePlacement}
                     initialFrame={initialFrame}
                     showDialogue={isLesson}
                     comparisonRows={showComparison ? beforeRecommendations : null}

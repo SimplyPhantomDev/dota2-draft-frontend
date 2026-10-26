@@ -261,6 +261,109 @@
             }
         ]
     },
+    "recommendations": {
+        "title": "Understanding recommendations",
+        "heroId": 57,
+        "lines": [
+            {
+                "id": "recommendations-intro",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "Now that Axe has been put in the doghouse, it's time we start inspecting the recommendation feed."
+            },
+            {
+                "id": "recommendations-basics",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "Every ally and enemy is taken into consideration. Picked and banned heroes won't be recommended. Simple enough."
+            },
+            {
+                "id": "recommendations-hover",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "action": {
+                    "type": "hover-recommendation",
+                    "heroId": 65,
+                    "successLineId": "recommendations-batrider"
+                },
+                "hint": "Hover over Batrider in the recommendation feed.",
+                "text": "What? That isn't enough? Fine. Hover over our good friend Batrider in the recommendation feed, and let's see where that number comes from."
+            },
+            {
+                "id": "recommendations-batrider",
+                "placement": "beside-breakdown",
+                "highlight": "recommendation-breakdown",
+                "keepBreakdown": true,
+                "text": "As you can see, Batrider seems to be loved by Dazzle, disliked by Slark, and particularly unwelcome in Weaver's company."
+            },
+            {
+                "id": "recommendations-why",
+                "placement": "beside-breakdown",
+                "highlight": "recommendation-breakdown",
+                "keepBreakdown": true,
+                "text": "Why? Don't ask me. I don't get paid enough for this."
+            },
+            {
+                "id": "recommendations-dazzle",
+                "placement": "beside-breakdown",
+                "highlight": "recommendation-breakdown",
+                "keepBreakdown": true,
+                "text": "The +6.76 beside Dazzle is a strong positive contribution to Batrider's score. Apparently these two get along rather well."
+            },
+            {
+                "id": "recommendations-weaver",
+                "placement": "beside-breakdown",
+                "highlight": "recommendation-breakdown",
+                "keepBreakdown": true,
+                "text": "The +4.15 against Weaver is another positive contribution: this matchup favours Batrider. Weaver really ought to respect the man with the flamethrower."
+            },
+            {
+                "id": "recommendations-total",
+                "placement": "beside-breakdown",
+                "highlight": "recommendation-breakdown",
+                "keepBreakdown": true,
+                "text": "Slark contributes -1.07. Add the +2 initiation bonus we discussed, and the total comes to 11.84. There. I've done the maths. Nobody make a habit of asking."
+            },
+            {
+                "id": "recommendations-carry-thought",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "Now, you might be thinking, \"Slark is already our carry. I don't need Faceless Void or Drow Ranger fighting him for the last hits.\""
+            },
+            {
+                "id": "recommendations-carry-agreement",
+                "placement": "beside-sidebar",
+                "text": "And you'd be right."
+            },
+            {
+                "id": "recommendations-filters",
+                "placement": "beside-sidebar",
+                "highlight": "role-filters",
+                "text": "Worry not. I've placed some special buttons down here just for you. They filter the recommendations by hero type, including heroes tagged as supports."
+            },
+            {
+                "id": "recommendations-support-task",
+                "placement": "over-sidebar",
+                "action": {
+                    "type": "pick",
+                    "heroId": 57,
+                    "team": "ally",
+                    "source": "click",
+                    "requiresRoleFilter": "Support",
+                    "allowTeamSwitch": true,
+                    "successLineId": "recommendations-success"
+                },
+                "hint": "Enable Support, switch to Ally Team, then find Omniknight in the hero grid and left-click him.",
+                "text": "Change the recommendation feed to Support-only and pick Omniknight for the ally team. You can find him in the hero grid using the search we practised."
+            },
+            {
+                "id": "recommendations-success",
+                "placement": "over-sidebar",
+                "highlight": "ally-draft",
+                "text": "I genuinely hope the Omniscience can guide these clowns to victory..."
+            }
+        ]
+    },
     "sideSwitchEasterEgg": {
         "warnAfter": 20,
         "escapeAfter": 100,
