@@ -32,12 +32,16 @@ function DraftPanel({
     setGridMode,
     requestTutorialAction = null,
 }) {
-    const ActionButtons = () => {
+    const renderActionButtons = () => {
         const buttonSize = "w-[71px] h-[60px] text-xs";
 
         return (
-            <div className="flex items-center gap-ui-sm">
+            <div
+                data-tutorial-target="draft-actions"
+                className="flex items-center gap-ui-sm"
+            >
                 <button
+                    data-tutorial-target="pool-edit"
                     type="button"
                     onClick={onTogglePoolEdit}
                     aria-pressed={editHeroPoolMode}
@@ -156,7 +160,7 @@ function DraftPanel({
 
                 {/* Wide windows: actions share the team row. */}
                 <div className="hidden justify-self-end 2xl:block">
-                    <ActionButtons />
+                    {renderActionButtons()}
                 </div>
             </div>
             {/* ===================== BANS BLOCK (thin header row + slots row) ===================== */}
@@ -222,7 +226,7 @@ function DraftPanel({
 
                 {/* Below 1536px, actions move beside the two rows of bans. */}
                 <div className="col-start-3 row-span-2 self-center justify-self-end 2xl:hidden">
-                    <ActionButtons />
+                    {renderActionButtons()}
                 </div>
 
                 {/* Bottom middle: ban slots */}

@@ -6,7 +6,9 @@ export default function HeroPoolBreakdown({
     onClose,
     floating = false,
     anchorRef,
-    panelRef
+    panelRef,
+    tutorialMode = false,
+    bottomInset = 0,
 }) {
     const localRef = useRef(null);
     const dialogRef = panelRef ?? localRef;
@@ -19,26 +21,37 @@ export default function HeroPoolBreakdown({
         dialog.style.left = "";
         dialog.style.top = "";
         dialog.style.maxHeight = "";
+        dialog.style.margin = tutorialMode ? "0" : "";
 
         const positionPanel = () => {
             const anchor = anchorRef?.current;
-            if (!anchor) return;
+            if (!anchor && floating) return;
 
-            const bounds = anchor.getBoundingClientRect();
-            const width = dialog.getBoundingClientRect().width;
+            const bounds = anchor?.getBoundingClientRect();
             const margin = 12;
-            const top = Math.max(margin, bounds.top);
+            const availableHeight = Math.max(1, window.innerHeight - bottomInset);
 
-            dialog.style.left =
-                `${Math.max(margin, bounds.left - width - margin)}px`;
+            dialog.style.maxHeight =
+                `${Math.max(1, availableHeight - margin * 2)}px`;
+
+            const { width, height } = dialog.getBoundingClientRect();
+            const top = floating
+                ? Math.max(margin, Math.min(bounds.top, availableHeight - margin * 2))
+                : Math.max(margin, (availableHeight - height) / 2);
+
+            dialog.style.left = `${floating
+                ? Math.max(margin, bounds.left - width - margin)
+                : Math.max(margin, (window.innerWidth - width) / 2)}px`;
+
             dialog.style.top = `${top}px`;
             dialog.style.maxHeight =
-                `${Math.max(0, window.innerHeight - top - margin)}px`;
+                `${Math.max(1, availableHeight - top - margin)}px`;
         };
 
         let observer;
 
-        if (floating) {
+        // Tutorial panels stay modeless so the narrator remains interactive.
+        if (floating || tutorialMode) {
             dialog.show();
             positionPanel();
 
@@ -58,12 +71,12 @@ export default function HeroPoolBreakdown({
 
             if (dialog.open) dialog.close();
         };
-    }, [floating, anchorRef, dialogRef]);
+    }, [floating, anchorRef, dialogRef, tutorialMode, bottomInset]);
 
     // Close before unmounting so focus returns to the opening button.
     const closeDialog = () => {
-        dialogRef.current.close();
-        onClose();
+        if (onClose() === false) return;
+        dialogRef.current?.close();
     };
 
     const handleBackdropClick = (event) => {
@@ -84,11 +97,14 @@ export default function HeroPoolBreakdown({
     return createPortal(
         <dialog
             ref={dialogRef}
-            aria-modal={!floating}
+            data-tutorial-target="pool-breakdown"
+            aria-modal={!floating && !tutorialMode}
             aria-labelledby="hero-pool-breakdown-title"
             className={`max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink shadow-panel open:flex open:flex-col ${floating
                 ? "fixed z-[70] m-0 w-[21rem]"
-                : "m-auto w-[28rem] backdrop:bg-black/60"
+                : tutorialMode
+                    ? "fixed z-[70] m-0 w-[28rem]"
+                    : "m-auto w-[28rem] backdrop:bg-black/60"
             }`}
             onCancel={(event) => {
                 event.preventDefault();
@@ -100,7 +116,7 @@ export default function HeroPoolBreakdown({
                 event.stopPropagation();
 
                 // Modeless dialogs need an explicit Escape handler.
-                if (floating && event.key === "Escape") {
+                if ((floating || tutorialMode) && event.key === "Escape") {
                     event.preventDefault();
                     closeDialog();
                 }

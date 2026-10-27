@@ -8,6 +8,7 @@ export default function TutorialDialogue({
     pageLabel,
     onNext,
     onLineComplete,
+    onHighlightReady,
     onSkip,
     onExit,
     canAdvance = true,
@@ -66,6 +67,18 @@ export default function TutorialDialogue({
     useEffect(() => {
         if (complete) onLineComplete?.(line.id);
     }, [complete, line.id, onLineComplete]);
+
+    const cueStart = line.highlightAfter
+        ? line.text.indexOf(line.highlightAfter)
+        : -1;
+
+    const highlightReady = cueStart >= 0 && (
+        complete || visibleCount >= cueStart + line.highlightAfter.length
+    );
+
+    useEffect(() => {
+        if (highlightReady) onHighlightReady?.(line.id);
+    }, [highlightReady, line.id, onHighlightReady]);
 
     function advanceDialogue() {
         if (!complete) {

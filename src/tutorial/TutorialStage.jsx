@@ -15,6 +15,7 @@ export default function TutorialStage({
     onReserveSpace,
     pointToBonus = null,
     children,
+    dimBackground = true,
 }) {
     const maskId = `tutorial-mask-${useId().replace(/:/g, "")}`;
     const reduceMotion = useReducedMotion();
@@ -29,20 +30,23 @@ export default function TutorialStage({
         const sidebar = workspace.querySelector(
             '[data-tutorial-target="recommendations"]'
         );
-        const element = target === "recommendation-breakdown"
-            ? document.querySelector(
-                '[data-tutorial-target="recommendation-breakdown"]'
-            )
-            : target
-                ? workspace.querySelector(
-                    `[data-tutorial-target="${target}"]`
-                )
-                : null;
+        const scope = ["recommendation-breakdown", "pool-breakdown"].includes(target)
+            ? document
+            : workspace;
 
+        const candidates = target
+            ? [...scope.querySelectorAll(`[data-tutorial-target="${target}"]`)]
+            : [];
         let live = true;
 
         function measure() {
             if (!live) return;
+
+            // Controls have separate compact and wide copies; follow the visible one.
+            const element = candidates.find(node => {
+                const rect = node.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+            });
 
             const next = getTutorialStageLayout({
                 viewportWidth: window.innerWidth,
@@ -69,7 +73,7 @@ export default function TutorialStage({
         measure();
 
         const observer = new ResizeObserver(measure);
-        for (const node of new Set([workspace, sidebar, element])) {
+        for (const node of new Set([workspace, sidebar, ...candidates])) {
             if (node) observer.observe(node);
         }
 
@@ -132,7 +136,7 @@ export default function TutorialStage({
                     width="100%"
                     height="100%"
                     fill="black"
-                    opacity="0.6"
+                    opacity={dimBackground ? 0.6 : 0}
                     mask={`url(#${maskId})`}
                 />
 

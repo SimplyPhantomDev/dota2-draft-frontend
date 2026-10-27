@@ -113,6 +113,7 @@ function Sidebar({
     pinnedRecommendation = null,
     breakdownBottomInset = 0,
     suppressRecommendationTooltip = false,
+    poolTutorial = null,
 }) {
     const sidebarScrollRef = useRef(null);
     const sidebarPanelRef = useRef(null);
@@ -533,7 +534,7 @@ function Sidebar({
                                                                     : score < 0
                                                                         ? 'text-danger'
                                                                         : 'text-ink-muted'
-                                                                    }`}
+                                                                }`}
                                                             >
                                                                 {score > 0 ? '+' : ''}{score.toFixed(2)}
                                                             </span>
@@ -565,6 +566,7 @@ function Sidebar({
 
                                                     <button
                                                         type="button"
+                                                        data-tutorial-target="pool-expand"
                                                         aria-label={
                                                             poolPanelOpen
                                                                 ? "Close full hero pool breakdown"
@@ -576,7 +578,10 @@ function Sidebar({
                                                         onClick={() => {
                                                             if (
                                                                 requestTutorialAction &&
-                                                                !requestTutorialAction({ type: "pool-breakdown" })
+                                                                !requestTutorialAction({
+                                                                    type: "pool-breakdown",
+                                                                    value: !poolPanelOpen,
+                                                                })
                                                             ) return;
                                                             setHoveredSuggestedHero(null);
                                                             setShowPoolBreakdown(prev => !prev);
@@ -638,72 +643,82 @@ function Sidebar({
                                 )}
                                 {active && shownSuggestedHero
                                     && (!suppressRecommendationTooltip || pinnedRecommendation) && (
-                                        <HoverTooltip
-                                            initialPoint={pinnedRecommendation?.point ?? tooltipPoint}
-                                            frozen={Boolean(pinnedRecommendation)}
-                                            bottomInset={breakdownBottomInset}
-                                            anchorRef={floatingPoolOpen ? poolPanelRef : sidebarPanelRef}
-                                        >
-                                            <h3 className="text-white font-bold mb-2">{shownSuggestedHero.name} Breakdown</h3>
+                                    <HoverTooltip
+                                        initialPoint={pinnedRecommendation?.point ?? tooltipPoint}
+                                        frozen={Boolean(pinnedRecommendation)}
+                                        bottomInset={breakdownBottomInset}
+                                        anchorRef={floatingPoolOpen ? poolPanelRef : sidebarPanelRef}
+                                    >
+                                        <h3 className="text-white font-bold mb-2">{shownSuggestedHero.name} Breakdown</h3>
 
-                                            <div className="mb-2">
-                                                <p className="text-green-400 font-semibold mb-1">Synergy with Allies</p>
-                                                {breakdownDraft.ally.length === 0 ? (
-                                                    <p className="text-gray-500 italic">No allies selected</p>
-                                                ) : (
-                                                    breakdownDraft.ally.map(ally => {
-                                                        const score = getSynergyWith(matchupIndex, shownSuggestedHero.HeroId, ally.HeroId);
-                                                        return (
-                                                            <div key={ally.HeroId} className="flex justify-between text-gray-300">
-                                                                <span>{ally.name}</span>
-                                                                <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
-                                                                    {score > 0 ? "+" : ""}
-                                                                    {score.toFixed(2)}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-
-                                            <div>
-                                                <p className="text-red-400 font-semibold mb-1">Effectiveness vs Enemies</p>
-                                                {breakdownDraft.enemy.length === 0 ? (
-                                                    <p className="text-gray-500 italic">No enemies selected</p>
-                                                ) : (
-                                                    breakdownDraft.enemy.map(enemy => {
-                                                        const score = getCounterVs(matchupIndex, shownSuggestedHero.HeroId, enemy.HeroId);
-                                                        return (
-                                                            <div key={enemy.HeroId} className="flex justify-between text-gray-300">
-                                                                <span>{enemy.name}</span>
-                                                                <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
-                                                                    {score > 0 ? "+" : ""}
-                                                                    {score.toFixed(2)}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-                                            {shownSuggestedHero?.bonuses?.length > 0 && (
-                                                <div className="mt-3 pt-2 border-t border-gray-700">
-                                                    <p className="text-purple-300 font-semibold mb-1">Draft adjustment</p>
-                                                    {shownSuggestedHero.bonuses.map((b) => (
-                                                        <div key={b.type} className="flex justify-between text-gray-300">
-                                                            <span>{b.label}</span>
-                                                            <span className="text-purple-300 font-mono">
-                                                                +{Number(b.value).toFixed(2)}
+                                        <div className="mb-2">
+                                            <p className="text-green-400 font-semibold mb-1">Synergy with Allies</p>
+                                            {breakdownDraft.ally.length === 0 ? (
+                                                <p className="text-gray-500 italic">No allies selected</p>
+                                            ) : (
+                                                breakdownDraft.ally.map(ally => {
+                                                    const score = getSynergyWith(matchupIndex, shownSuggestedHero.HeroId, ally.HeroId);
+                                                    return (
+                                                        <div key={ally.HeroId} className="flex justify-between text-gray-300">
+                                                            <span>{ally.name}</span>
+                                                            <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
+                                                                {score > 0 ? "+" : ""}
+                                                                {score.toFixed(2)}
                                                             </span>
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                    );
+                                                })
                                             )}
-                                        </HoverTooltip>
-                                    )}
+                                        </div>
+
+                                        <div>
+                                            <p className="text-red-400 font-semibold mb-1">Effectiveness vs Enemies</p>
+                                            {breakdownDraft.enemy.length === 0 ? (
+                                                <p className="text-gray-500 italic">No enemies selected</p>
+                                            ) : (
+                                                breakdownDraft.enemy.map(enemy => {
+                                                    const score = getCounterVs(matchupIndex, shownSuggestedHero.HeroId, enemy.HeroId);
+                                                    return (
+                                                        <div key={enemy.HeroId} className="flex justify-between text-gray-300">
+                                                            <span>{enemy.name}</span>
+                                                            <span className={score > 0 ? "text-green-400" : score < 0 ? "text-red-400" : ""}>
+                                                                {score > 0 ? "+" : ""}
+                                                                {score.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                        {shownSuggestedHero?.bonuses?.length > 0 && (
+                                            <div className="mt-3 pt-2 border-t border-gray-700">
+                                                <p className="text-purple-300 font-semibold mb-1">Draft adjustment</p>
+                                                {shownSuggestedHero.bonuses.map((b) => (
+                                                    <div key={b.type} className="flex justify-between text-gray-300">
+                                                        <span>{b.label}</span>
+                                                        <span className="text-purple-300 font-mono">
+                                                            +{Number(b.value).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </HoverTooltip>
+                                )}
                                 {active && poolPanelOpen && (
                                     <HeroPoolBreakdown
                                         heroes={fullPoolSynergies}
-                                        onClose={() => setShowPoolBreakdown(false)}
+                                        onClose={() => {
+                                            if (requestTutorialAction
+                                                && !requestTutorialAction({
+                                                    type: "pool-breakdown",
+                                                    value: false,
+                                                })) return false;
+
+                                            setShowPoolBreakdown(false);
+                                        }}
+                                        tutorialMode={Boolean(poolTutorial)}
+                                        bottomInset={poolTutorial?.bottomInset ?? 0}
                                         floating={canFloatPool}
                                         anchorRef={sidebarPanelRef}
                                         panelRef={poolPanelRef}
@@ -725,10 +740,14 @@ function Sidebar({
                     <div className="ml-auto flex flex-col items-end gap-ui-xs">
                         <button
                             type="button"
+                            data-tutorial-target="pool-filter"
                             onClick={() => {
                                 if (
                                     requestTutorialAction &&
-                                    !requestTutorialAction({ type: "filter" })
+                                    !requestTutorialAction({
+                                        type: "pool-filter",
+                                        value: !filterByHeroPool,
+                                    })
                                 ) return;
 
                                 setFilterByHeroPool(prev => !prev);

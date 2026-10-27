@@ -78,7 +78,7 @@ export default function HoverTooltip({
             data-tutorial-target={frozen ? "recommendation-breakdown" : undefined}
             ref={tooltipRef}
             role="tooltip"
-                        className={`fixed w-[300px] max-w-[calc(100vw-24px)]
+            className={`fixed w-[300px] max-w-[calc(100vw-24px)]
                             max-h-[calc(100vh-24px)] rounded-panel border
                             border-line bg-surface-raised p-ui-md text-sm
                             text-ink shadow-panel

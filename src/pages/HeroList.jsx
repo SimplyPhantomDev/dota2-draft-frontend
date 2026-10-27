@@ -36,6 +36,8 @@ export default function HeroList({
         practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
     const beforeTutorialAction = tutorial?.beforeAction;
     const reportTutorialDraft = tutorial?.onDraftChange;
+    const reportTutorialPool = tutorial?.onPoolChange;
+    const tutorialSearchAllowed = tutorial?.allowSearch !== false;
     const tutorialTargetHeroIds = tutorial?.targetHeroIds;
 
     //==============================================
@@ -241,6 +243,26 @@ export default function HeroList({
         reportTutorialDraft,
     ]);
 
+    // Report pool controls after React commits each accepted tutorial input.
+    useEffect(() => {
+        reportTutorialPool?.({
+            heroPool,
+            editing: editHeroPoolMode,
+            filtering: filterByHeroPool,
+            breakdownOpen: showPoolBreakdown
+                && filterByHeroPool && hasPicks
+                && selectedHeroes.ally.length < 5,
+        });
+    }, [
+        heroPool,
+        editHeroPoolMode,
+        filterByHeroPool,
+        showPoolBreakdown,
+        hasPicks,
+        selectedHeroes.ally.length,
+        reportTutorialPool,
+    ]);
+
     // Skipping prepares the draft that the following lesson expects.
     useEffect(() => {
         if (!practiceDataset || !practiceSeed) return;
@@ -256,6 +278,12 @@ export default function HeroList({
         setBannedHeroes(resolveHeroes(practiceSeed.bans));
         setSelectedTeam(practiceSeed.team);
         setRoleFilter(practiceSeed.roleFilter ?? null);
+        if (Array.isArray(practiceSeed.heroPool)) {
+            setHeroPool(practiceSeed.heroPool);
+        }
+        setFilterByHeroPool(practiceSeed.filterByHeroPool ?? false);
+        setEditHeroPoolMode(false);
+        setShowPoolBreakdown(false);
         setSearchQuery("");
     }, [practiceDataset, practiceSeed]);
 
@@ -288,11 +316,14 @@ export default function HeroList({
     }, []);
 
     const togglePoolEdit = useCallback(() => {
-        if (!requestTutorialAction({ type: "pool-edit" })) return;
+        if (!requestTutorialAction({
+            type: "pool-edit-mode",
+            value: !editHeroPoolMode,
+        })) return;
 
         setShowHeroInspector(false);
         setEditHeroPoolMode(editing => !editing);
-    }, [requestTutorialAction]);
+    }, [requestTutorialAction, editHeroPoolMode]);
 
     // Recalculate from the live draft while keeping the candidate independent.
     const heroInspection = useMemo(() => calculateHeroInspection({
@@ -460,6 +491,7 @@ export default function HeroList({
             // Navigation and modified shortcuts must not move focus into hero search.
             if (e.ctrlKey || e.altKey || e.metaKey) return;
             if (e.key.length !== 1 && e.key !== "Backspace") return;
+            if (!tutorialSearchAllowed) return;
 
             // Preserve keyboard activation of buttons and links with Space.
             if (e.key === " " && el?.closest('button, a[href], [role="button"]')) return;
@@ -483,7 +515,13 @@ export default function HeroList({
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [active, handleTeamSwitch, openDraftOverview, toggleHeroInspector]);
+    }, [
+        active,
+        handleTeamSwitch,
+        openDraftOverview,
+        toggleHeroInspector,
+        tutorialSearchAllowed,
+    ]);
 
     //==============================================
     //========== UI Behavior & Layout ==============
@@ -696,8 +734,9 @@ export default function HeroList({
     const handleHeroClick = (hero) => {
         if (!requestTutorialAction({
             type: editHeroPoolMode
-                ? "pool-edit"
+                ? "pool-hero"
                 : showHeroInspector ? "inspect" : "pick",
+            value: editHeroPoolMode ? !heroPool.includes(hero.HeroId) : undefined,
             heroId: hero.HeroId,
             team: selectedTeam,
             source: "click",
@@ -918,7 +957,7 @@ export default function HeroList({
                             <DraggableHero
                                 key={hero.HeroId}
                                 hero={hero}
-                                isPicked={isPicked}
+                                isPicked={!editHeroPoolMode && isPicked}
                                 handleHeroClick={handleHeroClick}
                                 handleHeroBan={handleHeroBan}
                                 grayscale={searchQuery ? !isHeroMatch(hero) : false}
@@ -941,6 +980,7 @@ export default function HeroList({
             {/* === Search Input (invisible, global key listener) === */}
             <input
                 type="text"
+                disabled={!tutorialSearchAllowed}
                 className="opacity-0 absolute"
                 autoFocus
                 value={searchQuery}
@@ -1120,6 +1160,7 @@ export default function HeroList({
                     pinnedRecommendation={tutorial?.pinnedRecommendation}
                     breakdownBottomInset={tutorial?.breakdownBottomInset}
                     suppressRecommendationTooltip={tutorial?.suppressRecommendationTooltip}
+                    poolTutorial={tutorial?.poolLesson}
                 />
             </div>{/* end hero+sidebar split */}
             {/* === Status Toast (Bottom left) === */}
