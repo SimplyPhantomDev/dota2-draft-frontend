@@ -364,6 +364,177 @@
             }
         ]
     },
+    "heroPool": {
+        "title": "Your hero pool",
+        "requiredHeroes": 5,
+        "skipHeroIds": [
+            8,
+            25,
+            65,
+            86,
+            112
+        ],
+        "reactions": {
+            "supports": "Well, if it isn't the friendly neighbourhood support who claims their MMR is being dragged down by their core players.",
+            "carries": "Look out, people! Main character syndrome is contagious!",
+            "techies": "Don't lie to any of us. You wish you were playing Old Techies.",
+            "microOne": "How many games did you have to lose before you mastered that abomination?",
+            "microBoth": "How many games did you have to lose before you mastered those abominations?"
+        },
+        "firstUnavailableText": "{firstHero} is already picked or banned, so they won't be recommended. Let's judge {firstAvailable} instead. Your three strongest available pool heroes appear here.",
+        "unavailableText": "Every hero you chose is already picked or banned. You've somehow managed to outdraft your own hero pool. The pool suggestions are empty, but we can still open the full breakdown.",
+        "lines": [
+            {
+                "id": "pool-clear-support",
+                "placement": "beside-sidebar",
+                "dimBackground": false,
+                "action": {
+                    "type": "role-filter",
+                    "value": null,
+                    "successLineId": "pool-controls"
+                },
+                "hint": "Turn off the Support filter.",
+                "text": "Now we can really get this party started. Remove that Support filter from the recommendations first."
+            },
+            {
+                "id": "pool-controls",
+                "placement": "over-sidebar",
+                "highlight": "draft-actions",
+                "text": "Okay. Now check these controls over here: Edit Pool, Clear Bans and Clear All."
+            },
+            {
+                "id": "pool-acronym",
+                "placement": "over-sidebar",
+                "highlight": "draft-actions",
+                "text": "These are Buttons For The Convenience Of Indolent Representatives Of The Human Race. B.F.T.C.O.I.R.O.T.H.R. for short. Rolls right off the tongue."
+            },
+            {
+                "id": "pool-control-name",
+                "placement": "over-sidebar",
+                "highlight": "draft-actions",
+                "text": "We'll just call them universal draft controls. Two of the buttons are self-explanatory."
+            },
+            {
+                "id": "pool-edit-reveal",
+                "placement": "over-sidebar",
+                "highlightBefore": "draft-actions",
+                "highlight": "pool-edit",
+                "highlightAfter": "this third one here",
+                "text": "But this third one here contains one of the most useful ways to personalise this tool."
+            },
+            {
+                "id": "pool-edit-explain",
+                "placement": "over-sidebar",
+                "highlight": "pool-edit",
+                "text": "Edit Pool switches the hero grid into pool editing mode. Click a hero to add them to your pool. Click them again to remove them. A rare case of the buttons doing exactly what they look like they do."
+            },
+            {
+                "id": "pool-memory",
+                "placement": "over-sidebar",
+                "highlight": "pool-edit",
+                "text": "In normal use, I'll remember your pool between launches. These tutorial choices are just a rehearsal, so your saved pool stays untouched."
+            },
+            {
+                "id": "pool-select-five",
+                "placement": "over-sidebar",
+                "action": {
+                    "type": "pool-select",
+                    "count": 5,
+                    "successLineId": "pool-reaction"
+                },
+                "hint": "Enable Edit Pool and choose any five heroes. Click again to remove a selection.",
+                "text": "Let's test this thing. Toggle pool editing on and select any five heroes to represent you as a player. Choose wisely. Or don't. I'll be judging either way."
+            },
+            {
+                "id": "pool-reaction",
+                "placement": "over-sidebar",
+                "text": "Five heroes. Five opportunities to blame the draft. Excellent."
+            },
+            {
+                "id": "pool-names",
+                "placement": "over-sidebar",
+                "text": "Hmm... Interesting... So you chose {poolNames}."
+            },
+            {
+                "id": "pool-unorthodox",
+                "placement": "over-sidebar",
+                "text": "Very unorthodox choices. Do you pride yourself on your uniqueness? This definitely isn't the thousandth time I've seen this collection. No, no."
+            },
+            {
+                "id": "pool-finish-editing",
+                "placement": "over-sidebar",
+                "highlight": "pool-edit",
+                "action": {
+                    "type": "pool-edit-mode",
+                    "value": false,
+                    "successLineId": "pool-enable-filter"
+                },
+                "hint": "Click EDITING to finish editing your hero pool.",
+                "text": "Where was I? Right. Finish editing your hero pool."
+            },
+            {
+                "id": "pool-enable-filter",
+                "placement": "beside-sidebar",
+                "highlight": "pool-filter",
+                "action": {
+                    "type": "pool-filter",
+                    "value": true,
+                    "successLineId": "pool-feed"
+                },
+                "hint": "Turn on the Hero Pool filter.",
+                "text": "Now enable hero pool filtering in the recommendation feed. Let's see which of your favourites has the least terrible prospects."
+            },
+            {
+                "id": "pool-feed",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "Now we can judge just how badly your game as {firstHero} might go with these allies and enemies. Your three strongest available pool heroes appear up here."
+            },
+            {
+                "id": "pool-missing",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "What? Not every hero is visible? Of course they aren't. We have to keep this feed useful. I can't just bloat the whole thing with a personal indictment of every hero you play."
+            },
+            {
+                "id": "pool-expand",
+                "placement": "beside-sidebar",
+                "highlightBefore": "recommendations",
+                "highlight": "pool-expand",
+                "highlightAfter": "handy button here",
+                "action": {
+                    "type": "pool-breakdown",
+                    "value": true,
+                    "successLineId": "pool-breakdown"
+                },
+                "hint": "Open the full hero pool breakdown using its info button.",
+                "text": "If you insist on the full indictment, this handy button here opens the complete breakdown. Go on. You asked for it."
+            },
+            {
+                "id": "pool-breakdown",
+                "placement": "beside-breakdown",
+                "highlight": "pool-breakdown",
+                "text": "These scores keep updating as you pick and ban heroes. Picked and banned heroes are excluded even here. A recommendation for a hero you can't pick would be a rather impressive waste of everyone's time."
+            },
+            {
+                "id": "pool-close",
+                "placement": "beside-breakdown",
+                "highlight": "pool-breakdown",
+                "action": {
+                    "type": "pool-breakdown",
+                    "value": false,
+                    "successLineId": "pool-done"
+                },
+                "hint": "Close the full hero pool breakdown.",
+                "text": "You can close this window now, and we'll continue this definitely not bloated and overexplained tour."
+            },
+            {
+                "id": "pool-done",
+                "placement": "over-sidebar",
+                "text": "There. A personalised hero pool. That should narrow down the list of things you can blame me for."
+            }
+        ]
+    },
     "sideSwitchEasterEgg": {
         "warnAfter": 20,
         "escapeAfter": 100,

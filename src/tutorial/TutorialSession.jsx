@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HeroList from "../pages/HeroList";
 import TutorialWelcome from "./TutorialWelcome";
 import TutorialDialogue from "./TutorialDialogue";
@@ -7,6 +7,11 @@ import tutorialScript from "./tutorialScript.json";
 import { calculateSynergyPicks } from "../utils/synergy";
 import { useDragLayer } from "react-dnd";
 import useSideSwitchEasterEgg from "./useSideSwitchEasterEgg";
+import {
+    canPerformPoolAction,
+    isPoolTaskComplete,
+    personalizePoolScript,
+} from "./heroPoolLesson";
 
 const LESSONS = {
     "first-pick": {
@@ -70,7 +75,7 @@ const LESSONS = {
     },
     "recommendations": {
         script: tutorialScript.recommendations,
-        nextPhase: "practice",
+        nextPhase: "hero-pool",
         endDraft: {
             ally: [
                 tutorialScript.firstPick.heroId,
@@ -85,6 +90,25 @@ const LESSONS = {
             roleFilter: "Support",
         },
     },
+    "hero-pool": {
+        script: tutorialScript.heroPool,
+        nextPhase: "practice",
+        endDraft: {
+            ally: [
+                tutorialScript.firstPick.heroId,
+                ...tutorialScript.dragging.picks
+                    .filter(pick => pick.team === "ally")
+                    .map(pick => pick.heroId),
+                tutorialScript.recommendations.heroId,
+            ],
+            enemy: [tutorialScript.pickingSide.heroId],
+            bans: [tutorialScript.banAndCorrection.heroId],
+            team: "ally",
+            roleFilter: null,
+            heroPool: tutorialScript.heroPool.skipHeroIds,
+            filterByHeroPool: true,
+        },
+    },
 };
 
 export default function TutorialSession({ dataset, onExit }) {
@@ -94,6 +118,16 @@ export default function TutorialSession({ dataset, onExit }) {
     const [pickingSide, setPickingSide] = useState("ally");
     const [practiceDraft, setPracticeDraft] = useState({ ally: [], enemy: [] });
     const [practiceRoleFilter, setPracticeRoleFilter] = useState(null);
+    const [practiceBans, setPracticeBans] = useState([]);
+    const [poolState, setPoolState] = useState({
+        heroPool: [],
+        editing: false,
+        filtering: false,
+        breakdownOpen: false,
+    });
+    const [poolChoices, setPoolChoices] = useState([]);
+    const [highlightReadyId, setHighlightReadyId] = useState(null);
+    const pendingPoolAction = useRef(null);
     const [pinnedRecommendation, setPinnedRecommendation] = useState(null);
     const [feedback, setFeedback] = useState("");
     const [practiceSeed, setPracticeSeed] = useState(null);
@@ -116,7 +150,16 @@ export default function TutorialSession({ dataset, onExit }) {
 
     const isLesson = Boolean(LESSONS[phase]);
     const lesson = LESSONS[phase] ?? LESSONS["first-pick"];
-    const script = lesson.script;
+    const script = useMemo(() => phase === "hero-pool"
+        ? personalizePoolScript(
+            lesson.script,
+            poolChoices,
+            dataset.heroById,
+            practiceDraft,
+            practiceBans
+        )
+        : lesson.script,
+    [phase, lesson, poolChoices, dataset.heroById, practiceDraft, practiceBans]);
 
     const line = script.lines[page];
     const successPage = script.lines.findIndex(
@@ -173,14 +216,22 @@ export default function TutorialSession({ dataset, onExit }) {
                 : "hero-grid"
         : null;
 
-    const lineHighlight = taskHighlight ?? (
-        sideButtonRunaway ? "hero-grid" : (
-            line.highlightWhileDragging?.[draggedHeroId]
-            ?? line.highlightByPickingSide?.[pickingSide]
-            ?? line.highlight
-            ?? null
-        )
-    );
+    const poolTaskHighlight = line.action?.type === "pool-select"
+        ? poolState.editing ? "hero-grid" : "pool-edit"
+        : null;
+
+    const cuePending = line.highlightAfter && highlightReadyId !== line.id;
+
+    const lineHighlight = cuePending
+        ? line.highlightBefore ?? null
+        : poolTaskHighlight ?? taskHighlight ?? (
+            sideButtonRunaway ? "hero-grid" : (
+                line.highlightWhileDragging?.[draggedHeroId]
+                ?? line.highlightByPickingSide?.[pickingSide]
+                ?? line.highlight
+                ?? null
+            )
+        );
     const spotlight = isLesson
         && !(line.releaseHighlightOnComplete && completedLineId === line.id)
         ? lineHighlight
@@ -191,11 +242,56 @@ export default function TutorialSession({ dataset, onExit }) {
         []
     );
 
+    const onHighlightReady = useCallback(id => setHighlightReadyId(id), []);
+    const onPoolChange = useCallback(state => setPoolState(state), []);
+
+    // Wait for an accepted input AND its committed UI state. Restoring a skip
+    // seed must never complete the next task without the user's input.
+    useEffect(() => {
+        if (phase !== "hero-pool"
+            || pendingPoolAction.current !== line.id
+            || !isPoolTaskComplete(line.action, poolState, practiceRoleFilter)) return;
+
+        pendingPoolAction.current = null;
+
+        if (line.action.type === "pool-select") {
+            setPoolChoices([...poolState.heroPool]);
+        }
+
+        resetSideSwitches();
+        setFeedback("");
+        setPage(script.lines.findIndex(
+            item => item.id === line.action.successLineId
+        ));
+    }, [
+        phase,
+        line,
+        poolState,
+        practiceRoleFilter,
+        script.lines,
+        resetSideSwitches,
+    ]);
+
     const beforeAction = useCallback(action => {
         if (!isLesson) return true;
 
+        const poolLesson = phase === "hero-pool";
+
+        if (poolLesson
+            && canPerformPoolAction(
+                action,
+                line.action,
+                poolState,
+                dataset.heroById
+            )) {
+            pendingPoolAction.current = line.id;
+            setFeedback("");
+            return true;
+        }
+
         if (
-            !picked
+            !poolLesson
+            && !picked
             && (lesson.allowTeamSwitch || line.action?.allowTeamSwitch)
             && action.type === "team-switch"
         ) {
@@ -209,7 +305,8 @@ export default function TutorialSession({ dataset, onExit }) {
         const expectedAction = line.action;
 
         if (
-            action.type === "role-filter"
+            !poolLesson
+            && action.type === "role-filter"
             && expectedAction?.requiresRoleFilter === action.value
         ) {
             setFeedback("");
@@ -217,7 +314,8 @@ export default function TutorialSession({ dataset, onExit }) {
         }
 
         if (
-            expectedAction
+            !poolLesson
+            && expectedAction
             && action.type === expectedAction.type
             && action.heroId === expectedAction.heroId
             && (!expectedAction.team || action.team === expectedAction.team)
@@ -231,7 +329,8 @@ export default function TutorialSession({ dataset, onExit }) {
 
         // Enforce the requested input method and each hero's destination.
         if (
-            !picked
+            !poolLesson
+            && !picked
             && action.type === "pick"
             && action.source === (lesson.pickSource ?? "click")
             && requiredPicks.some(pick =>
@@ -273,14 +372,28 @@ export default function TutorialSession({ dataset, onExit }) {
         }
 
         return false;
-    }, [isLesson, lesson, requiredPicks, picked, line.action, phase, recordSwitch, breakStreak, practiceRoleFilter]);
+    }, [
+        isLesson,
+        lesson,
+        requiredPicks,
+        picked,
+        line.action,
+        line.id,
+        phase,
+        recordSwitch,
+        breakStreak,
+        practiceRoleFilter,
+        poolState,
+        dataset.heroById,
+    ]);
 
     const onDraftChange = useCallback((draft, team, bans = [], roleFilter = null) => {
         setPickingSide(team);
         setPracticeDraft(draft);
         setPracticeRoleFilter(roleFilter);
+        setPracticeBans(bans);
 
-        if (!isLesson || picked) return;
+        if (!isLesson || picked || phase === "hero-pool") return;
 
         const expectedAction = line.action;
 
@@ -367,6 +480,12 @@ export default function TutorialSession({ dataset, onExit }) {
     const tutorial = useMemo(() => isLesson ? {
         beforeAction,
         onDraftChange,
+        onPoolChange,
+        poolLesson: phase === "hero-pool"
+            ? { bottomInset: dialogueReserve }
+            : null,
+        allowSearch: phase !== "hero-pool"
+            || line.action?.type === "pool-select",
         highlight: spotlight,
         comparisonLabel: showComparison ? "AFTER" : null,
         targetHeroIds,
@@ -374,7 +493,8 @@ export default function TutorialSession({ dataset, onExit }) {
         onRecommendationHover,
         pinnedRecommendation: showPinnedBreakdown ? pinnedRecommendation : null,
         breakdownBottomInset: showPinnedBreakdown ? dialogueReserve : 0,
-        suppressRecommendationTooltip: phase === "recommendations",
+        suppressRecommendationTooltip:
+            ["recommendations", "hero-pool"].includes(phase),
     } : null, [
         isLesson,
         beforeAction,
@@ -388,7 +508,8 @@ export default function TutorialSession({ dataset, onExit }) {
         pinnedRecommendation,
         dialogueReserve,
         phase,
-        
+        onPoolChange,
+        line.action,
     ]);
 
 
@@ -397,6 +518,8 @@ export default function TutorialSession({ dataset, onExit }) {
         setBeforeRecommendations(null);
         setDialogueReserve(0);
         setPinnedRecommendation(null);
+        pendingPoolAction.current = null;
+        setHighlightReadyId(null);
         setPage(0);
         setPicked(false);
         setFeedback("");
@@ -416,8 +539,16 @@ export default function TutorialSession({ dataset, onExit }) {
     }
 
     function skipLesson() {
-        // Preserve the exact draft expected by the following lesson.
-        setPracticeSeed(lesson.endDraft);
+        // Preserve completed personal choices; otherwise provide five defaults.
+        setPracticeSeed(phase === "hero-pool" ? {
+            ...lesson.endDraft,
+            heroPool: poolChoices.length === script.requiredHeroes
+                ? poolChoices
+                : poolState.heroPool.length === script.requiredHeroes
+                    ? poolState.heroPool
+                    : script.skipHeroIds,
+        } : lesson.endDraft);
+
         finishLesson();
     }
 
@@ -487,6 +618,7 @@ export default function TutorialSession({ dataset, onExit }) {
                     comparisonRows={showComparison ? beforeRecommendations : null}
                     onReserveSpace={setDialogueReserve}
                     pointToBonus={line.pointToBonus}
+                    dimBackground={line.dimBackground !== false}
                 >
                     <TutorialDialogue
                         compact
@@ -499,10 +631,13 @@ export default function TutorialSession({ dataset, onExit }) {
                         canAdvance={!waitingForInput}
                         hint={sideButtonRunaway
                             ? tutorialScript.sideSwitchEasterEgg.runawayHint
-                            : line.hint}
+                            : line.action?.type === "pool-select"
+                                ? `${line.hint} (${poolState.heroPool.length}/${script.requiredHeroes})`
+                                : line.hint}
                         feedback={feedback}
                         onNext={advanceLesson}
                         onLineComplete={onLineComplete}
+                        onHighlightReady={onHighlightReady}
                         onSkip={skipLesson}
                         onExit={onExit}
                     />
