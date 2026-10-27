@@ -159,7 +159,7 @@ export default function TutorialSession({ dataset, onExit }) {
             practiceBans
         )
         : lesson.script,
-    [phase, lesson, poolChoices, dataset.heroById, practiceDraft, practiceBans]);
+        [phase, lesson, poolChoices, dataset.heroById, practiceDraft, practiceBans]);
 
     const line = script.lines[page];
     const successPage = script.lines.findIndex(
@@ -494,7 +494,8 @@ export default function TutorialSession({ dataset, onExit }) {
         pinnedRecommendation: showPinnedBreakdown ? pinnedRecommendation : null,
         breakdownBottomInset: showPinnedBreakdown ? dialogueReserve : 0,
         suppressRecommendationTooltip:
-            ["recommendations", "hero-pool"].includes(phase),
+            showComparison
+            || ["recommendations", "hero-pool"].includes(phase),
     } : null, [
         isLesson,
         beforeAction,

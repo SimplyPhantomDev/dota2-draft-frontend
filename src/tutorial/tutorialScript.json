@@ -148,12 +148,12 @@
         "lines": [
             {
                 "id": "dragging-intro",
-                "text": "I did a little research into all these F-controls and apparently it is also possible to select heroes for either team whenever you want."
+                "text": "I did a little research into all these advanced controls and apparently it is also possible to select heroes for either team whenever you want."
             },
             {
                 "id": "dragging-explanation",
                 "highlight": "hero-grid",
-                "text": "Apparently grabbing hold of a hero's hand, and walking them to their appropriate team works regardless of pick selection side."
+                "text": "Apparently walking a hero to their appropriate team works regardless of pick selection side."
             },
             {
                 "id": "dragging-task",

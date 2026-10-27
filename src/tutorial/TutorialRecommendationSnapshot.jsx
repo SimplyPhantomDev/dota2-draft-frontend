@@ -7,7 +7,7 @@ export default function TutorialRecommendationSnapshot({ heroes }) {
                 id="tutorial-before-title"
                 className="mb-ui-sm shrink-0 text-center text-sm font-semibold"
             >
-                Before
+                BEFORE
             </h2>
 
             <div
