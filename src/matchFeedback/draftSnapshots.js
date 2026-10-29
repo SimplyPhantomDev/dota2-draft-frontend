@@ -58,7 +58,7 @@ export function createDraftSnapshot({
         firstLeftAt: null,
         predictedAllyWinRate: prediction.ally,
         displayedAllyWinPercent: Math.round(prediction.ally * 10000) / 100,
-        predictorVersion: "baseline-average-v1",
+        predictorVersion: prediction.predictorVersion ?? "baseline-average-v1",
         appVersion: appVersion ?? null,
         dataset: {
             generatedAt: manifest?.generatedAt ?? null,

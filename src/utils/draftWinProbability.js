@@ -1,14 +1,24 @@
-// Experimental draft heuristic. This is not a calibrated match probability.
-// matchupIndex must contain the validated baselines created by indexMatrix().
+import { predictLocalDraft } from "../model/localDraftModel";
+// Prefer the verified bundled model. The baseline heuristic remains available
+// when the model does not cover the current patch or one of the selected heroes.
 export function calculateDraftWinProbability({
     allyHeroIds = [],
     enemyHeroIds = [],
     matchupIndex,
+    patch = null,
 } = {}) {
+    const learned = predictLocalDraft({
+        allyHeroIds,
+        enemyHeroIds,
+        patch,
+    });
+
+    if (learned) return learned;
+
     if (
         !matchupIndex ||
-    !Array.isArray(allyHeroIds) || allyHeroIds.length !== 5 ||
-    !Array.isArray(enemyHeroIds) || enemyHeroIds.length !== 5
+        !Array.isArray(allyHeroIds) || allyHeroIds.length !== 5 ||
+        !Array.isArray(enemyHeroIds) || enemyHeroIds.length !== 5
     ) {
         return null;
     }
@@ -31,7 +41,7 @@ export function calculateDraftWinProbability({
 
             if (
                 !Number.isFinite(baseline) || baseline < 0 || baseline > 1 ||
-        !(entry.withMap instanceof Map) || !(entry.vsMap instanceof Map)
+                !(entry.withMap instanceof Map) || !(entry.vsMap instanceof Map)
             ) {
                 return null;
             }
@@ -59,7 +69,7 @@ export function calculateDraftWinProbability({
 
     if (
         allyStrength === null || enemyStrength === null ||
-    !Number.isFinite(allyStrength) || !Number.isFinite(enemyStrength)
+        !Number.isFinite(allyStrength) || !Number.isFinite(enemyStrength)
     ) {
         return null;
     }
@@ -68,5 +78,10 @@ export function calculateDraftWinProbability({
     // Swapping teams reverses the result; the two outputs always sum to one.
     const ally = Math.max(0, Math.min(1, (allyStrength + 1 - enemyStrength) / 2));
 
-    return { ally, enemy: 1 - ally };
+    return {
+        ally,
+        enemy: 1 - ally,
+        method: "hero-winrates",
+        predictorVersion: "baseline-average-v1",
+    };
 }

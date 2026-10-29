@@ -334,13 +334,14 @@ export default function HeroList({
         matchupIndex,
     }), [inspectedHero, selectedTeam, selectedHeroes, bannedHeroes, matchupIndex]);
 
-    // The new estimator needs a complete draft and usable baseline/matchup data.
-    // A null result tells the sidebar to use the existing score-based estimate.
+    // The bundled model uses its frozen features, independently of matchup data.
+    // Unsupported drafts can fall back to the existing experimental estimators.
     const draftWinProbability = useMemo(() => calculateDraftWinProbability({
         allyHeroIds: selectedHeroes.ally.map(hero => hero.HeroId),
         enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),
         matchupIndex,
-    }), [selectedHeroes, matchupIndex]);
+        patch: datasetManifest?.patch,
+    }), [selectedHeroes, matchupIndex, datasetManifest?.patch]);
 
     const matchFeedback = useDraftCapture({
         active,

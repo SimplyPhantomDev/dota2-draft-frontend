@@ -448,6 +448,12 @@ function Sidebar({
                                         );
                                     })()}
 
+                                    <p className="mt-ui-xs text-center text-xs text-ink-muted">
+                                        {draftWinProbability?.method === "trained-model"
+                                            ? `Trained draft model · Patch ${draftWinProbability.modelPatch}`
+                                            : "Experimental fallback estimate"}
+                                    </p>
+
                                     {showWinrateInfo && (
                                         <section
                                             id="winrate-info"
@@ -476,15 +482,24 @@ function Sidebar({
                                             </div>
 
                                             <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
-                                                {draftWinProbability ? (
+                                                {draftWinProbability?.method === "trained-model" ? (
                                                     <>
-                                                        These percentages combine recent hero win rates with
+                                                        A model evaluated on historical matches estimates these
+                                                        probabilities from hero selections, team traits and
+                                                        observed position compatibility. Radiant and Dire
+                                                        possibilities are averaged because map sides are not specified.
+                                                        The calculation runs entirely inside this app.
+                                                    </>
+                                                ) : draftWinProbability ? (
+                                                    <>
+                                                        The trained model is unavailable for this draft or dataset.
+                                                        This experimental fallback combines recent hero win rates with
                                                         averaged ally synergy and opponent matchup adjustments.
                                                         The two team estimates are reconciled to total 100%.
                                                     </>
                                                 ) : (
                                                     <>
-                                                        Complete data for the win rate based estimate is unavailable.
+                                                        The trained model and win rate based fallback are unavailable.
                                                         These percentages use synergy and matchup scores only,
                                                         with the favoured team's estimate capped at 80%.
                                                     </>
@@ -492,9 +507,9 @@ function Sidebar({
                                             </p>
 
                                             <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
-                                                Both calculations are heuristics and have not been validated
-                                                against match results. Player skill, teamwork and execution
-                                                are outside the calculation.
+                                                Player skill, teamwork, execution and the players' actual
+                                                position choices are outside these calculations.
+                                                Treat the estimates as drafting guidance.
                                             </p>
                                         </section>
                                     )}
