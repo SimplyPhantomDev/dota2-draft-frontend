@@ -61,7 +61,7 @@
         },
         {
             "id": "inspector-candidate",
-            "text": "There he is. Inside the inspector, not inside the draft. While this window is open, left-clicking an available hero changes the inspected candidate. No accidental employment contracts.",
+            "text": "There he is. Inside the inspector, not inside the draft. While this window is open, left-clicking an available hero changes the inspected candidate.",
             "placement": "beside-inspector",
             "highlight": "inspector-details"
         },
@@ -73,7 +73,7 @@
         },
         {
             "id": "inspector-numbers",
-            "text": "His total is -3.07. Omniknight alone contributes -3.27. Apparently divine intervention has its limits. These are raw teammate and opponent contributions: no purple composition bonuses or win probabilities.",
+            "text": "His total is -3.07. Omniknight alone contributes -3.27. Apparently divine intervention has its limits. These are raw teammate and opponent contributions: no purple composition bonuses.",
             "placement": "beside-inspector",
             "highlight": "inspector-details"
         },
@@ -111,7 +111,7 @@
         },
         {
             "id": "inspector-live-task",
-            "text": "Dire has decided to pick Lina. Search for her, then drag her into Dire's draft slots. Keep Sand King under inspection. Left-clicking Lina would ask a completely different question.",
+            "text": "Dire has decided to pick Lina. Search for her, then drag her into Dire's draft slots. Keep Sand King under inspection. Left-clicking would stop inspection on Sand King.",
             "placement": "beside-inspector",
             "highlight": "hero-grid",
             "action": {
