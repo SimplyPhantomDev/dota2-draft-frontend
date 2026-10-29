@@ -159,7 +159,7 @@ export default function TutorialSession({ dataset, onExit }) {
             practiceBans
         )
         : lesson.script,
-        [phase, lesson, poolChoices, dataset.heroById, practiceDraft, practiceBans]);
+    [phase, lesson, poolChoices, dataset.heroById, practiceDraft, practiceBans]);
 
     const line = script.lines[page];
     const successPage = script.lines.findIndex(
