@@ -50,6 +50,8 @@ export default function HeroList({
     const reportTutorialPool = tutorial?.onPoolChange;
     const tutorialSearchAllowed = tutorial?.allowSearch !== false;
     const tutorialTargetHeroIds = tutorial?.targetHeroIds;
+    const recommendationSideLocked =
+        isPractice && tutorial?.allowRecommendationSwitch !== true;
 
     //==============================================
     //============= Drafting State =================
@@ -73,7 +75,12 @@ export default function HeroList({
     const [selectedTeam, setSelectedTeam] = useState("ally");
 
     // Viewing the other side's best picks never changes where clicks add heroes.
-    const [recommendationTeam, setRecommendationTeam] = useState("ally");
+    const [recommendationTeamState, setRecommendationTeam] = useState("ally");
+
+    // Current tutorial lessons always use Radiant recommendations.
+    const recommendationTeam = recommendationSideLocked
+        ? "ally"
+        : recommendationTeamState;
 
     // Heroes that are temporarily click-locked (Emergency fallback for quick inputs)
     const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
@@ -335,6 +342,8 @@ export default function HeroList({
             type: "recommendation-side",
             team,
         })) return;
+
+        if (recommendationSideLocked) return;
 
         setHoveredSuggestedHero(null);
         setRecommendationTeam(team);

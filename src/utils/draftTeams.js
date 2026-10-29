@@ -5,11 +5,8 @@ export const TEAM_LABELS = Object.freeze({
     enemy: "Dire",
 });
 
-// Keep the existing practice script readable until its terminology is updated.
-export const PRACTICE_TEAM_LABELS = Object.freeze({
-    ally: "Ally Team",
-    enemy: "Enemy Team",
-});
+// Practice uses the same fixed sides as ordinary drafts.
+export const PRACTICE_TEAM_LABELS = TEAM_LABELS;
 
 // The scoring engine calls the team receiving a recommendation "ally".
 // Reverse only its input view; the actual draft keeps its original order.

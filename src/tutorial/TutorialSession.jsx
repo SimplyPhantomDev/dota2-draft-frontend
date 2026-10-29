@@ -127,6 +127,7 @@ export default function TutorialSession({ dataset, onExit }) {
     });
     const [poolChoices, setPoolChoices] = useState([]);
     const [highlightReadyId, setHighlightReadyId] = useState(null);
+    const [returnedHighlightId, setReturnedHighlightId] = useState(null);
     const pendingPoolAction = useRef(null);
     const [pinnedRecommendation, setPinnedRecommendation] = useState(null);
     const [feedback, setFeedback] = useState("");
@@ -234,7 +235,9 @@ export default function TutorialSession({ dataset, onExit }) {
         );
     const spotlight = isLesson
         && !(line.releaseHighlightOnComplete && completedLineId === line.id)
-        ? lineHighlight
+        ? returnedHighlightId === line.id
+            ? line.highlightReturn
+            : lineHighlight
         : null;
 
     const onLineComplete = useCallback(
@@ -244,6 +247,35 @@ export default function TutorialSession({ dataset, onExit }) {
 
     const onHighlightReady = useCallback(id => setHighlightReadyId(id), []);
     const onPoolChange = useCallback(state => setPoolState(state), []);
+
+    // Brief pointers begin when the narrator reaches the scripted text cue.
+    // Cancel the return when the user advances, skips or exits the lesson.
+    useEffect(() => {
+        if (
+            !isLesson
+            || cuePending
+            || !line.highlightReturn
+            || !Number.isFinite(line.highlightDurationMs)
+            || line.highlightDurationMs <= 0
+        ) return;
+
+        let live = true;
+
+        const timer = setTimeout(() => {
+            if (live) setReturnedHighlightId(line.id);
+        }, line.highlightDurationMs);
+
+        return () => {
+            live = false;
+            clearTimeout(timer);
+        };
+    }, [
+        isLesson,
+        cuePending,
+        line.id,
+        line.highlightReturn,
+        line.highlightDurationMs,
+    ]);
 
     // Wait for an accepted input AND its committed UI state. Restoring a skip
     // seed must never complete the next task without the user's input.
@@ -479,6 +511,7 @@ export default function TutorialSession({ dataset, onExit }) {
 
     const tutorial = useMemo(() => isLesson ? {
         beforeAction,
+        allowRecommendationSwitch: false,
         onDraftChange,
         onPoolChange,
         poolLesson: phase === "hero-pool"
@@ -521,6 +554,7 @@ export default function TutorialSession({ dataset, onExit }) {
         setPinnedRecommendation(null);
         pendingPoolAction.current = null;
         setHighlightReadyId(null);
+        setReturnedHighlightId(null);
         setPage(0);
         setPicked(false);
         setFeedback("");

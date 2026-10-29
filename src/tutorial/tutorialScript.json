@@ -69,7 +69,11 @@
             {
                 "id": "first-pick-scores",
                 "placement": "beside-sidebar",
-                "highlight": "recommendations",
+                "highlightBefore": "recommendations",
+                "highlight": "recommendation-side",
+                "highlightAfter": "indicated here.",
+                "highlightDurationMs": 2000,
+                "highlightReturn": "recommendations",
                 "text": "The higher the number, the better that hero fits the specified team indicated here. This is your equivalent of a Town Portal Scroll. You use this information to the best of your ability and good things will follow."
             },
             {
@@ -241,7 +245,7 @@
             {
                 "id": "ban-correction-unban",
                 "highlight": "bans",
-                "text": "Apparently the same removal functionality works to banned heroes too."
+                "text": "Apparently the same removal functionality works on banned heroes too."
             },
             {
                 "id": "ban-correction-ban-task",
@@ -280,7 +284,11 @@
             {
                 "id": "recommendations-side",
                 "placement": "beside-sidebar",
-                "highlight": "recommendations",
+                "highlightBefore": "recommendations",
+                "highlight": "recommendation-side",
+                "highlightAfter": "switch here.",
+                "highlightDurationMs": 2000,
+                "highlightReturn": "recommendations",
                 "text": "You can manually change the side for which you see recommendations for by clicking on the switch here."
             },
             {
@@ -432,7 +440,7 @@
                 "id": "pool-edit-explain",
                 "placement": "over-sidebar",
                 "highlight": "pool-edit",
-                "text": "Edit Pool switches the hero grid into pool editing mode. Click a hero to add them to your pool. Click them again to remove them. A rare case of the buttons doing exactly what they look like they do."
+                "text": "Edit Pool switches the hero grid into pool editing mode. Click a hero to add them to your pool. Click them again to remove them. Heroes currently in your hero pool are highlighted in purple."
             },
             {
                 "id": "pool-memory",
