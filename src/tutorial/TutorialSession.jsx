@@ -4,6 +4,11 @@ import TutorialWelcome from "./TutorialWelcome";
 import TutorialDialogue from "./TutorialDialogue";
 import TutorialStage from "./TutorialStage";
 import tutorialScript from "./tutorialScript.json";
+import inspectorScript from "./inspectorScript.json";
+import {
+    canPerformInspectorAction,
+    isInspectorTaskComplete,
+} from "./inspectorLesson";
 import { calculateSynergyPicks } from "../utils/synergy";
 import { useDragLayer } from "react-dnd";
 import useSideSwitchEasterEgg from "./useSideSwitchEasterEgg";
@@ -92,7 +97,7 @@ const LESSONS = {
     },
     "hero-pool": {
         script: tutorialScript.heroPool,
-        nextPhase: "practice",
+        nextPhase: "hero-inspector",
         endDraft: {
             ally: [
                 tutorialScript.firstPick.heroId,
@@ -106,6 +111,28 @@ const LESSONS = {
             team: "ally",
             roleFilter: null,
             heroPool: tutorialScript.heroPool.skipHeroIds,
+            filterByHeroPool: true,
+        },
+    },
+    "hero-inspector": {
+        script: inspectorScript,
+        nextPhase: "practice",
+        endDraft: {
+            ally: [
+                tutorialScript.firstPick.heroId,
+                ...tutorialScript.dragging.picks
+                    .filter(pick => pick.team === "ally")
+                    .map(pick => pick.heroId),
+                tutorialScript.recommendations.heroId,
+                inspectorScript.acceptedHeroId,
+            ],
+            enemy: [
+                tutorialScript.pickingSide.heroId,
+                inspectorScript.opponentHeroId,
+            ],
+            bans: [tutorialScript.banAndCorrection.heroId, inspectorScript.banHeroId],
+            team: "ally",
+            roleFilter: null,
             filterByHeroPool: true,
         },
     },
@@ -129,6 +156,16 @@ export default function TutorialSession({ dataset, onExit }) {
     const [highlightReadyId, setHighlightReadyId] = useState(null);
     const [returnedHighlightId, setReturnedHighlightId] = useState(null);
     const pendingPoolAction = useRef(null);
+    const pendingInspectorAction = useRef(null);
+    const [inspectorState, setInspectorState] = useState({
+        open: false,
+        heroId: null,
+        team: "ally",
+        moves: 0,
+        allyHeroIds: [],
+        enemyHeroIds: [],
+        bannedHeroIds: [],
+    });
     const [pinnedRecommendation, setPinnedRecommendation] = useState(null);
     const [feedback, setFeedback] = useState("");
     const [practiceSeed, setPracticeSeed] = useState(null);
@@ -173,7 +210,7 @@ export default function TutorialSession({ dataset, onExit }) {
     ), [script, lesson.team]);
 
     const targetHeroIds = useMemo(() => {
-        if (["ban", "pick"].includes(line.action?.type)) {
+        if (["ban", "pick", "inspect"].includes(line.action?.type)) {
             return [line.action.heroId];
         }
         if (picked) return [];
@@ -247,6 +284,7 @@ export default function TutorialSession({ dataset, onExit }) {
 
     const onHighlightReady = useCallback(id => setHighlightReadyId(id), []);
     const onPoolChange = useCallback(state => setPoolState(state), []);
+    const onInspectorChange = useCallback(state => setInspectorState(state), []);
 
     // Brief pointers begin when the narrator reaches the scripted text cue.
     // Cancel the return when the user advances, skips or exits the lesson.
@@ -304,10 +342,40 @@ export default function TutorialSession({ dataset, onExit }) {
         resetSideSwitches,
     ]);
 
+    // An accepted event is only a request. Advance once the inspector and draft
+    // agree that the requested action actually happened.
+    useEffect(() => {
+        const pending = pendingInspectorAction.current;
+        if (phase !== "hero-inspector"
+            || pending?.lineId !== line.id
+            || !isInspectorTaskComplete(line.action, inspectorState, pending)) return;
+
+        pendingInspectorAction.current = null;
+        resetSideSwitches();
+        setFeedback("");
+        setPage(script.lines.findIndex(
+            item => item.id === line.action.successLineId
+        ));
+    }, [phase, line, inspectorState, script.lines, resetSideSwitches]);
+
     const beforeAction = useCallback(action => {
         if (!isLesson) return true;
 
         const poolLesson = phase === "hero-pool";
+        const inspectorLesson = phase === "hero-inspector";
+        const toolLesson = poolLesson || inspectorLesson;
+
+        if (inspectorLesson
+            && canPerformInspectorAction(action, line.action, inspectorState)) {
+            if (action.type === line.action?.type) {
+                pendingInspectorAction.current = {
+                    lineId: line.id,
+                    moves: inspectorState.moves,
+                };
+            }
+            setFeedback("");
+            return true;
+        }
 
         if (poolLesson
             && canPerformPoolAction(
@@ -322,7 +390,7 @@ export default function TutorialSession({ dataset, onExit }) {
         }
 
         if (
-            !poolLesson
+            !toolLesson
             && !picked
             && (lesson.allowTeamSwitch || line.action?.allowTeamSwitch)
             && action.type === "team-switch"
@@ -337,7 +405,7 @@ export default function TutorialSession({ dataset, onExit }) {
         const expectedAction = line.action;
 
         if (
-            !poolLesson
+            !toolLesson
             && action.type === "role-filter"
             && expectedAction?.requiresRoleFilter === action.value
         ) {
@@ -346,7 +414,7 @@ export default function TutorialSession({ dataset, onExit }) {
         }
 
         if (
-            !poolLesson
+            !toolLesson
             && expectedAction
             && action.type === expectedAction.type
             && action.heroId === expectedAction.heroId
@@ -361,7 +429,7 @@ export default function TutorialSession({ dataset, onExit }) {
 
         // Enforce the requested input method and each hero's destination.
         if (
-            !poolLesson
+            !toolLesson
             && !picked
             && action.type === "pick"
             && action.source === (lesson.pickSource ?? "click")
@@ -379,7 +447,11 @@ export default function TutorialSession({ dataset, onExit }) {
             expectedAction: expectedAction?.type,
         };
 
-        const specificReply = tutorialScript.interruptions.find(reply =>
+        const interruptions = [
+            ...(script.interruptions ?? []),
+            ...tutorialScript.interruptions,
+        ];
+        const specificReply = interruptions.find(reply =>
             reply.when
             && Object.entries(reply.when).every(([key, expected]) =>
                 Array.isArray(expected)
@@ -396,7 +468,7 @@ export default function TutorialSession({ dataset, onExit }) {
         }
 
         const now = Date.now();
-        const replies = tutorialScript.interruptions.filter(reply => !reply.when);
+        const replies = interruptions.filter(reply => !reply.when);
 
         if (replies.length > 0 && now - lastInterruptionRef.current >= 1500) {
             lastInterruptionRef.current = now;
@@ -417,6 +489,8 @@ export default function TutorialSession({ dataset, onExit }) {
         practiceRoleFilter,
         poolState,
         dataset.heroById,
+        inspectorState,
+        script.interruptions,
     ]);
 
     const onDraftChange = useCallback((draft, team, bans = [], roleFilter = null) => {
@@ -425,7 +499,7 @@ export default function TutorialSession({ dataset, onExit }) {
         setPracticeRoleFilter(roleFilter);
         setPracticeBans(bans);
 
-        if (!isLesson || picked || phase === "hero-pool") return;
+        if (!isLesson || picked || ["hero-pool", "hero-inspector"].includes(phase)) return;
 
         const expectedAction = line.action;
 
@@ -514,6 +588,10 @@ export default function TutorialSession({ dataset, onExit }) {
         allowRecommendationSwitch: false,
         onDraftChange,
         onPoolChange,
+        onInspectorChange,
+        inspectorLesson: phase === "hero-inspector"
+            ? { bottomInset: dialogueReserve }
+            : null,
         poolLesson: phase === "hero-pool"
             ? { bottomInset: dialogueReserve }
             : null,
@@ -528,7 +606,7 @@ export default function TutorialSession({ dataset, onExit }) {
         breakdownBottomInset: showPinnedBreakdown ? dialogueReserve : 0,
         suppressRecommendationTooltip:
             showComparison
-            || ["recommendations", "hero-pool"].includes(phase),
+            || ["recommendations", "hero-pool", "hero-inspector"].includes(phase),
     } : null, [
         isLesson,
         beforeAction,
@@ -543,6 +621,7 @@ export default function TutorialSession({ dataset, onExit }) {
         dialogueReserve,
         phase,
         onPoolChange,
+        onInspectorChange,
         line.action,
     ]);
 
@@ -553,6 +632,7 @@ export default function TutorialSession({ dataset, onExit }) {
         setDialogueReserve(0);
         setPinnedRecommendation(null);
         pendingPoolAction.current = null;
+        pendingInspectorAction.current = null;
         setHighlightReadyId(null);
         setReturnedHighlightId(null);
         setPage(0);

@@ -1,0 +1,248 @@
+{
+    "title": "Lesson 7: Hero inspector",
+    "heroId": 16,
+    "acceptedHeroId": 7,
+    "opponentHeroId": 25,
+    "banHeroId": 26,
+    "lines": [
+        {
+            "id": "inspector-intro",
+            "text": "A list of recommendations is lovely. But sometimes you already have a hero in mind and would like a second opinion before making it everybody else's problem.",
+            "placement": "over-sidebar"
+        },
+        {
+            "id": "inspector-open-task",
+            "text": "Meet the hero inspector. Open it using this button, or press F4. A second opinion without having to speak to another Dota player. Revolutionary.",
+            "placement": "over-sidebar",
+            "highlight": "inspector-toggle",
+            "action": {
+                "type": "inspector",
+                "value": true,
+                "successLineId": "inspector-opened"
+            },
+            "hint": "Open the hero inspector using its button or F4."
+        },
+        {
+            "id": "inspector-opened",
+            "text": "Yes, it floats. No, you do not have to leave it there. Unlike certain teammates, this window will actually go where you tell it.",
+            "placement": "beside-inspector",
+            "highlight": "hero-inspector"
+        },
+        {
+            "id": "inspector-move-task",
+            "text": "Grab its header and move it somewhere comfortable. Leave the hero grid and draft slots reachable. Parking it on top of the work does rather defeat the purpose.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-header",
+            "action": {
+                "type": "inspector-move",
+                "successLineId": "inspector-moved"
+            },
+            "hint": "Drag the inspector header, move it a little, then release."
+        },
+        {
+            "id": "inspector-moved",
+            "text": "Excellent. Window management. Put that on the CV. You can keep moving it whenever it gets in your way.",
+            "placement": "beside-inspector",
+            "highlight": "hero-inspector"
+        },
+        {
+            "id": "inspector-select-task",
+            "text": "Let's audition Sand King. Search for him and left-click his portrait. An audition, mind you. We haven't offered him the job.",
+            "placement": "beside-inspector",
+            "highlight": "hero-grid",
+            "action": {
+                "type": "inspect",
+                "heroId": 16,
+                "team": "ally",
+                "source": "click",
+                "successLineId": "inspector-candidate"
+            },
+            "hint": "Search for Sand King and left-click him."
+        },
+        {
+            "id": "inspector-candidate",
+            "text": "There he is. Inside the inspector, not inside the draft. While this window is open, left-clicking an available hero changes the inspected candidate. No accidental employment contracts.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-details"
+        },
+        {
+            "id": "inspector-scroll",
+            "text": "The list scrolls inside this window. If a row is hiding, scroll the inspector. I put the numbers in here so they wouldn't colonise the hero grid.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-details"
+        },
+        {
+            "id": "inspector-numbers",
+            "text": "His total is -3.07. Omniknight alone contributes -3.27. Apparently divine intervention has its limits. These are raw teammate and opponent contributions: no purple composition bonuses or win probabilities.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-details"
+        },
+        {
+            "id": "inspector-dire-task",
+            "text": "The inspector follows Picking for. Switch that to Dire, using the button or F2. We can interview the same scorpion for the other side without moving a single drafted hero.",
+            "placement": "beside-inspector",
+            "highlight": "picking-side",
+            "action": {
+                "type": "team-switch",
+                "team": "enemy",
+                "inspectedHeroId": 16,
+                "successLineId": "inspector-dire"
+            },
+            "hint": "Switch Picking for to Dire using the button or F2."
+        },
+        {
+            "id": "inspector-dire",
+            "text": "Now Weaver is a potential teammate and Radiant supplies the opponents. Same candidate, different interview. The recommendation feed has its own side switch; these are two different questions.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-details"
+        },
+        {
+            "id": "inspector-radiant-task",
+            "text": "Back to Radiant, please. We are investigating a questionable decision, not defecting halfway through the tutorial.",
+            "placement": "beside-inspector",
+            "highlight": "picking-side",
+            "action": {
+                "type": "team-switch",
+                "team": "ally",
+                "inspectedHeroId": 16,
+                "successLineId": "inspector-live-task"
+            },
+            "hint": "Switch Picking for back to Radiant."
+        },
+        {
+            "id": "inspector-live-task",
+            "text": "Dire has decided to pick Lina. Search for her, then drag her into Dire's draft slots. Keep Sand King under inspection. Left-clicking Lina would ask a completely different question.",
+            "placement": "beside-inspector",
+            "highlight": "hero-grid",
+            "action": {
+                "type": "pick",
+                "heroId": 25,
+                "team": "enemy",
+                "source": "drop",
+                "inspectedHeroId": 16,
+                "successLineId": "inspector-live"
+            },
+            "hint": "Drag Lina into Dire. Keep Sand King inspected.",
+            "highlightWhileDragging": {
+                "25": "enemy-draft"
+            }
+        },
+        {
+            "id": "inspector-live",
+            "text": "Lina joined Dire. Sand King stayed in the inspector. His new Lina row contributes -1.67 and his total is now -4.74. The draft changes, the inspection updates. Our candidate's interview is going spectacularly badly.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-details"
+        },
+        {
+            "id": "inspector-ban-task",
+            "text": "Right-clicking still bans heroes while the inspector is open. Find Lion and right-click him. He has volunteered to sit this one out. He just doesn't know it yet.",
+            "placement": "beside-inspector",
+            "highlight": "hero-grid",
+            "action": {
+                "type": "ban",
+                "heroId": 26,
+                "inspectedHeroId": 16,
+                "successLineId": "inspector-banned"
+            },
+            "hint": "Search for Lion and right-click to ban him."
+        },
+        {
+            "id": "inspector-banned",
+            "text": "Lion is banned. Sand King remains our candidate. Left-click inspects, dragging picks, right-click bans. We have a system. Please resist the urge to improvise.",
+            "placement": "beside-inspector",
+            "highlight": "bans"
+        },
+        {
+            "id": "inspector-compare-task",
+            "text": "Perhaps we should interview someone else. Find Earthshaker and left-click him. Replacing an inspected hero costs us nothing. Replacing an actual last-pick disaster tends to require another queue.",
+            "placement": "beside-inspector",
+            "highlight": "hero-grid",
+            "action": {
+                "type": "inspect",
+                "heroId": 7,
+                "team": "ally",
+                "source": "click",
+                "successLineId": "inspector-comparison"
+            },
+            "hint": "Search for Earthshaker and left-click to inspect him."
+        },
+        {
+            "id": "inspector-comparison",
+            "text": "+3.33. A stronger matchup total for this draft, with no commitment required to compare them. Whether you can land an Echo Slam remains outside my department.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-details"
+        },
+        {
+            "id": "inspector-accept-task",
+            "text": "Let's give Earthshaker the job. Click Pick Earthshaker for Radiant inside the inspector. Check the team written on that button. Reading it is considerably cheaper than apologising afterwards.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-accept",
+            "action": {
+                "type": "pick",
+                "heroId": 7,
+                "team": "ally",
+                "source": "inspector",
+                "inspectedHeroId": 7,
+                "successLineId": "inspector-picked"
+            },
+            "hint": "Use the inspector button to pick Earthshaker for Radiant."
+        },
+        {
+            "id": "inspector-picked",
+            "text": "Now he's in the draft. The inspector stays open, and its pick button prevents a duplicate. One Earthshaker is plenty. We have enough coordination problems already.",
+            "placement": "beside-inspector",
+            "highlight": "ally-draft"
+        },
+        {
+            "id": "inspector-close-task",
+            "text": "Close the inspector with its X or F4. With it closed, ordinary left-clicks pick heroes again. The interview room is shut; recruitment can resume.",
+            "placement": "beside-inspector",
+            "highlight": "inspector-close",
+            "action": {
+                "type": "inspector",
+                "value": false,
+                "successLineId": "inspector-done"
+            },
+            "hint": "Close the inspector using its X or F4."
+        },
+        {
+            "id": "inspector-done",
+            "text": "There. You can examine a candidate, keep watching as the draft changes, compare an alternative and commit when you're ready. Almost suspiciously responsible behaviour for a Dota player.",
+            "placement": "over-sidebar"
+        }
+    ],
+    "interruptions": [
+        {
+            "when": {
+                "type": "inspect",
+                "heroId": 25,
+                "expectedAction": "pick"
+            },
+            "text": "That's a click. Drag Lina to Dire; Sand King is still mid-interview."
+        },
+        {
+            "when": {
+                "type": "inspect",
+                "heroId": 26,
+                "expectedAction": "ban"
+            },
+            "text": "Left button auditions. Right button bans. Lion isn't auditioning."
+        },
+        {
+            "when": {
+                "type": "pick",
+                "heroId": 7,
+                "source": "drop",
+                "expectedAction": "pick"
+            },
+            "text": "Use the inspector's pick button this time. We already know you can drag."
+        },
+        {
+            "when": {
+                "type": "inspector",
+                "value": false
+            },
+            "text": "We're halfway through an interview. You can't just close the office."
+        }
+    ]
+}
