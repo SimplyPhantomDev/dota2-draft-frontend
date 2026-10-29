@@ -278,6 +278,12 @@
                 "text": "Every ally and enemy is taken into consideration. Picked and banned heroes won't be recommended. Simple enough."
             },
             {
+                "id": "recommendations-side",
+                "placement": "beside-sidebar",
+                "highlight": "recommendations",
+                "text": "You can manually change the side for which you see recommendations for by clicking on the switch here."
+            },
+            {
                 "id": "recommendations-hover",
                 "placement": "beside-sidebar",
                 "highlight": "recommendations",
@@ -294,7 +300,7 @@
                 "placement": "beside-breakdown",
                 "highlight": "recommendation-breakdown",
                 "keepBreakdown": true,
-                "text": "As you can see, Batrider seems to be loved by Dazzle, disliked by Slark, and particularly unwelcome in Weaver's company."
+                "text": "As you can see, Batrider seems to be loved by Dazzle, disliked by Slark, and particularly unwelcomed by Weaver."
             },
             {
                 "id": "recommendations-why",
@@ -360,7 +366,7 @@
                 "id": "recommendations-success",
                 "placement": "over-sidebar",
                 "highlight": "ally-draft",
-                "text": "I genuinely hope the Omniscience can guide these clowns to victory..."
+                "text": "It seems Radiant is building a draft centered around healing. Dire's follow up would be gated behind a paid subscription but the tax officials wouldn't allow that."
             }
         ]
     },
