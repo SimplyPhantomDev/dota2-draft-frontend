@@ -48,6 +48,7 @@ export default function HeroList({
     const beforeTutorialAction = tutorial?.beforeAction;
     const reportTutorialDraft = tutorial?.onDraftChange;
     const reportTutorialPool = tutorial?.onPoolChange;
+    const reportTutorialInspector = tutorial?.onInspectorChange;
     const tutorialSearchAllowed = tutorial?.allowSearch !== false;
     const tutorialTargetHeroIds = tutorial?.targetHeroIds;
     const recommendationSideLocked =
@@ -119,6 +120,7 @@ export default function HeroList({
     const [showDraftOverview, setShowDraftOverview] = useState(false);
 
     const [showHeroInspector, setShowHeroInspector] = useState(false);
+    const [inspectorMoves, setInspectorMoves] = useState(0);
 
     // Retain the floating panel's location while it is closed during this session.
     const [inspectorPosition, setInspectorPosition] = useState(null);
@@ -303,6 +305,28 @@ export default function HeroList({
         reportTutorialPool,
     ]);
 
+    // Report the inspector and draft together after React commits. This confirms
+    // that a drop updated the draft without replacing the inspected candidate.
+    useEffect(() => {
+        reportTutorialInspector?.({
+            open: showHeroInspector,
+            heroId: inspectedHero?.HeroId ?? null,
+            team: selectedTeam,
+            moves: inspectorMoves,
+            allyHeroIds: selectedHeroes.ally.map(hero => hero.HeroId),
+            enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),
+            bannedHeroIds: bannedHeroes.map(hero => hero.HeroId),
+        });
+    }, [
+        reportTutorialInspector,
+        showHeroInspector,
+        inspectedHero,
+        selectedTeam,
+        inspectorMoves,
+        selectedHeroes,
+        bannedHeroes,
+    ]);
+
     // Skipping prepares the draft that the following lesson expects.
     useEffect(() => {
         if (!practiceDataset || !practiceSeed) return;
@@ -325,15 +349,22 @@ export default function HeroList({
         setFilterByHeroPool(practiceSeed.filterByHeroPool ?? false);
         setEditHeroPoolMode(false);
         setShowPoolBreakdown(false);
+        setShowHeroInspector(false);
+        setInspectedHero(null);
+        setInspectorMoves(0);
         setSearchQuery("");
     }, [practiceDataset, practiceSeed]);
 
     const handleTeamSwitch = useCallback((source = "keyboard") => {
         if (!canSwitchTeam) return;
-        if (!requestTutorialAction({ type: "team-switch", source })) return;
+        if (!requestTutorialAction({
+            type: "team-switch",
+            team: selectedTeam === "ally" ? "enemy" : "ally",
+            source,
+        })) return;
 
         setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
-    }, [canSwitchTeam, requestTutorialAction]);
+    }, [canSwitchTeam, requestTutorialAction, selectedTeam]);
 
     const handleRecommendationSwitch = () => {
         const team = recommendationTeam === "ally" ? "enemy" : "ally";
@@ -359,16 +390,30 @@ export default function HeroList({
     }, []);
 
     const toggleHeroInspector = useCallback(() => {
-        if (!requestTutorialAction({ type: "inspector" })) return;
+        if (!requestTutorialAction({
+            type: "inspector",
+            value: !showHeroInspector,
+        })) return;
 
         setEditHeroPoolMode(false);
         setShowPoolBreakdown(false);
         setShowHeroInspector(open => !open);
-    }, [requestTutorialAction]);
+    }, [requestTutorialAction, showHeroInspector]);
 
     const closeHeroInspector = useCallback(() => {
+        if (!requestTutorialAction({ type: "inspector", value: false })) return;
         setShowHeroInspector(false);
-    }, []);
+    }, [requestTutorialAction]);
+
+    const beforeInspectorMove = useCallback(
+        () => requestTutorialAction({ type: "inspector-move" }),
+        [requestTutorialAction]
+    );
+
+    const reportInspectorMoved = useCallback(
+        () => setInspectorMoves(count => count + 1),
+        []
+    );
 
     const togglePoolEdit = useCallback(() => {
         if (!requestTutorialAction({
@@ -730,6 +775,7 @@ export default function HeroList({
         // Inspection changes only the candidate. Actual picks still use handleDrop.
         if (showHeroInspector) {
             setInspectedHero(hero);
+            if (beforeTutorialAction) setSearchQuery("");
             return;
         }
 
@@ -1000,6 +1046,9 @@ export default function HeroList({
                         initialPosition={inspectorPosition}
                         onPositionChange={setInspectorPosition}
                         triggerRef={inspectorButtonRef}
+                        beforeMove={beforeInspectorMove}
+                        onMoved={reportInspectorMoved}
+                        bottomInset={tutorial?.inspectorLesson?.bottomInset ?? 0}
                     />
                 )}
             </AnimatePresence>}

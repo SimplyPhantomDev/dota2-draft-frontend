@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { usePresence, useReducedMotion } from "framer-motion";
 
 // Fixed panels use viewport coordinates; leave a small reachable margin.
-function clampInspectorPosition(position, panel) {
+function clampInspectorPosition(position, panel, bottomInset = 0) {
     // Layout dimensions stay accurate while an animation scales the panel.
     const width = panel.offsetWidth;
     const height = panel.offsetHeight;
@@ -11,7 +11,7 @@ function clampInspectorPosition(position, panel) {
 
     return {
         x: Math.max(margin, Math.min(position.x, window.innerWidth - width - margin)),
-        y: Math.max(margin, Math.min(position.y, window.innerHeight - height - margin)),
+        y: Math.max(margin, Math.min(position.y, window.innerHeight - bottomInset - height - margin)),
     };
 }
 
@@ -75,6 +75,9 @@ export default function HeroInspector({
     initialPosition = null,
     onPositionChange,
     triggerRef,
+    beforeMove = null,
+    onMoved = null,
+    bottomInset = 0,
 }) {
     const panelRef = useRef(null);
     const closeButtonRef = useRef(null);
@@ -93,7 +96,7 @@ export default function HeroInspector({
         const keepVisible = () => {
             if (!positionRef.current) return;
 
-            const next = clampInspectorPosition(positionRef.current, panel);
+            const next = clampInspectorPosition(positionRef.current, panel, bottomInset);
             if (positionRef.current.x === next.x && positionRef.current.y === next.y) return;
 
             positionRef.current = next;
@@ -110,7 +113,7 @@ export default function HeroInspector({
             window.removeEventListener("resize", keepVisible);
             observer.disconnect();
         };
-    }, [onPositionChange]);
+    }, [onPositionChange, bottomInset]);
 
     // AnimatePresence retains this portal during closing. Measure the real
     // button on every toggle so a moved inspector still returns to that button.
@@ -188,17 +191,23 @@ export default function HeroInspector({
             !event.isPrimary || event.button !== 0) return;
         if (event.target.closest("button, a, input, select, textarea")) return;
 
+        if (beforeMove?.() === false) return;
+
         const panel = panelRef.current;
         const bounds = panel.getBoundingClientRect();
+        const next = clampInspectorPosition(
+            { x: bounds.left, y: bounds.top }, panel, bottomInset
+        );
 
         dragRef.current = {
             pointerId: event.pointerId,
             offsetX: event.clientX - bounds.left,
             offsetY: event.clientY - bounds.top,
+            startX: next.x,
+            startY: next.y,
         };
 
         // Anchor to the current visual position so the first movement cannot jump.
-        const next = clampInspectorPosition({ x: bounds.left, y: bounds.top }, panel);
         positionRef.current = next;
         setPosition(next);
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -212,7 +221,7 @@ export default function HeroInspector({
         const next = clampInspectorPosition({
             x: event.clientX - drag.offsetX,
             y: event.clientY - drag.offsetY,
-        }, panelRef.current);
+        }, panelRef.current, bottomInset);
 
         positionRef.current = next;
         setPosition(next);
@@ -220,11 +229,18 @@ export default function HeroInspector({
 
     const handleDragEnd = (event) => {
         if (dragRef.current?.pointerId !== event.pointerId) return;
+        const drag = dragRef.current;
         dragRef.current = null;
 
         // Save in the parent once per drag so moving the panel does not rerender
         // the entire hero grid for every pointer movement.
         onPositionChange?.(positionRef.current);
+
+        // A completed move counts; a click, cancellation or resize does not.
+        if (event.type === "pointerup" && Math.hypot(
+            positionRef.current.x - drag.startX,
+            positionRef.current.y - drag.startY
+        ) >= 16) onMoved?.();
 
         if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
@@ -259,6 +275,7 @@ export default function HeroInspector({
     return createPortal(
         <section
             id="hero-inspector"
+            data-tutorial-target="hero-inspector"
             ref={panelRef}
             role="dialog"
             aria-modal="false"
@@ -269,6 +286,10 @@ export default function HeroInspector({
                 flex-col overflow-hidden rounded-panel border border-line
                 bg-surface text-ink shadow-panel lg:right-[calc(clamp(17rem,22vw,22rem)+1.5rem)]"
             style={{
+                ...(bottomInset > 0 ? {
+                    bottom: bottomInset + 16,
+                    maxHeight: `calc(100dvh - ${bottomInset + 32}px)`,
+                } : {}),
                 ...(position ? {
                     left: position.x,
                     top: position.y,
@@ -280,6 +301,7 @@ export default function HeroInspector({
             }}
         >
             <header
+                data-tutorial-target="inspector-header"
                 onPointerDown={handleDragStart}
                 onPointerMove={handleDragMove}
                 onPointerUp={handleDragEnd}
@@ -290,6 +312,7 @@ export default function HeroInspector({
             >
                 <button
                     ref={closeButtonRef}
+                    data-tutorial-target="inspector-close"
                     type="button"
                     aria-label="Close hero inspector"
                     aria-keyshortcuts={shortcutKey}
@@ -309,7 +332,10 @@ export default function HeroInspector({
                 </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-ui-md">
+            <div
+                data-tutorial-target="inspector-details"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-ui-md"
+            >
                 {!inspection ? (
                     <p className="text-sm text-ink-muted">
                         Left-click a hero in the grid to inspect it.
@@ -352,9 +378,12 @@ export default function HeroInspector({
                 )}
             </div>
 
-            <footer className="shrink-0 space-y-ui-sm border-t border-line p-ui-md">
+            <footer className={`shrink-0 space-y-ui-sm border-t border-line p-ui-md ${
+                bottomInset > 0 ? "max-h-[45%] overflow-y-auto" : ""
+            }`}>
                 <button
                     type="button"
+                    data-tutorial-target="inspector-accept"
                     disabled={!inspection?.canPick}
                     aria-describedby={inspection?.pickBlockedReason
                         ? "hero-inspector-pick-status"
@@ -362,7 +391,7 @@ export default function HeroInspector({
                     }
                     onClick={() => {
                         if (inspection?.canPick) {
-                            onPick(inspection.hero, inspection.team);
+                            onPick(inspection.hero, inspection.team, "inspector");
                         }
                     }}
                     className="ui-button ui-button-accent w-full whitespace-normal"

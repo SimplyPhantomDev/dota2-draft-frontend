@@ -22,6 +22,10 @@ export default function TutorialStage({
     const dialogueRef = useRef(null);
     const [layout, setLayout] = useState(null);
     const comparing = comparisonRows !== null;
+    const followsInspector = placement === "beside-inspector" || [
+        "hero-inspector", "inspector-header", "inspector-details",
+        "inspector-accept", "inspector-close",
+    ].includes(target);
 
     useLayoutEffect(() => {
         const workspace = workspaceRef.current;
@@ -30,7 +34,8 @@ export default function TutorialStage({
         const sidebar = workspace.querySelector(
             '[data-tutorial-target="recommendations"]'
         );
-        const scope = ["recommendation-breakdown", "pool-breakdown"].includes(target)
+        const scope = followsInspector
+            || ["recommendation-breakdown", "pool-breakdown"].includes(target)
             ? document
             : workspace;
 
@@ -56,6 +61,10 @@ export default function TutorialStage({
                 targetRect: element?.getBoundingClientRect(),
                 placement,
                 comparing,
+                avoidRect: placement === "beside-inspector"
+                    ? document.querySelector('[data-tutorial-target="hero-inspector"]')
+                        ?.getBoundingClientRect()
+                    : null,
             });
 
             onReserveSpace?.(next.reserveBottom);
@@ -72,6 +81,16 @@ export default function TutorialStage({
 
         measure();
 
+        // ResizeObserver misses positional changes and the opening animation.
+        // Follow this movable portal only while the lesson refers to it.
+        let frame;
+        function followInspector() {
+            if (!live) return;
+            measure();
+            frame = requestAnimationFrame(followInspector);
+        }
+        if (followsInspector) frame = requestAnimationFrame(followInspector);
+
         const observer = new ResizeObserver(measure);
         for (const node of new Set([workspace, sidebar, ...candidates])) {
             if (node) observer.observe(node);
@@ -82,11 +101,12 @@ export default function TutorialStage({
 
         return () => {
             live = false;
+            cancelAnimationFrame(frame);
             observer.disconnect();
             window.removeEventListener("resize", measure);
             window.removeEventListener("scroll", measure, true);
         };
-    }, [workspaceRef, target, placement, comparing, onReserveSpace]);
+    }, [workspaceRef, target, placement, comparing, onReserveSpace, followsInspector]);
 
     if (!layout) return null;
 

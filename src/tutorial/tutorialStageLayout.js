@@ -14,6 +14,7 @@ export function getTutorialStageLayout({
     targetRect,
     placement,
     comparing = false,
+    avoidRect = null,
 }) {
     const availableWidth = Math.max(0, viewportWidth - MARGIN * 2);
     const availableHeight = Math.max(0, viewportHeight - MARGIN * 2);
@@ -81,10 +82,12 @@ export function getTutorialStageLayout({
                 ) - highlightTop,
             };
         }
-    } else if (placement === "beside-breakdown" && targetRect) {
-        const roomLeft = targetRect.left - PANEL_GAP - MARGIN;
+    } else if (["beside-breakdown", "beside-inspector"].includes(placement)
+        && (avoidRect ?? targetRect)) {
+        const obstruction = avoidRect ?? targetRect;
+        const roomLeft = obstruction.left - PANEL_GAP - MARGIN;
         const roomRight = viewportWidth - MARGIN
-            - (targetRect.left + targetRect.width + PANEL_GAP);
+            - (obstruction.left + obstruction.width + PANEL_GAP);
 
         if (
             Math.max(roomLeft, roomRight)
@@ -94,11 +97,11 @@ export function getTutorialStageLayout({
 
             width = Math.min(width, useLeft ? roomLeft : roomRight);
             left = useLeft
-                ? targetRect.left - PANEL_GAP - width
-                : targetRect.left + targetRect.width + PANEL_GAP;
+                ? obstruction.left - PANEL_GAP - width
+                : obstruction.left + obstruction.width + PANEL_GAP;
 
             top = clamp(
-                targetRect.top + (targetRect.height - height) / 2,
+                obstruction.top + (obstruction.height - height) / 2,
                 MARGIN,
                 viewportHeight - MARGIN - height
             );

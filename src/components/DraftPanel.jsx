@@ -117,6 +117,7 @@ function DraftPanel({
                     </button>
                     <button
                         ref={inspectorButtonRef}
+                        data-tutorial-target="inspector-toggle"
                         type="button"
                         onClick={toggleHeroInspector}
                         aria-label="Hero inspector"
