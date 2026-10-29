@@ -70,7 +70,7 @@
                 "id": "first-pick-scores",
                 "placement": "beside-sidebar",
                 "highlight": "recommendations",
-                "text": "The higher the number, the better that hero fits your current draft. This is your equivalent of a Town Portal Scroll. You use this information to the best of your ability and good things will follow."
+                "text": "The higher the number, the better that hero fits the specified team indicated here. This is your equivalent of a Town Portal Scroll. You use this information to the best of your ability and good things will follow."
             },
             {
                 "id": "first-pick-promise",
@@ -89,12 +89,12 @@
         "lines": [
             {
                 "id": "picking-side-intro",
-                "text": "Right. Now that we've gotten ourselves the best of the best supports selected, how about we choose some heroes to the enemy team as well."
+                "text": "Right. Now that we've gotten ourselves the best of the best supports selected for Radiant, how about we choose some heroes to Dire as well."
             },
             {
                 "id": "picking-side-button",
                 "highlight": "picking-side",
-                "text": "As you previously saw, this label here is actually a 'change picking side' button that you can use to change the team you are picking for."
+                "text": "Contrary to what you previously saw, this label here is actually a 'change picking side' button that you can use to change the team you are picking for."
             },
             {
                 "id": "picking-side-weaver",
@@ -104,14 +104,14 @@
                 },
                 "waitForPick": true,
                 "hint": "Change the picking side and choose Weaver.",
-                "text": "Now, let's say your opponents go ahead and pick Weaver position 4 as a response to your Dazzle. Go on, change the picking side and click on Weaver."
+                "text": "Now, let's say Dire goes ahead and picks Weaver position 4 as a response to Radiant's Dazzle. Go on, change the picking side and click on Weaver."
             },
             {
                 "id": "picking-side-success",
                 "placement": "beside-comparison",
                 "highlight": "recommendations",
                 "compareRecommendations": true,
-                "text": "Nicely done! As you can see here some heroes thought twice once the Weaver showed his face."
+                "text": "Nicely done! As you can see here some heroes thought twice about tagging along with Dazzle once the Weaver showed his face."
             },
             {
                 "id": "picking-side-lycan",
@@ -163,8 +163,8 @@
                     "93": "ally-draft"
                 },
                 "waitForPick": true,
-                "hint": "Drag and drop Axe to the enemy team and Slark to the ally team.",
-                "text": "This one is something I've never heard of, but go on. Try and walk Axe to the enemy team and walk Slark to the ally team."
+                "hint": "Drag and drop Axe to Dire and Slark to Radiant.",
+                "text": "This one is something I've never heard of, but go on. Try and walk Axe to Dire and Slark to Radiant."
             },
             {
                 "id": "dragging-success",
@@ -353,8 +353,8 @@
                     "allowTeamSwitch": true,
                     "successLineId": "recommendations-success"
                 },
-                "hint": "Enable Support, switch to Ally Team, then find Omniknight in the hero grid and left-click him.",
-                "text": "Change the recommendation feed to Support-only and pick Omniknight for the ally team. You can find him in the hero grid using the search we practised."
+                "hint": "Enable Support, switch to the Radiant Team, then find Omniknight in the hero grid and left-click him.",
+                "text": "Change the recommendation feed to Support-only and pick Omniknight for Radiant. You can find him in the hero grid using the search we practised."
             },
             {
                 "id": "recommendations-success",
