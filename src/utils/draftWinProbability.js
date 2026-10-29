@@ -1,6 +1,6 @@
 import { predictLocalDraft } from "../model/localDraftModel";
-// Prefer the verified bundled model. The baseline heuristic remains available
-// when the model does not cover the current patch or one of the selected heroes.
+// Draft storage keeps legacy key names: ally is Radiant and enemy is Dire.
+// The model's known-Radiant prediction includes its learned map-side advantage.
 export function calculateDraftWinProbability({
     allyHeroIds = [],
     enemyHeroIds = [],
@@ -13,7 +13,15 @@ export function calculateDraftWinProbability({
         patch,
     });
 
-    if (learned) return learned;
+
+    // The first stored team is Radiant; use its known-side prediction.
+    if (learned) {
+        return {
+            ...learned,
+            ally: learned.allyAsRadiant,
+            enemy: 1 - learned.allyAsRadiant,
+        };
+    }
 
     if (
         !matchupIndex ||

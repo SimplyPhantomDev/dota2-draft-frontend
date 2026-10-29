@@ -50,6 +50,7 @@ export function createDraftSnapshot({
 
     return {
         schema: 1,
+        teamConvention: "radiant-dire",
         id,
         draftKey: getDraftKey(selectedHeroes),
         allyHeroIds: ids.ally,

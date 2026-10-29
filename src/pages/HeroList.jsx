@@ -380,8 +380,8 @@ export default function HeroList({
         matchupIndex,
     }), [inspectedHero, selectedTeam, selectedHeroes, bannedHeroes, matchupIndex]);
 
-    // The bundled model uses its frozen features, independently of matchup data.
-    // Unsupported drafts can fall back to the existing experimental estimators.
+    // The first stored team is Radiant. Recommendation-side changes never
+    // affect the model input order or the displayed win probabilities.
     const draftWinProbability = useMemo(() => calculateDraftWinProbability({
         allyHeroIds: selectedHeroes.ally.map(hero => hero.HeroId),
         enemyHeroIds: selectedHeroes.enemy.map(hero => hero.HeroId),

@@ -499,11 +499,10 @@ function Sidebar({
                                             <p className="mt-ui-xs text-sm leading-relaxed text-ink-muted">
                                                 {draftWinProbability?.method === "trained-model" ? (
                                                     <>
-                                                        A model evaluated on historical matches estimates these
-                                                        probabilities from hero selections, team traits and
-                                                        observed position compatibility. Radiant and Dire
-                                                        possibilities are averaged because map sides are not specified.
-                                                        The calculation runs entirely inside this app.
+                                                        The model estimates Radiant's chance from the two drafts,
+                                                        including hero selections, team traits, position compatibility
+                                                        and its learned Radiant advantage. Dire's estimate is the
+                                                        complement. The calculation runs entirely inside this app.
                                                     </>
                                                 ) : draftWinProbability ? (
                                                     <>

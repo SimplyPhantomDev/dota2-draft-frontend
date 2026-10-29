@@ -46,6 +46,9 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
             </button>
         );
     }
+    const radiantDire = pendingDraft.teamConvention === "radiant-dire";
+    const firstLabel = radiantDire ? "Radiant" : "Ally team";
+    const secondLabel = radiantDire ? "Dire" : "Enemy team";
 
     const heroList = Object.values(heroes ?? {}).flat();
 
@@ -75,14 +78,14 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
 
             <dl className="my-ui-sm space-y-ui-xs leading-relaxed">
                 <div>
-                    <dt className="font-semibold text-green-400">Ally team</dt>
+                    <dt className="font-semibold text-green-400">{firstLabel}</dt>
                     <dd className="text-ink">
                         {teamNames(pendingDraft.allyHeroIds)}
                     </dd>
                 </div>
 
                 <div>
-                    <dt className="font-semibold text-danger">Enemy team</dt>
+                    <dt className="font-semibold text-danger">{secondLabel}</dt>
                     <dd className="text-ink">
                         {teamNames(pendingDraft.enemyHeroIds)}
                     </dd>
@@ -120,7 +123,7 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
                     className="ui-button ui-button-accent"
                     onClick={() => resolveDraft(pendingDraft.id, "ally-win", matchId)}
                 >
-                    Ally win
+                    {radiantDire ? "Radiant won" : "Ally win"}
                 </button>
 
                 <button
@@ -128,7 +131,7 @@ export default function MatchFeedbackPanel({ feedback, heroes }) {
                     className="ui-button"
                     onClick={() => resolveDraft(pendingDraft.id, "ally-loss", matchId)}
                 >
-                    Ally loss
+                    {radiantDire ? "Dire won" : "Ally loss"}
                 </button>
 
                 <button
