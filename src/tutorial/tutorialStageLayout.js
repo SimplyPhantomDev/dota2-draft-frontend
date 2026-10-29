@@ -82,7 +82,7 @@ export function getTutorialStageLayout({
                 ) - highlightTop,
             };
         }
-    } else if (["beside-breakdown", "beside-inspector"].includes(placement)
+    } else if (["beside-breakdown", "beside-inspector", "beside-overview"].includes(placement)
         && (avoidRect ?? targetRect)) {
         const obstruction = avoidRect ?? targetRect;
         const roomLeft = obstruction.left - PANEL_GAP - MARGIN;

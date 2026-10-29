@@ -49,6 +49,7 @@ export default function HeroList({
     const reportTutorialDraft = tutorial?.onDraftChange;
     const reportTutorialPool = tutorial?.onPoolChange;
     const reportTutorialInspector = tutorial?.onInspectorChange;
+    const reportTutorialOverview = tutorial?.onOverviewChange;
     const tutorialSearchAllowed = tutorial?.allowSearch !== false;
     const tutorialTargetHeroIds = tutorial?.targetHeroIds;
     const recommendationSideLocked =
@@ -285,6 +286,10 @@ export default function HeroList({
         reportTutorialDraft,
     ]);
 
+    useEffect(() => {
+        reportTutorialOverview?.(showDraftOverview);
+    }, [reportTutorialOverview, showDraftOverview]);
+
     // Report pool controls after React commits each accepted tutorial input.
     useEffect(() => {
         reportTutorialPool?.({
@@ -350,6 +355,7 @@ export default function HeroList({
         setEditHeroPoolMode(false);
         setShowPoolBreakdown(false);
         setShowHeroInspector(false);
+        setShowDraftOverview(false);
         setInspectedHero(null);
         setInspectorMoves(0);
         setSearchQuery("");
@@ -380,14 +386,17 @@ export default function HeroList({
         setRecommendationTeam(team);
     };
 
-    const openDraftOverview = useCallback(() => {
-        if (!requestTutorialAction({ type: "overview" })) return;
-        setShowDraftOverview(true);
-    }, [requestTutorialAction]);
+    const toggleDraftOverview = useCallback(() => {
+        const open = !showDraftOverview;
+        if (!requestTutorialAction({ type: "overview", value: open })) return;
+        setShowDraftOverview(open);
+    }, [requestTutorialAction, showDraftOverview]);
 
     const closeDraftOverview = useCallback(() => {
+        if (!requestTutorialAction({ type: "overview", value: false })) return false;
         setShowDraftOverview(false);
-    }, []);
+        return true;
+    }, [requestTutorialAction]);
 
     const toggleHeroInspector = useCallback(() => {
         if (!requestTutorialAction({
@@ -571,7 +580,7 @@ export default function HeroList({
             if (e.code === DRAFT_OVERVIEW_KEY
                 && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
                 e.preventDefault();
-                if (!e.repeat) openDraftOverview();
+                if (!e.repeat) toggleDraftOverview();
                 return;
             }
 
@@ -612,7 +621,7 @@ export default function HeroList({
     }, [
         active,
         handleTeamSwitch,
-        openDraftOverview,
+        toggleDraftOverview,
         toggleHeroInspector,
         tutorialSearchAllowed,
     ]);
@@ -997,7 +1006,7 @@ export default function HeroList({
                 canSwitchTeam={canSwitchTeam}
                 teamSwitchKey={TEAM_SWITCH_KEY}
                 sideButtonRunaway={tutorial?.sideButtonRunaway ?? false}
-                openDraftOverview={openDraftOverview}
+                toggleDraftOverview={toggleDraftOverview}
                 draftOverviewKey={DRAFT_OVERVIEW_KEY}
                 showHeroInspector={showHeroInspector}
                 toggleHeroInspector={toggleHeroInspector}
@@ -1030,6 +1039,9 @@ export default function HeroList({
                     heroes={heroes}
                     onClose={closeDraftOverview}
                     shortcutKey={DRAFT_OVERVIEW_KEY}
+                    tutorialMode={Boolean(tutorial?.overviewLesson)}
+                    bottomInset={tutorial?.overviewLesson?.bottomInset ?? 0}
+                    tutorialTarget={tutorial?.highlight}
                 />
             )}
 

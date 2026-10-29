@@ -24,7 +24,7 @@ function TeamScores({ team, label, picks, scores }) {
     const scoresById = new Map((scores ?? []).map(hero => [hero.HeroId, hero]));
 
     return (
-        <section className="ui-panel min-w-0 overflow-hidden">
+        <section data-tutorial-target={`overview-${team}`} className="ui-panel min-w-0 overflow-hidden">
             <header className="flex items-center justify-between gap-ui-sm border-b border-line bg-surface-raised p-ui-md">
                 <h3 className={`font-semibold ${team === "ally" ? "text-green-400" : "text-danger"}`}>
                     {label}
@@ -57,13 +57,22 @@ function TeamScores({ team, label, picks, scores }) {
                             <th scope="col" className="px-ui-sm py-ui-sm text-left">
                                 Hero
                             </th>
-                            <th scope="col" className="px-ui-sm py-ui-sm text-right">
+                            <th
+                                data-tutorial-target={`overview-column-${team}-synergy`}
+                                scope="col" className="px-ui-sm py-ui-sm text-right"
+                            >
                                 Allies
                             </th>
-                            <th scope="col" className="px-ui-sm py-ui-sm text-right">
+                            <th
+                                data-tutorial-target={`overview-column-${team}-counter`}
+                                scope="col" className="px-ui-sm py-ui-sm text-right"
+                            >
                                 Enemies
                             </th>
-                            <th scope="col" className="px-ui-sm py-ui-sm text-right">
+                            <th
+                                data-tutorial-target={`overview-column-${team}-total`}
+                                scope="col" className="px-ui-sm py-ui-sm text-right"
+                            >
                                 Total
                             </th>
                         </tr>
@@ -95,19 +104,28 @@ function TeamScores({ team, label, picks, scores }) {
                                         </div>
                                     </th>
 
-                                    <td className="px-ui-sm py-ui-sm text-right">
+                                    <td
+                                        data-tutorial-target={`overview-column-${team}-synergy`}
+                                        className="px-ui-sm py-ui-sm text-right"
+                                    >
                                         <Score
                                             value={score?.synergyScore}
                                         />
                                     </td>
 
-                                    <td className="px-ui-sm py-ui-sm text-right">
+                                    <td
+                                        data-tutorial-target={`overview-column-${team}-counter`}
+                                        className="px-ui-sm py-ui-sm text-right"
+                                    >
                                         <Score
                                             value={score?.counterScore}
                                         />
                                     </td>
 
-                                    <td className="px-ui-sm py-ui-sm text-right font-semibold">
+                                    <td
+                                        data-tutorial-target={`overview-column-${team}-total`}
+                                        className="px-ui-sm py-ui-sm text-right font-semibold"
+                                    >
                                         <Score
                                             value={score?.totalScore}
                                         />
@@ -129,6 +147,9 @@ export default function DraftOverview({
     heroes,
     onClose,
     shortcutKey,
+    tutorialMode = false,
+    bottomInset = 0,
+    tutorialTarget = null,
 }) {
     const dialogRef = useRef(null);
     const closeButtonRef = useRef(null);
@@ -143,21 +164,37 @@ export default function DraftOverview({
         heroes,
     })?.teams ?? null, [selectedHeroes, matchupIndex, heroes]);
 
-    // A native modal contains focus and blocks drafting behind the overview.
-    // Close during cleanup so native focus restoration also works on unmount.
+    // Practice uses a modeless dialog so the narrator remains reachable.
+    // Normal drafting retains native modal focus and backdrop behaviour.
     useLayoutEffect(() => {
         const dialog = dialogRef.current;
-        dialog.showModal();
+        if (tutorialMode) dialog.show();
+        else dialog.showModal();
         closeButtonRef.current?.focus({ preventScroll: true });
 
         return () => {
             if (dialog.open) dialog.close();
         };
-    }, []);
+    }, [tutorialMode]);
+
+    // Bring the narrated table or column into this panel's own scroll area.
+    // Scrolling here must not move the surrounding application or narrator.
+    useLayoutEffect(() => {
+        if (!tutorialMode || !tutorialTarget) return;
+        const content = dialogRef.current.querySelector('[data-tutorial-target="overview-content"]');
+        const target = content?.querySelector(`[data-tutorial-target="${tutorialTarget}"]`);
+        if (!target) return;
+
+        const bounds = target.getBoundingClientRect();
+        const viewport = content.getBoundingClientRect();
+        if (bounds.top < viewport.top || bounds.bottom > viewport.bottom) {
+            content.scrollTop += bounds.top - viewport.top - 8;
+        }
+    }, [tutorialMode, tutorialTarget, bottomInset]);
 
     const closeDialog = () => {
+        if (onClose() === false) return;
         dialogRef.current.close();
-        onClose();
     };
 
     const handleBackdropClick = (event) => {
@@ -176,11 +213,24 @@ export default function DraftOverview({
     return createPortal(
         <dialog
             id="draft-overview-dialog"
+            data-tutorial-target="draft-overview"
             ref={dialogRef}
-            aria-modal="true"
+            aria-modal={!tutorialMode}
             aria-labelledby="draft-overview-title"
             aria-describedby="draft-overview-description"
             className="m-auto w-[70rem] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink shadow-panel backdrop:bg-black/60 open:flex open:flex-col"
+            style={tutorialMode ? {
+                position: "fixed",
+                zIndex: 60,
+                margin: 0,
+                top: 16,
+                left: "50%",
+                right: "auto",
+                bottom: "auto",
+                transform: "translateX(-50%)",
+                width: "min(55rem, calc(100vw - 2rem))",
+                maxHeight: `calc(100dvh - ${bottomInset + 32}px)`,
+            } : undefined}
             onCancel={(event) => {
                 event.preventDefault();
                 closeDialog();
@@ -193,7 +243,7 @@ export default function DraftOverview({
                 if (event.defaultPrevented || event.nativeEvent?.isComposing) return;
 
                 if (
-                    event.code === shortcutKey &&
+                    (event.code === shortcutKey || (tutorialMode && event.key === "Escape")) &&
                     !event.ctrlKey && !event.altKey &&
                     !event.shiftKey && !event.metaKey
                 ) {
@@ -205,6 +255,7 @@ export default function DraftOverview({
             <header className="flex shrink-0 items-start gap-ui-md border-b border-line p-ui-lg">
                 <button
                     ref={closeButtonRef}
+                    data-tutorial-target="overview-close"
                     type="button"
                     aria-label="Close draft overview"
                     aria-keyshortcuts={`${shortcutKey} Escape`}
@@ -231,7 +282,7 @@ export default function DraftOverview({
                 </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-ui-lg">
+            <div data-tutorial-target="overview-content" className="min-h-0 flex-1 overflow-y-auto p-ui-lg">
                 {!stats && (
                     selectedHeroes.ally.length > 0 ||
                     selectedHeroes.enemy.length > 0
@@ -262,7 +313,9 @@ export default function DraftOverview({
 
                 <p>
                     Press <kbd className="font-mono text-ink">{shortcutKey}</kbd>
-                    {" "}or Escape to close this window.
+                    {tutorialMode
+                        ? " or use the X to close this window."
+                        : " or Escape to close this window."}
                 </p>
             </footer>
         </dialog>,

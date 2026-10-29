@@ -5,6 +5,7 @@ import TutorialDialogue from "./TutorialDialogue";
 import TutorialStage from "./TutorialStage";
 import tutorialScript from "./tutorialScript.json";
 import inspectorScript from "./inspectorScript.json";
+import draftOverviewScript from "./draftOverviewScript.json";
 import {
     canPerformInspectorAction,
     isInspectorTaskComplete,
@@ -17,6 +18,25 @@ import {
     isPoolTaskComplete,
     personalizePoolScript,
 } from "./heroPoolLesson";
+
+const INSPECTOR_END_DRAFT = {
+    ally: [
+        tutorialScript.firstPick.heroId,
+        ...tutorialScript.dragging.picks
+            .filter(pick => pick.team === "ally")
+            .map(pick => pick.heroId),
+        tutorialScript.recommendations.heroId,
+        inspectorScript.acceptedHeroId,
+    ],
+    enemy: [
+        tutorialScript.pickingSide.heroId,
+        inspectorScript.opponentHeroId,
+    ],
+    bans: [tutorialScript.banAndCorrection.heroId, inspectorScript.banHeroId],
+    team: "ally",
+    roleFilter: null,
+    filterByHeroPool: true,
+};
 
 const LESSONS = {
     "first-pick": {
@@ -116,25 +136,13 @@ const LESSONS = {
     },
     "hero-inspector": {
         script: inspectorScript,
+        nextPhase: "draft-overview",
+        endDraft: INSPECTOR_END_DRAFT,
+    },
+    "draft-overview": {
+        script: draftOverviewScript,
         nextPhase: "practice",
-        endDraft: {
-            ally: [
-                tutorialScript.firstPick.heroId,
-                ...tutorialScript.dragging.picks
-                    .filter(pick => pick.team === "ally")
-                    .map(pick => pick.heroId),
-                tutorialScript.recommendations.heroId,
-                inspectorScript.acceptedHeroId,
-            ],
-            enemy: [
-                tutorialScript.pickingSide.heroId,
-                inspectorScript.opponentHeroId,
-            ],
-            bans: [tutorialScript.banAndCorrection.heroId, inspectorScript.banHeroId],
-            team: "ally",
-            roleFilter: null,
-            filterByHeroPool: true,
-        },
+        endDraft: INSPECTOR_END_DRAFT,
     },
 };
 
@@ -157,6 +165,8 @@ export default function TutorialSession({ dataset, onExit }) {
     const [returnedHighlightId, setReturnedHighlightId] = useState(null);
     const pendingPoolAction = useRef(null);
     const pendingInspectorAction = useRef(null);
+    const pendingOverviewAction = useRef(null);
+    const [overviewOpen, setOverviewOpen] = useState(false);
     const [inspectorState, setInspectorState] = useState({
         open: false,
         heroId: null,
@@ -285,6 +295,7 @@ export default function TutorialSession({ dataset, onExit }) {
     const onHighlightReady = useCallback(id => setHighlightReadyId(id), []);
     const onPoolChange = useCallback(state => setPoolState(state), []);
     const onInspectorChange = useCallback(state => setInspectorState(state), []);
+    const onOverviewChange = useCallback(open => setOverviewOpen(open), []);
 
     // Brief pointers begin when the narrator reaches the scripted text cue.
     // Cancel the return when the user advances, skips or exits the lesson.
@@ -358,12 +369,35 @@ export default function TutorialSession({ dataset, onExit }) {
         ));
     }, [phase, line, inspectorState, script.lines, resetSideSwitches]);
 
+    // Confirm opening and closing after the dialog's visibility is committed.
+    // An old seed or a rejected close must never advance the lesson.
+    useEffect(() => {
+        if (phase !== "draft-overview"
+            || pendingOverviewAction.current !== line.id
+            || line.action?.type !== "overview"
+            || overviewOpen !== line.action.value) return;
+
+        pendingOverviewAction.current = null;
+        setFeedback("");
+        setPage(script.lines.findIndex(
+            item => item.id === line.action.successLineId
+        ));
+    }, [phase, line, overviewOpen, script.lines]);
+
     const beforeAction = useCallback(action => {
         if (!isLesson) return true;
 
         const poolLesson = phase === "hero-pool";
         const inspectorLesson = phase === "hero-inspector";
-        const toolLesson = poolLesson || inspectorLesson;
+        const overviewLesson = phase === "draft-overview";
+        const toolLesson = poolLesson || inspectorLesson || overviewLesson;
+
+        if (overviewLesson && line.action?.type === "overview"
+            && action.type === "overview" && action.value === line.action.value) {
+            pendingOverviewAction.current = line.id;
+            setFeedback("");
+            return true;
+        }
 
         if (inspectorLesson
             && canPerformInspectorAction(action, line.action, inspectorState)) {
@@ -499,7 +533,7 @@ export default function TutorialSession({ dataset, onExit }) {
         setPracticeRoleFilter(roleFilter);
         setPracticeBans(bans);
 
-        if (!isLesson || picked || ["hero-pool", "hero-inspector"].includes(phase)) return;
+        if (!isLesson || picked || ["hero-pool", "hero-inspector", "draft-overview"].includes(phase)) return;
 
         const expectedAction = line.action;
 
@@ -589,14 +623,18 @@ export default function TutorialSession({ dataset, onExit }) {
         onDraftChange,
         onPoolChange,
         onInspectorChange,
+        onOverviewChange,
+        overviewLesson: phase === "draft-overview"
+            ? { bottomInset: dialogueReserve }
+            : null,
         inspectorLesson: phase === "hero-inspector"
             ? { bottomInset: dialogueReserve }
             : null,
         poolLesson: phase === "hero-pool"
             ? { bottomInset: dialogueReserve }
             : null,
-        allowSearch: phase !== "hero-pool"
-            || line.action?.type === "pool-select",
+        allowSearch: phase !== "draft-overview" && (phase !== "hero-pool"
+            || line.action?.type === "pool-select"),
         highlight: spotlight,
         comparisonLabel: showComparison ? "AFTER" : null,
         targetHeroIds,
@@ -606,7 +644,7 @@ export default function TutorialSession({ dataset, onExit }) {
         breakdownBottomInset: showPinnedBreakdown ? dialogueReserve : 0,
         suppressRecommendationTooltip:
             showComparison
-            || ["recommendations", "hero-pool", "hero-inspector"].includes(phase),
+            || ["recommendations", "hero-pool", "hero-inspector", "draft-overview"].includes(phase),
     } : null, [
         isLesson,
         beforeAction,
@@ -622,6 +660,7 @@ export default function TutorialSession({ dataset, onExit }) {
         phase,
         onPoolChange,
         onInspectorChange,
+        onOverviewChange,
         line.action,
     ]);
 
@@ -633,6 +672,7 @@ export default function TutorialSession({ dataset, onExit }) {
         setPinnedRecommendation(null);
         pendingPoolAction.current = null;
         pendingInspectorAction.current = null;
+        pendingOverviewAction.current = null;
         setHighlightReadyId(null);
         setReturnedHighlightId(null);
         setPage(0);

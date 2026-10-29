@@ -1,0 +1,90 @@
+{
+    "title": "Lesson 8: Draft overview",
+    "lines": [
+        {
+            "id": "overview-intro",
+            "text": "We've interviewed a candidate. Now let's see how the people already hired are getting along. A draft can look perfectly respectable until somebody reads the numbers.",
+            "placement": "over-sidebar"
+        },
+        {
+            "id": "overview-open-task",
+            "text": "This eye opens the draft overview. Click it, or press F3. You don't have to finish the draft first. We can inspect the damage while there is still time to do something about it.",
+            "placement": "over-sidebar",
+            "highlight": "overview-toggle",
+            "action": {
+                "type": "overview",
+                "value": true,
+                "successLineId": "overview-opened"
+            },
+            "hint": "Open the draft overview using the eye button or F3."
+        },
+        {
+            "id": "overview-opened",
+            "text": "Here are the heroes already picked for both teams. The inspector evaluates an applicant. This window evaluates the staff. Some of them may wish we'd stopped at the interview.",
+            "placement": "beside-overview",
+            "highlight": "draft-overview"
+        },
+        {
+            "id": "overview-allies",
+            "text": "Start with Radiant's Allies column. Each number adds up that hero's teammate synergies with the other Radiant picks. Positive is favourable for that hero; negative suggests the office Christmas party might be awkward.",
+            "placement": "beside-overview",
+            "highlight": "overview-column-ally-synergy"
+        },
+        {
+            "id": "overview-enemies",
+            "text": "The Enemies column adds that same hero's matchups against the Dire picks. Positive favours the hero in this row. Negative favours their opponents. The heading tells you who they are being compared against, not who benefits.",
+            "placement": "beside-overview",
+            "highlight": "overview-column-ally-counter"
+        },
+        {
+            "id": "overview-total",
+            "text": "Total combines those two columns. Teammates plus opponents. These are raw matchup scores, so the purple composition bonuses aren't included. And +3 does not mean a 53 percent chance of winning. We'll get to that particular crystal ball shortly.",
+            "placement": "beside-overview",
+            "highlight": "overview-column-ally-total"
+        },
+        {
+            "id": "overview-dire",
+            "text": "Dire gets exactly the same treatment from its own perspective. A positive Dire score is good for Dire. Green does not mean good for you. Sometimes the enemy is allowed to have nice things. Briefly.",
+            "placement": "beside-overview",
+            "highlight": "overview-enemy"
+        },
+        {
+            "id": "overview-incomplete",
+            "text": "Only the current picks are counted. Missing heroes aren't imaginary zero-score teammates, and these numbers will change as the draft changes. The overview does not predict a winner. Nobody has submitted the rest of the paperwork yet.",
+            "placement": "beside-overview",
+            "highlight": "draft-overview"
+        },
+        {
+            "id": "overview-close-task",
+            "text": "Close this window with its X or F3. You can reopen it whenever you want a look at the draft so far. Please use that power before the fifth support, if at all possible.",
+            "placement": "beside-overview",
+            "highlight": "overview-close",
+            "action": {
+                "type": "overview",
+                "value": false,
+                "successLineId": "overview-done"
+            },
+            "hint": "Close the overview using its X or F3."
+        },
+        {
+            "id": "overview-done",
+            "text": "There. An inspection for potential picks, an overview for actual picks. Next we'll finish the draft and see what the complete analysis has to say. I expect everyone to remain perfectly calm about the percentages.",
+            "placement": "over-sidebar"
+        }
+    ],
+    "interruptions": [
+        {
+            "when": {
+                "type": "overview",
+                "value": false
+            },
+            "text": "Hold on. We're still reading the performance reviews."
+        },
+        {
+            "when": {
+                "type": "pick"
+            },
+            "text": "Nobody is hiring during the audit. We'll finish the draft in a moment."
+        }
+    ]
+}

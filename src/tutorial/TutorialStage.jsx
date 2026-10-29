@@ -22,6 +22,7 @@ export default function TutorialStage({
     const dialogueRef = useRef(null);
     const [layout, setLayout] = useState(null);
     const comparing = comparisonRows !== null;
+    const followsOverview = placement === "beside-overview";
     const followsInspector = placement === "beside-inspector" || [
         "hero-inspector", "inspector-header", "inspector-details",
         "inspector-accept", "inspector-close",
@@ -34,7 +35,7 @@ export default function TutorialStage({
         const sidebar = workspace.querySelector(
             '[data-tutorial-target="recommendations"]'
         );
-        const scope = followsInspector
+        const scope = followsInspector || followsOverview
             || ["recommendation-breakdown", "pool-breakdown"].includes(target)
             ? document
             : workspace;
@@ -42,6 +43,10 @@ export default function TutorialStage({
         const candidates = target
             ? [...scope.querySelectorAll(`[data-tutorial-target="${target}"]`)]
             : [];
+        const overview = followsOverview
+            ? document.querySelector('[data-tutorial-target="draft-overview"]')
+            : null;
+        const overviewContent = overview?.querySelector('[data-tutorial-target="overview-content"]');
         let live = true;
 
         function measure() {
@@ -53,18 +58,35 @@ export default function TutorialStage({
                 return rect.width > 0 && rect.height > 0;
             });
 
+            let targetRect = element?.getBoundingClientRect();
+
+            // A column has one header plus several cells. Spotlight their union,
+            // clipped to the overview's scroll area so the footer stays dimmed.
+            if (target?.startsWith("overview-column-") && overviewContent) {
+                const cells = candidates.map(node => node.getBoundingClientRect())
+                    .filter(rect => rect.width > 0 && rect.height > 0);
+                const clip = overviewContent.getBoundingClientRect();
+                const left = Math.max(clip.left, Math.min(...cells.map(rect => rect.left)));
+                const top = Math.max(clip.top, Math.min(...cells.map(rect => rect.top)));
+                const right = Math.min(clip.right, Math.max(...cells.map(rect => rect.right)));
+                const bottom = Math.min(clip.bottom, Math.max(...cells.map(rect => rect.bottom)));
+                targetRect = right > left && bottom > top
+                    ? { left, top, width: right - left, height: bottom - top }
+                    : undefined;
+            }
+
             const next = getTutorialStageLayout({
                 viewportWidth: window.innerWidth,
                 viewportHeight: window.innerHeight,
                 workspaceRect: workspace.getBoundingClientRect(),
                 sidebarRect: sidebar?.getBoundingClientRect(),
-                targetRect: element?.getBoundingClientRect(),
+                targetRect,
                 placement,
                 comparing,
                 avoidRect: placement === "beside-inspector"
                     ? document.querySelector('[data-tutorial-target="hero-inspector"]')
                         ?.getBoundingClientRect()
-                    : null,
+                    : overview?.getBoundingClientRect(),
             });
 
             onReserveSpace?.(next.reserveBottom);
@@ -92,7 +114,7 @@ export default function TutorialStage({
         if (followsInspector) frame = requestAnimationFrame(followInspector);
 
         const observer = new ResizeObserver(measure);
-        for (const node of new Set([workspace, sidebar, ...candidates])) {
+        for (const node of new Set([workspace, sidebar, overview, overviewContent, ...candidates])) {
             if (node) observer.observe(node);
         }
 
@@ -106,7 +128,7 @@ export default function TutorialStage({
             window.removeEventListener("resize", measure);
             window.removeEventListener("scroll", measure, true);
         };
-    }, [workspaceRef, target, placement, comparing, onReserveSpace, followsInspector]);
+    }, [workspaceRef, target, placement, comparing, onReserveSpace, followsInspector, followsOverview]);
 
     if (!layout) return null;
 

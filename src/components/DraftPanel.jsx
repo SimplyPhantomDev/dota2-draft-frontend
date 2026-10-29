@@ -10,7 +10,7 @@ function DraftPanel({
     canSwitchTeam,
     teamSwitchKey,
     sideButtonRunaway = false,
-    openDraftOverview,
+    toggleDraftOverview,
     draftOverviewKey,
     showHeroInspector,
     toggleHeroInspector,
@@ -105,7 +105,8 @@ function DraftPanel({
 
                     <button
                         type="button"
-                        onClick={openDraftOverview}
+                        data-tutorial-target="overview-toggle"
+                        onClick={toggleDraftOverview}
                         aria-label="Open draft overview"
                         aria-haspopup="dialog"
                         aria-controls="draft-overview-dialog"
