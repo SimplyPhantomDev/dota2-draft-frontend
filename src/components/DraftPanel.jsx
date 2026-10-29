@@ -3,6 +3,7 @@ import { OverviewIcon, InspectionIcon, GridLayoutIcon, RowLayoutIcon } from "./D
 import SideSwitchButton from "./SideSwitchButton";
 
 function DraftPanel({
+    teamLabels,
     selectedHeroes,
     selectedTeam,
     handleTeamSwitch,
@@ -17,7 +18,7 @@ function DraftPanel({
     inspectorButtonRef,
     handleDrop,
     handleHeroDeselect,
-    enemyRolePredictions,
+    rolePredictions,
     setShowGuide,
     infoButtonIcon,
     buttonPulse,
@@ -136,12 +137,15 @@ function DraftPanel({
                 >
                     <TeamDropZone
                         team="ally"
+                        label={teamLabels.ally}
+                        rolePredictions={rolePredictions.ally}
                         selectedHeroes={selectedHeroes}
                         handleDrop={handleDrop}
                         handleHeroDeselect={handleHeroDeselect}
                     />
 
                     <SideSwitchButton
+                        teamLabels={teamLabels}
                         selectedTeam={selectedTeam}
                         canSwitchTeam={canSwitchTeam}
                         teamSwitchKey={teamSwitchKey}
@@ -151,10 +155,11 @@ function DraftPanel({
 
                     <TeamDropZone
                         team="enemy"
+                        label={teamLabels.enemy}
+                        rolePredictions={rolePredictions.enemy}
                         selectedHeroes={selectedHeroes}
                         handleDrop={handleDrop}
                         handleHeroDeselect={handleHeroDeselect}
-                        rolePredictions={enemyRolePredictions}
                     />
                 </div>
 

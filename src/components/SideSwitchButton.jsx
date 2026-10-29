@@ -4,6 +4,7 @@ import { useReducedMotion } from "framer-motion";
 import { startDash, stepMotion } from "./runawayMotion";
 
 export default function SideSwitchButton({
+    teamLabels,
     selectedTeam,
     canSwitchTeam,
     teamSwitchKey,
@@ -171,18 +172,21 @@ export default function SideSwitchButton({
 
     const label = (
         <>
-            <span
-                aria-hidden="true"
-                className="invisible col-start-1 row-start-1"
-            >
-                <span className="block 2xl:inline">Picking for:</span>{" "}
-                <span className="block 2xl:inline">Enemy Team</span>
-            </span>
+            {Object.values(teamLabels).map(label => (
+                <span
+                    key={label}
+                    aria-hidden="true"
+                    className="invisible col-start-1 row-start-1"
+                >
+                    <span className="block 2xl:inline">Picking for:</span>{" "}
+                    <span className="block 2xl:inline">{label}</span>
+                </span>
+            ))}
 
             <span className="col-start-1 row-start-1">
                 <span className="block 2xl:inline">Picking for:</span>{" "}
                 <span className="block 2xl:inline">
-                    {selectedTeam === "ally" ? "Ally Team" : "Enemy Team"}
+                    {teamLabels[selectedTeam]}
                 </span>
             </span>
         </>

@@ -61,6 +61,7 @@ export function DraggableHero({
 
 export function TeamDropZone({
     team,
+    label,
     selectedHeroes,
     handleDrop,
     handleHeroDeselect,
@@ -71,7 +72,7 @@ export function TeamDropZone({
         canDrop: (item) => {
             const alreadyPicked =
                 selectedHeroes.ally.some(h => h.HeroId === item.hero.HeroId) ||
-        selectedHeroes.enemy.some(h => h.HeroId === item.hero.HeroId);
+                selectedHeroes.enemy.some(h => h.HeroId === item.hero.HeroId);
 
             return selectedHeroes[team].length < 5 && !alreadyPicked;
         },
@@ -92,11 +93,21 @@ export function TeamDropZone({
         <div
             ref={dropRef}
             data-tutorial-target={`${team}-draft`}
-            className={`grid w-full min-w-0 grid-cols-5 gap-ui-xs p-ui-xs rounded-control border transition-all duration-200
+            role="group"
+            aria-label={`${label} picks`}
+            className={`relative grid w-full min-w-0 grid-cols-5 gap-ui-xs p-ui-xs rounded-control border transition-all duration-200
         ${isOver ? "bg-yellow-500/20" : ""}
         ${isAlly ? "border-green-700" : "border-red-700"}
       `}
         >
+            <span
+                className={`pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded bg-surface px-ui-xs text-[10px] font-semibold ${isAlly
+                    ? "text-green-400"
+                    : "text-danger"
+                }`}
+            >
+                {label}
+            </span>
             {/* Render in 5 hero slots for picks for each team */}
             {[...Array(5)].map((_, i) => (
                 <div
@@ -123,7 +134,7 @@ export function TeamDropZone({
                             </div>
                         </div>
                     )}
-                    {heroes2[i] && !isAlly && (
+                    {heroes2[i] && rolePredictions[heroes2[i].HeroId] && (
                         <div className="absolute bottom-0 w-full bg-black/70 text-center z-10 pointer-events-none">
                             <span className={`text-[12px] font-semibold ${rolePredictions[heroes2[i].HeroId] === "?"
                                 ? "text-gray-400 italic"

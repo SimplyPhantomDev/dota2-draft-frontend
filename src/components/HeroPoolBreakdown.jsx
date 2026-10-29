@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 export default function HeroPoolBreakdown({
+    teamLabel,
     heroes,
     onClose,
     floating = false,
@@ -127,7 +128,7 @@ export default function HeroPoolBreakdown({
                     id="hero-pool-breakdown-title"
                     className="font-semibold"
                 >
-                    Full Hero Pool Breakdown
+                    Hero Pool · {teamLabel}
                 </h2>
 
                 <button

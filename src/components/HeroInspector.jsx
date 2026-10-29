@@ -15,13 +15,13 @@ function clampInspectorPosition(position, panel) {
     };
 }
 
-function Score({ value, enemy }) {
+function Score({ value }) {
     if (value == null) return <span className="text-ink-muted">—</span>;
 
     const score = Number(Number(value).toFixed(2));
     const colour = score === 0
         ? "text-ink-muted"
-        : (enemy ? score < 0 : score > 0)
+        : score > 0
             ? "text-green-400"
             : "text-danger";
 
@@ -32,12 +32,12 @@ function Score({ value, enemy }) {
     );
 }
 
-function Matchups({ title, rows, total, enemy }) {
+function Matchups({ title, rows, total }) {
     return (
         <section className="mt-ui-md">
             <div className="flex items-center justify-between gap-ui-sm font-semibold">
                 <h3>{title}</h3>
-                <Score value={total} enemy={enemy} />
+                <Score value={total} />
             </div>
 
             {rows.length === 0 ? (
@@ -56,7 +56,7 @@ function Matchups({ title, rows, total, enemy }) {
                             <span className="min-w-0 flex-1 truncate" title={hero.name}>
                                 {hero.name}
                             </span>
-                            <Score value={score} enemy={enemy} />
+                            <Score value={score} />
                         </li>
                     ))}
                 </ul>
@@ -66,6 +66,7 @@ function Matchups({ title, rows, total, enemy }) {
 }
 
 export default function HeroInspector({
+    teamLabels,
     inspection,
     selectedTeam,
     onPick,
@@ -230,7 +231,7 @@ export default function HeroInspector({
         }
     };
     const enemy = selectedTeam === "enemy";
-    const teamLabel = enemy ? "enemies" : "allies";
+    const teamLabel = teamLabels[selectedTeam];
 
     // Focus the tool without trapping focus. Restore the previous control
     // only if focus is still inside when the inspector closes.
@@ -330,18 +331,16 @@ export default function HeroInspector({
                             title="Teammates"
                             rows={inspection.allyRows}
                             total={inspection.synergyScore}
-                            enemy={enemy}
                         />
                         <Matchups
                             title="Opponents"
                             rows={inspection.enemyRows}
                             total={inspection.counterScore}
-                            enemy={enemy}
                         />
 
                         <div className="mt-ui-md flex items-center justify-between gap-ui-sm border-t border-line pt-ui-sm font-semibold">
                             <span>Total</span>
-                            <Score value={inspection.totalScore} enemy={enemy} />
+                            <Score value={inspection.totalScore} />
                         </div>
 
                         {inspection.totalScore === null && (

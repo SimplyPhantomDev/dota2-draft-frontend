@@ -2,14 +2,14 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { calculateSynergyPicks } from "../utils/synergy";
 
-function Score({ value, enemy }) {
+function Score({ value }) {
     if (value == null) return <span className="text-ink-muted">—</span>;
 
     // Normalize rounded negative zero before choosing the label and colour.
     const score = Number(Number(value).toFixed(2));
     const colour = score === 0
         ? "text-ink-muted"
-        : (enemy ? score < 0 : score > 0)
+        : score > 0
             ? "text-green-400"
             : "text-danger";
 
@@ -20,8 +20,7 @@ function Score({ value, enemy }) {
     );
 }
 
-function TeamScores({ team, picks, scores }) {
-    const label = team === "ally" ? "Ally team" : "Enemy team";
+function TeamScores({ team, label, picks, scores }) {
     const scoresById = new Map((scores ?? []).map(hero => [hero.HeroId, hero]));
 
     return (
@@ -99,21 +98,18 @@ function TeamScores({ team, picks, scores }) {
                                     <td className="px-ui-sm py-ui-sm text-right">
                                         <Score
                                             value={score?.synergyScore}
-                                            enemy={team === "enemy"}
                                         />
                                     </td>
 
                                     <td className="px-ui-sm py-ui-sm text-right">
                                         <Score
                                             value={score?.counterScore}
-                                            enemy={team === "enemy"}
                                         />
                                     </td>
 
                                     <td className="px-ui-sm py-ui-sm text-right font-semibold">
                                         <Score
                                             value={score?.totalScore}
-                                            enemy={team === "enemy"}
                                         />
                                     </td>
                                 </tr>
@@ -127,6 +123,7 @@ function TeamScores({ team, picks, scores }) {
 }
 
 export default function DraftOverview({
+    teamLabels,
     selectedHeroes,
     matchupIndex,
     heroes,
@@ -229,7 +226,7 @@ export default function DraftOverview({
                         id="draft-overview-description"
                         className="mt-ui-xs text-sm text-ink-muted"
                     >
-                        Ally synergy and enemy matchups for the heroes picked so far.
+                        Teammate synergy and opponent matchups for the heroes picked so far.
                     </p>
                 </div>
             </header>
@@ -247,10 +244,11 @@ export default function DraftOverview({
                 <div className="grid gap-ui-lg lg:grid-cols-2">
                     {["ally", "enemy"].map(team => (
                         <TeamScores
-                            key={team}
                             team={team}
+                            label={teamLabels[team]}
                             picks={selectedHeroes[team]}
                             scores={stats?.[team]}
+                            key={team}
                         />
                     ))}
                 </div>
@@ -259,7 +257,7 @@ export default function DraftOverview({
             <footer className="shrink-0 space-y-ui-xs border-t border-line px-ui-lg py-ui-md text-sm text-ink-muted">
                 <p>
                     Current picks only; composition bonuses are excluded.
-                    Positive enemy scores favour the enemy team.
+                    Positive scores favour the hero's own team.
                 </p>
 
                 <p>

@@ -4,6 +4,8 @@ import HeroPoolBreakdown from "./HeroPoolBreakdown";
 import SettingsButton from "./SettingsButton";
 import MatchFeedbackPanel from "../matchFeedback/MatchFeedbackPanel";
 import MatchResultsUpload from "../matchFeedback/MatchResultsUpload";
+import RecommendationSideSwitch from "./RecommendationSideSwitch";
+import { TEAM_LABELS } from "../utils/draftTeams";
 
 const FLOATING_POOL_QUERY =
     "(min-width: 1800px) and (min-height: 720px)";
@@ -74,7 +76,10 @@ function Sidebar({
     onStartTutorial = null,
     tutorialLoading = false,
     tutorialError = "",
-    suggestedHeroes,
+    teamLabels = TEAM_LABELS,
+    recommendationTeam,
+    recommendationDraft,
+    onRecommendationSwitch,
     poolSuggestions,
     globalSuggestions,
     selectedHeroes,
@@ -97,13 +102,11 @@ function Sidebar({
     questionMarkIcon,
     showGuide,
     setShowGuide,
-    updateSynergySuggestions,
     showWinrateInfo,
     setShowWinrateInfo,
     getWinProbability,
     draftWinProbability = null,
     hasPicks,
-    bannedHeroes,
     infoButtonIcon,
     patch,
     lastUpdated,
@@ -129,7 +132,7 @@ function Sidebar({
         showPoolBreakdown &&
         filterByHeroPool &&
         hasPicks &&
-        selectedHeroes.ally.length < 5;
+        recommendationDraft.ally.length < 5;
 
     const floatingPoolOpen = poolPanelOpen && canFloatPool;
 
@@ -137,7 +140,12 @@ function Sidebar({
         pinnedRecommendation?.hero ?? hoveredSuggestedHero;
 
     const breakdownDraft =
-        pinnedRecommendation?.draft ?? selectedHeroes;
+        pinnedRecommendation?.draft ?? recommendationDraft;
+
+    const recommendedLabel = teamLabels[recommendationTeam];
+    const opponentLabel = teamLabels[
+        recommendationTeam === "ally" ? "enemy" : "ally"
+    ];
 
     // Also handles the task starting while the pointer is already on a row.
     useEffect(() => {
@@ -162,7 +170,7 @@ function Sidebar({
     useEffect(() => {
         if (
             showPoolBreakdown &&
-            (!filterByHeroPool || !hasPicks || selectedHeroes.ally.length >= 5)
+            (!filterByHeroPool || !hasPicks || recommendationDraft.ally.length >= 5)
         ) {
             setShowPoolBreakdown(false);
         }
@@ -170,7 +178,7 @@ function Sidebar({
         showPoolBreakdown,
         filterByHeroPool,
         hasPicks,
-        selectedHeroes.ally.length,
+        recommendationDraft.ally.length,
         setShowPoolBreakdown
     ]);
 
@@ -193,6 +201,13 @@ function Sidebar({
             data-tutorial-target="recommendations"
             className="ui-panel relative min-h-0 min-w-0 flex flex-col p-ui-md 2xl:p-ui-lg"
         >
+            {!fullDraftStats && !comparisonLabel && (
+                <RecommendationSideSwitch
+                    team={recommendationTeam}
+                    onSwitch={onRecommendationSwitch}
+                    teamLabels={teamLabels}
+                />
+            )}
             {comparisonLabel && (
                 <h2 className="mb-ui-sm shrink-0 text-center text-sm font-semibold">
                     {comparisonLabel}
@@ -273,7 +288,7 @@ function Sidebar({
                         </p>
                     </section>
                 )}
-                {suggestedHeroes.length === 0 && hasPicks === false ? (
+                {!hasPicks ? (
                     <p className="text-ink-muted text-sm italic">
                         Pick a hero to see recommendations.
                     </p>
@@ -288,16 +303,16 @@ function Sidebar({
                                     <thead className="text-xs font-semibold text-ink-muted">
                                         <tr>
                                             <th scope="col" className="border-b border-line px-ui-xs pb-ui-sm text-left">
-                                                Ally
+                                                {teamLabels.ally}
                                             </th>
-                                            <th scope="col" aria-label="Ally score" className="border-b border-line px-ui-xs pb-ui-sm text-right">
+                                            <th scope="col" aria-label={`${teamLabels.ally} score`} className="border-b border-line px-ui-xs pb-ui-sm text-right">
                                                 Score
                                             </th>
-                                            <th scope="col" aria-label="Enemy score" className="border-b border-l border-line px-ui-xs pb-ui-sm text-left">
+                                            <th scope="col" aria-label={`${teamLabels.enemy} score`} className="border-b border-l border-line px-ui-xs pb-ui-sm text-left">
                                                 Score
                                             </th>
                                             <th scope="col" className="border-b border-line px-ui-xs pb-ui-sm text-right">
-                                                Enemy
+                                                {teamLabels.enemy}
                                             </th>
                                         </tr>
                                     </thead>
@@ -332,13 +347,13 @@ function Sidebar({
                                                         {ally.totalScore > 0 ? '+' : ''}{ally.totalScore}
                                                     </td>
 
-                                                    {/* Enemy colours are reversed: positive enemy scores favour the opposing team. */}
+                                                    {/* Enemy colours function the same. Positive score benefits their own team. Negative benefits the opponent. */}
                                                     <td
                                                         className={`border-l border-line bg-surface-raised px-ui-xs py-ui-xs text-left align-middle font-mono tabular-nums whitespace-nowrap ${enemy.totalScore > 0
-                                                            ? 'text-danger'
+                                                            ? "text-green-400"
                                                             : enemy.totalScore < 0
-                                                                ? 'text-green-400'
-                                                                : 'text-ink-muted'}`}
+                                                                ? "text-danger"
+                                                                : "text-ink-muted"}`}
                                                     >
                                                         {enemy.totalScore > 0 ? '+' : ''}{enemy.totalScore}
                                                     </td>
@@ -363,14 +378,14 @@ function Sidebar({
 
                                 <div className="grid grid-cols-2 gap-ui-md border-t border-line pt-ui-sm">
                                     <div className="min-w-0 text-center">
-                                        <p className="text-xs text-ink-muted">Ally total</p>
+                                        <p className="text-xs text-ink-muted">{teamLabels.ally} total</p>
                                         <p className="font-mono text-lg font-semibold tabular-nums text-green-400">
                                             {fullDraftStats.ally.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
                                         </p>
                                     </div>
 
                                     <div className="min-w-0 text-center">
-                                        <p className="text-xs text-ink-muted">Enemy total</p>
+                                        <p className="text-xs text-ink-muted">{teamLabels.enemy} total</p>
                                         <p className="font-mono text-lg font-semibold tabular-nums text-danger">
                                             {fullDraftStats.enemy.reduce((sum, h) => sum + parseFloat(h.totalScore), 0).toFixed(1)}
                                         </p>
@@ -568,7 +583,7 @@ function Sidebar({
                                     <span className="text-right">Score</span>
                                 </div>
 
-                                {selectedHeroes.ally.length < 5 && (
+                                {recommendationDraft.ally.length < 5 && (
                                     <>
                                         {filterByHeroPool && (
                                             <>
@@ -648,11 +663,15 @@ function Sidebar({
                                         ))}
                                     </>
                                 )}
-                                {selectedHeroes.ally.length === 5 && (
+                                {recommendationDraft.ally.length === 5 && (
                                     <div className="text-small text-gray-400 mt-4 px-2 py-2 text-center">
-                                        Remove an allied hero to receive suggestions.
-                                        {selectedHeroes.enemy.length < 5 && (
-                                            <div className="py-4">Fill out the enemy team for a full draft breakdown.</div>
+                                        {recommendedLabel} has five heroes. Remove a hero or switch
+                                        recommendations to {opponentLabel}.
+
+                                        {recommendationDraft.enemy.length < 5 && (
+                                            <div className="py-4">
+                                                Fill out {opponentLabel} for a full draft breakdown.
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -667,9 +686,9 @@ function Sidebar({
                                         <h3 className="text-white font-bold mb-2">{shownSuggestedHero.name} Breakdown</h3>
 
                                         <div className="mb-2">
-                                            <p className="text-green-400 font-semibold mb-1">Synergy with Allies</p>
+                                            <p className="text-green-400 font-semibold mb-1">Synergy with {recommendedLabel}</p>
                                             {breakdownDraft.ally.length === 0 ? (
-                                                <p className="text-gray-500 italic">No allies selected</p>
+                                                <p className="text-gray-500 italic">No {recommendedLabel} heroes selected</p>
                                             ) : (
                                                 breakdownDraft.ally.map(ally => {
                                                     const score = getSynergyWith(matchupIndex, shownSuggestedHero.HeroId, ally.HeroId);
@@ -687,9 +706,9 @@ function Sidebar({
                                         </div>
 
                                         <div>
-                                            <p className="text-red-400 font-semibold mb-1">Effectiveness vs Enemies</p>
+                                            <p className="text-red-400 font-semibold mb-1">Effectiveness vs {opponentLabel}</p>
                                             {breakdownDraft.enemy.length === 0 ? (
-                                                <p className="text-gray-500 italic">No enemies selected</p>
+                                                <p className="text-gray-500 italic">	No {opponentLabel} heroes selected</p>
                                             ) : (
                                                 breakdownDraft.enemy.map(enemy => {
                                                     const score = getCounterVs(matchupIndex, shownSuggestedHero.HeroId, enemy.HeroId);
@@ -722,6 +741,7 @@ function Sidebar({
                                 )}
                                 {active && poolPanelOpen && (
                                     <HeroPoolBreakdown
+                                        teamLabel={recommendedLabel}
                                         heroes={fullPoolSynergies}
                                         onClose={() => {
                                             if (requestTutorialAction
@@ -806,12 +826,6 @@ function Sidebar({
                             ) return;
 
                             setRoleFilter(newFilter);
-                            updateSynergySuggestions(
-                                selectedHeroes.ally,
-                                selectedHeroes.enemy,
-                                bannedHeroes,
-                                newFilter
-                            );
                         }}
                     >
                         Carry
@@ -835,12 +849,6 @@ function Sidebar({
                             ) return;
 
                             setRoleFilter(newFilter);
-                            updateSynergySuggestions(
-                                selectedHeroes.ally,
-                                selectedHeroes.enemy,
-                                bannedHeroes,
-                                newFilter
-                            );
                         }}
                     >
                         Support

@@ -2,7 +2,17 @@ import '../App.css';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { groupAndSortHeroes } from '../utils/groupHeroes';
 import { indexMatrix } from '../utils/indexMatrix';
-import { calculateSynergyPicks, calculatePoolSynergies, getCounterVs, getSynergyWith, getWinProbability } from '../utils/synergy';
+import {
+    getCounterVs,
+    getSynergyWith,
+    getWinProbability,
+} from "../utils/synergy";
+import { calculateDraftRecommendations } from "../utils/draftRecommendations";
+import {
+    getRecommendationDraft,
+    TEAM_LABELS,
+    PRACTICE_TEAM_LABELS,
+} from "../utils/draftTeams";
 import HeroInspector from '../components/HeroInspector';
 import { calculateHeroInspection } from '../utils/heroInspection';
 import { predictEnemyRoles } from '../utils/predictRoles';
@@ -32,6 +42,7 @@ export default function HeroList({
     tutorialError = "",
 }) {
     const isPractice = practiceDataset !== null;
+    const teamLabels = isPractice ? PRACTICE_TEAM_LABELS : TEAM_LABELS;
     const datasetManifest =
         practiceDataset?.manifest ?? window.__LOCAL_DATASET_MANIFEST__;
     const beforeTutorialAction = tutorial?.beforeAction;
@@ -61,6 +72,9 @@ export default function HeroList({
     // The team currently being drafted
     const [selectedTeam, setSelectedTeam] = useState("ally");
 
+    // Viewing the other side's best picks never changes where clicks add heroes.
+    const [recommendationTeam, setRecommendationTeam] = useState("ally");
+
     // Heroes that are temporarily click-locked (Emergency fallback for quick inputs)
     const [clickLockedHeroes, setClickLockedHeroes] = useState(new Set());
 
@@ -69,20 +83,16 @@ export default function HeroList({
         () => practiceDataset?.heroes ?? {}
     );
 
-    // Suggestions calculated based on current draft and filters
-    const [suggestedHeroes, setSuggestedHeroes] = useState([]);
-
-    // Full synergy breakdown shown when both teams have their teams' full
-    const [fullDraftStats, setFullDraftStats] = useState(null);
-
     // Filtering suggestions by selected role (e.g., "carry", "support")
     const [roleFilter, setRoleFilter] = useState(null);
 
     // Static hero role data (hero-specific position data)
     const [heroRoleMap, setHeroRoleMap] = useState(null);
 
-    // Predicitons of the enemy team hero positions based on picks
-    const [enemyRolePredictions, setEnemyRolePredictions] = useState({});
+    const [rolePredictions, setRolePredictions] = useState({
+        ally: {},
+        enemy: {},
+    });
 
     //==============================================
     //================ UI State ====================
@@ -158,20 +168,11 @@ export default function HeroList({
         }
     });
 
-    // Synergy scores of all heroes within the hero pool, positive and negative
-    const [fullPoolSynergies, setFullPoolSynergies] = useState([]);
-
     // Whether to show suggestions based on the user's hero pool or not
     const [filterByHeroPool, setFilterByHeroPool] = useState(!isPractice);
 
     // Whether "Hero Pool Manipulation" mode is active (click to add/remove heroes)
     const [editHeroPoolMode, setEditHeroPoolMode] = useState(false);
-
-    // Suggestions from the user's hero pool
-    const [poolSuggestions, setPoolSuggestions] = useState([]);
-
-    // Best picks only taking draft into account
-    const [globalSuggestions, setGlobalSuggestions] = useState([]);
 
     //==============================================
     //============= Status Messages ================
@@ -216,6 +217,36 @@ export default function HeroList({
     // True if either team has selected at least one hero
     const hasPicks = selectedHeroes.ally.length > 0 || selectedHeroes.enemy.length > 0;
 
+    const recommendationDraft = getRecommendationDraft(
+        selectedHeroes,
+        recommendationTeam
+    );
+
+    const {
+        fullDraftStats,
+        poolSuggestions,
+        globalSuggestions,
+        fullPoolSynergies,
+    } = useMemo(() => calculateDraftRecommendations({
+        selectedHeroes,
+        recommendationTeam,
+        bannedHeroes,
+        roleFilter,
+        matchupIndex,
+        heroes,
+        heroPool,
+        filterByHeroPool,
+    }), [
+        selectedHeroes,
+        recommendationTeam,
+        bannedHeroes,
+        roleFilter,
+        matchupIndex,
+        heroes,
+        heroPool,
+        filterByHeroPool,
+    ]);
+
     // The button and focused shortcut share the same availability rule.
     const canSwitchTeam =
         selectedHeroes.ally.length < 5 && selectedHeroes.enemy.length < 5;
@@ -233,13 +264,15 @@ export default function HeroList({
             selectedHeroes,
             selectedTeam,
             bannedHeroes,
-            roleFilter
+            roleFilter,
+            recommendationTeam
         );
     }, [
         selectedHeroes,
         selectedTeam,
         bannedHeroes,
         roleFilter,
+        recommendationTeam,
         reportTutorialDraft,
     ]);
 
@@ -251,7 +284,7 @@ export default function HeroList({
             filtering: filterByHeroPool,
             breakdownOpen: showPoolBreakdown
                 && filterByHeroPool && hasPicks
-                && selectedHeroes.ally.length < 5,
+                && recommendationDraft.ally.length < 5,
         });
     }, [
         heroPool,
@@ -259,7 +292,7 @@ export default function HeroList({
         filterByHeroPool,
         showPoolBreakdown,
         hasPicks,
-        selectedHeroes.ally.length,
+        recommendationDraft.ally.length,
         reportTutorialPool,
     ]);
 
@@ -277,6 +310,7 @@ export default function HeroList({
         });
         setBannedHeroes(resolveHeroes(practiceSeed.bans));
         setSelectedTeam(practiceSeed.team);
+        setRecommendationTeam(practiceSeed.recommendationTeam ?? "ally");
         setRoleFilter(practiceSeed.roleFilter ?? null);
         if (Array.isArray(practiceSeed.heroPool)) {
             setHeroPool(practiceSeed.heroPool);
@@ -293,6 +327,18 @@ export default function HeroList({
 
         setSelectedTeam(team => team === "ally" ? "enemy" : "ally");
     }, [canSwitchTeam, requestTutorialAction]);
+
+    const handleRecommendationSwitch = () => {
+        const team = recommendationTeam === "ally" ? "enemy" : "ally";
+
+        if (!requestTutorialAction({
+            type: "recommendation-side",
+            team,
+        })) return;
+
+        setHoveredSuggestedHero(null);
+        setRecommendationTeam(team);
+    };
 
     const openDraftOverview = useCallback(() => {
         if (!requestTutorialAction({ type: "overview" })) return;
@@ -401,28 +447,21 @@ export default function HeroList({
     //=========== Synergy Suggestions ==============
     //==============================================
 
-    // Assign enemy hero roles based on already picked heroes in the enemy team
+    // Position hints are independent of which side is being recommended.
     useEffect(() => {
-        if (!heroRoleMap || selectedHeroes.enemy.length === 0) return;
+        if (!heroRoleMap) return;
 
-        const ids = selectedHeroes.enemy.map(h => h.HeroId);
-        const predictions = predictEnemyRoles(ids, heroRoleMap);
-        setEnemyRolePredictions(predictions);
-    }, [selectedHeroes.enemy, heroRoleMap]);
-
-    // Trigger synergy calculations for all heroes within the user's hero pool
-    useEffect(() => {
-        const results = calculatePoolSynergies({
-            heroPool,
-            allyHeroIds: selectedHeroes.ally.map(h => h.HeroId),
-            enemyHeroIds: selectedHeroes.enemy.map(h => h.HeroId),
-            bannedHeroIds: bannedHeroes.map(h => h.HeroId),
-            matchupIndex,
-            heroes
+        setRolePredictions({
+            ally: predictEnemyRoles(
+                selectedHeroes.ally.map(hero => hero.HeroId),
+                heroRoleMap
+            ),
+            enemy: predictEnemyRoles(
+                selectedHeroes.enemy.map(hero => hero.HeroId),
+                heroRoleMap
+            ),
         });
-
-        setFullPoolSynergies(results);
-    }, [heroPool, selectedHeroes, bannedHeroes, matchupIndex, heroes]);
+    }, [selectedHeroes, heroRoleMap]);
 
     //==============================================
     //========== Hero Pool Persistence =============
@@ -594,96 +633,6 @@ export default function HeroList({
     }, [selectedHeroes]);
 
     //==============================================
-    //========= Synergy Suggestion Engine ==========
-    //==============================================
-
-    /**
-   * Updates synergy suggestions or final draft stats based on the current draft state.
-   * 
-   * This function:
-   * - Gathers selected heroes, bans, roles, and filter settings
-   * - Calls the core synergy calculation engine
-   * - Decides whether to show:
-   *   - Full team synergy stats (if both team are full), OR
-   *   - Suggested heroes to pick next (split into hero pool and global is hero pool toggle is on)
-   * 
-   * It is memoized to avoid unnecessary recalculations.
-   */
-
-    const updateSynergySuggestions = useCallback((
-        ally = selectedHeroes.ally,    // Selected heroes on the user's team
-        enemy = selectedHeroes.enemy,  // Selected heroes on the enemy team
-        bans = bannedHeroes,           // Banned heroes
-        role = roleFilter              // Current role filter (e.g. carry, support)
-    ) => {
-
-        // If no heroes are picked on either team, clear all suggestions and stats
-        if (!ally.length && !enemy.length) {
-            setSuggestedHeroes([]);
-            setPoolSuggestions([]);
-            setGlobalSuggestions([]);
-            setFullDraftStats(null);
-            return;
-        }
-
-        // Run synergy engine with all draft-related inputs
-        const result = calculateSynergyPicks({
-            allyHeroIds: ally.map(h => h.HeroId),
-            enemyHeroIds: enemy.map(h => h.HeroId),
-            bannedHeroIds: bans.map(h => h.HeroId),
-            roleFilter: ally.length === 5 && enemy.length === 5 ? null : role,
-            fullDraft: ally.length === 5 && enemy.length === 5,
-            matchupIndex,
-            heroes,
-            heroPool: filterByHeroPool && heroPool.length > 0 ? heroPool : null
-        });
-
-        // === CASE 1: Full Draft Complete ===
-        // Show full synergy breakdown for both teams
-        if (result?.mode === "fullDraft") {
-            setFullDraftStats(result.teams);
-            setSuggestedHeroes([]); // No suggestions needed anymore
-        }
-
-        // === CASE 2: Still Drafting - Show Suggestions ===
-        // Show top synergy picks (in and out of personal hero pool)
-        else if (result?.mode === "suggestion") {
-            const { inPool = [], outPool = [] } = result;
-            setPoolSuggestions(inPool.slice(0, 3));     // Limit in-pool picks to top 3
-            setGlobalSuggestions(outPool.slice(0, 10)); // Limit global picks to top 10
-            setFullDraftStats(null);                    // Clear full drafts view
-        }
-    }, [
-        selectedHeroes.ally,
-        selectedHeroes.enemy,
-        bannedHeroes,
-        roleFilter,
-        matchupIndex,
-        heroes,
-        heroPool,
-        filterByHeroPool
-    ]);
-
-    /*
- * Automatically refresh draft recommendations when scoring inputs change.
- *
- * updateSynergySuggestions is memoized with useCallback. Its reference changes
- * when its dependencies change: picks, bans, filters, the hero pool, or loaded
- * hero/matchup data. Watching that reference here covers all those inputs
- * without duplicating the callback's dependency list.
- *
- * This also refreshes suggestions after data finishes loading or the pool is
- * edited, without requiring another pick, ban, or filter toggle.
- *
- * Keep this effect below the callback declaration: the dependency array reads
- * updateSynergySuggestions during render, so it must already be defined.
- */
-
-    useEffect(() => {
-        updateSynergySuggestions();
-    }, [updateSynergySuggestions]);
-
-    //==============================================
     //================== Helpers ===================
     //==============================================
 
@@ -722,7 +671,6 @@ export default function HeroList({
     const handleClearBans = () => {
         if (!requestTutorialAction({ type: "clear-bans" })) return;
         setBannedHeroes([]);
-        updateSynergySuggestions(selectedHeroes.ally, selectedHeroes.enemy, []);
     };
 
     /**
@@ -833,8 +781,6 @@ export default function HeroList({
         };
 
         setSelectedHeroes(newSelected);
-
-        updateSynergySuggestions(newSelected.ally, newSelected.enemy, bannedHeroes);
     };
 
     /**
@@ -844,7 +790,6 @@ export default function HeroList({
         if (!requestTutorialAction({ type: "clear-draft" })) return;
 
         setSelectedHeroes({ ally: [], enemy: [] });
-        setSuggestedHeroes([]);
         setBannedHeroes([]);
         setClickLockedHeroes(new Set());
     };
@@ -990,6 +935,7 @@ export default function HeroList({
             />
             {/* Drafting Panel with Title */}
             <DraftPanel
+                teamLabels={teamLabels}
                 selectedHeroes={selectedHeroes}
                 selectedTeam={selectedTeam}
                 handleTeamSwitch={handleTeamSwitch}
@@ -1004,7 +950,7 @@ export default function HeroList({
                 inspectorButtonRef={inspectorButtonRef}
                 handleDrop={handleDrop}
                 handleHeroDeselect={handleHeroDeselect}
-                enemyRolePredictions={enemyRolePredictions}
+                rolePredictions={rolePredictions}
                 setShowGuide={setShowGuide}
                 infoButtonIcon={infoButtonIcon}
                 buttonPulse={buttonPulse}
@@ -1023,6 +969,7 @@ export default function HeroList({
             {/* Portals live outside the hidden workspace; suspend them explicitly. */}
             {active && showDraftOverview && (
                 <DraftOverview
+                    teamLabels={teamLabels}
                     selectedHeroes={selectedHeroes}
                     matchupIndex={matchupIndex}
                     heroes={heroes}
@@ -1035,6 +982,7 @@ export default function HeroList({
                 {showHeroInspector && (
                     <HeroInspector
                         key="hero-inspector"
+                        teamLabels={teamLabels}
                         inspection={heroInspection}
                         selectedTeam={selectedTeam}
                         onPick={handleDrop}
@@ -1118,7 +1066,10 @@ export default function HeroList({
                     onStartTutorial={onStartTutorial}
                     tutorialLoading={tutorialLoading}
                     tutorialError={tutorialError}
-                    suggestedHeroes={suggestedHeroes}
+                    teamLabels={teamLabels}
+                    recommendationTeam={recommendationTeam}
+                    recommendationDraft={recommendationDraft}
+                    onRecommendationSwitch={handleRecommendationSwitch}
                     poolSuggestions={poolSuggestions}
                     globalSuggestions={globalSuggestions}
                     selectedHeroes={selectedHeroes}
@@ -1140,13 +1091,11 @@ export default function HeroList({
                     fullPoolSynergies={fullPoolSynergies}
                     showGuide={showGuide}
                     setShowGuide={setShowGuide}
-                    updateSynergySuggestions={updateSynergySuggestions}
                     showWinrateInfo={showWinrateInfo}
                     setShowWinrateInfo={setShowWinrateInfo}
                     draftWinProbability={draftWinProbability}
                     getWinProbability={getWinProbability}
                     hasPicks={hasPicks}
-                    bannedHeroes={bannedHeroes}
                     infoButtonIcon={infoButtonIcon}
                     questionMarkIcon={questionMarkIcon}
                     patch={datasetManifest?.patch}

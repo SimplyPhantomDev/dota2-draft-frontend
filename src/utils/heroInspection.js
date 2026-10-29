@@ -56,7 +56,7 @@ export function calculateHeroInspection({
     } else if (isPicked) {
         pickBlockedReason = "This hero has already been picked.";
     } else if (selectedHeroes[selectedTeam].length >= 5) {
-        pickBlockedReason = `The ${selectedTeam} team is full.`;
+        pickBlockedReason = "The selected team is full.";
     }
 
     return {
